@@ -8,6 +8,75 @@ export type Database = {
   };
   public: {
     Tables: {
+      employees: {
+        Row: {
+          annual_rent_kobo: number;
+          basic_kobo: number;
+          created_at: string;
+          full_name: string;
+          housing_kobo: number;
+          id: string;
+          manager_id: string | null;
+          org_id: string;
+          pfa: string | null;
+          state_of_residence: string | null;
+          status: string;
+          tin: string | null;
+          tin_valid_from: string | null;
+          tin_valid_to: string | null;
+          transport_kobo: number;
+        };
+        Insert: {
+          annual_rent_kobo?: number;
+          basic_kobo?: number;
+          created_at?: string;
+          full_name: string;
+          housing_kobo?: number;
+          id?: string;
+          manager_id?: string | null;
+          org_id: string;
+          pfa?: string | null;
+          state_of_residence?: string | null;
+          status?: string;
+          tin?: string | null;
+          tin_valid_from?: string | null;
+          tin_valid_to?: string | null;
+          transport_kobo?: number;
+        };
+        Update: {
+          annual_rent_kobo?: number;
+          basic_kobo?: number;
+          created_at?: string;
+          full_name?: string;
+          housing_kobo?: number;
+          id?: string;
+          manager_id?: string | null;
+          org_id?: string;
+          pfa?: string | null;
+          state_of_residence?: string | null;
+          status?: string;
+          tin?: string | null;
+          tin_valid_from?: string | null;
+          tin_valid_to?: string | null;
+          transport_kobo?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "employees_manager_id_fkey";
+            columns: ["manager_id"];
+            isOneToOne: false;
+            referencedRelation: "employees";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "employees_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       org_memberships: {
         Row: {
           created_at: string;
@@ -72,6 +141,138 @@ export type Database = {
           states_of_operation?: string[];
         };
         Relationships: [];
+      };
+      pay_runs: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          employee_count: number;
+          frequency: string;
+          gross_kobo: number;
+          id: string;
+          net_kobo: number;
+          org_id: string;
+          period_end: string;
+          period_start: string;
+          rule_version_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          employee_count?: number;
+          frequency: string;
+          gross_kobo?: number;
+          id?: string;
+          net_kobo?: number;
+          org_id: string;
+          period_end: string;
+          period_start: string;
+          rule_version_id: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          employee_count?: number;
+          frequency?: string;
+          gross_kobo?: number;
+          id?: string;
+          net_kobo?: number;
+          org_id?: string;
+          period_end?: string;
+          period_start?: string;
+          rule_version_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "pay_runs_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      payslips: {
+        Row: {
+          chargeable_income_kobo: number;
+          created_at: string;
+          cumulative_chargeable_income_before_kobo: number;
+          cumulative_paye_paid_before_kobo: number;
+          employee_deductions_kobo: number;
+          employee_id: string;
+          gross_kobo: number;
+          id: string;
+          net_kobo: number;
+          nhf_kobo: number;
+          org_id: string;
+          pay_run_id: string;
+          paye_kobo: number;
+          pension_employee_kobo: number;
+          pension_employer_kobo: number;
+          pensionable_kobo: number;
+          rent_relief_kobo: number;
+        };
+        Insert: {
+          chargeable_income_kobo: number;
+          created_at?: string;
+          cumulative_chargeable_income_before_kobo: number;
+          cumulative_paye_paid_before_kobo: number;
+          employee_deductions_kobo: number;
+          employee_id: string;
+          gross_kobo: number;
+          id?: string;
+          net_kobo: number;
+          nhf_kobo: number;
+          org_id: string;
+          pay_run_id: string;
+          paye_kobo: number;
+          pension_employee_kobo: number;
+          pension_employer_kobo: number;
+          pensionable_kobo: number;
+          rent_relief_kobo: number;
+        };
+        Update: {
+          chargeable_income_kobo?: number;
+          created_at?: string;
+          cumulative_chargeable_income_before_kobo?: number;
+          cumulative_paye_paid_before_kobo?: number;
+          employee_deductions_kobo?: number;
+          employee_id?: string;
+          gross_kobo?: number;
+          id?: string;
+          net_kobo?: number;
+          nhf_kobo?: number;
+          org_id?: string;
+          pay_run_id?: string;
+          paye_kobo?: number;
+          pension_employee_kobo?: number;
+          pension_employer_kobo?: number;
+          pensionable_kobo?: number;
+          rent_relief_kobo?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "payslips_employee_id_fkey";
+            columns: ["employee_id"];
+            isOneToOne: false;
+            referencedRelation: "employees";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "payslips_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "payslips_pay_run_id_fkey";
+            columns: ["pay_run_id"];
+            isOneToOne: false;
+            referencedRelation: "pay_runs";
+            referencedColumns: ["id"];
+          },
+        ];
       };
     };
     Views: {
