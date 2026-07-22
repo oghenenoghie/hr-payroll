@@ -35,6 +35,10 @@ export interface PeriodPayslipResult {
   payeKobo: Kobo;
   employeeDeductionsKobo: Kobo;
   netKobo: Kobo;
+  /** This period's prorated pay components — the correct input for org-level,
+   * per-period schemes (e.g. NSITF's total-monthly-payroll base) so callers
+   * never have to re-derive the proration themselves. */
+  periodComponents: PayComponent[];
 }
 
 /**
@@ -88,5 +92,6 @@ export function derivePeriodPayslip(input: PeriodPayslipInput, ruleVersion: Rule
     payeKobo,
     employeeDeductionsKobo,
     netKobo,
+    periodComponents,
   };
 }

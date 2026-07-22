@@ -2,7 +2,14 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { NG_2026_1, checkTinGate, derivePeriodPayslip, type PayComponent, type PayFrequency } from "@plutus/compliance";
+import {
+  NG_2026_1,
+  checkTinGate,
+  computeNsitf,
+  derivePeriodPayslip,
+  type PayComponent,
+  type PayFrequency,
+} from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
 
 export type CreatePayRunState = { error?: string; missingTin?: string[] } | null;
@@ -85,6 +92,7 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
 
   let totalGrossKobo = 0n;
   let totalNetKobo = 0n;
+  const allPeriodComponents: PayComponent[][] = [];
 
   const payslipsPayload = employees.map((employee) => {
     const prior = priorStateByEmployee.get(employee.id);
@@ -107,6 +115,7 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
 
     totalGrossKobo += result.grossKobo;
     totalNetKobo += result.netKobo;
+    allPeriodComponents.push(result.periodComponents);
 
     // Employer costs (pension employer share) are tracked on their own
     // ledger line — never folded into an employee-facing deduction total.
@@ -141,6 +150,14 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
     };
   });
 
+  // NSITF is computed on the whole run's total payroll base, not per
+  // employee — an org-level cost, never an employee deduction.
+  const nsitf = computeNsitf(allPeriodComponents, NG_2026_1);
+  const orgPostings = [
+    { account_code: "nsitf_expense", direction: "debit", amount_kobo: nsitf.employerKobo },
+    { account_code: "nsitf_payable", direction: "credit", amount_kobo: nsitf.employerKobo },
+  ].filter((posting) => posting.amount_kobo > 0n);
+
   const { error: rpcError } = await supabase.rpc("create_pay_run", {
     payload: {
       org_id: membership.org_id,
@@ -153,6 +170,7 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
       net_kobo: Number(totalNetKobo),
       memo: `Payroll ${periodStart} – ${periodEnd}`,
       payslips: payslipsPayload,
+      org_postings: orgPostings.map((posting) => ({ ...posting, amount_kobo: Number(posting.amount_kobo) })),
     },
   });
 

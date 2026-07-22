@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { naira } from "../src/money";
 import { NG_2026_1 } from "../src/rule-versions/ng-2026.1";
 import { computeAnnualPaye } from "../src/schemes/paye";
+import { computeNsitf } from "../src/schemes/nsitf";
 import { derivePeriodPayslip } from "../src/payslip";
 import type { PayComponent } from "../src/types";
 
@@ -132,5 +133,36 @@ describe("derivePeriodPayslip", () => {
     expect(month7Result.payeKobo).not.toBe(naiveIsolatedMonthlyPaye);
     expect(month7Result.payeKobo).toBeGreaterThan(0n);
     expect(month7Result.payeKobo).toBeGreaterThan(month6Result.payeKobo);
+  });
+
+  it("periodComponents from multiple employees feed computeNsitf's org-level base correctly", () => {
+    const employeeA = derivePeriodPayslip(
+      {
+        annualPayComponents: annualComponents(1_200_000, 600_000, 360_000), // 2,160,000/yr -> 180,000/mo
+        annualRentPaidKobo: 0n,
+        frequency: "monthly",
+        cumulativeChargeableIncomeBeforeKobo: 0n,
+        cumulativePayePaidBeforeKobo: 0n,
+      },
+      rv,
+    );
+    const employeeB = derivePeriodPayslip(
+      {
+        annualPayComponents: annualComponents(2_400_000, 1_200_000, 720_000), // 4,320,000/yr -> 360,000/mo
+        annualRentPaidKobo: 0n,
+        frequency: "monthly",
+        cumulativeChargeableIncomeBeforeKobo: 0n,
+        cumulativePayePaidBeforeKobo: 0n,
+      },
+      rv,
+    );
+
+    const nsitf = computeNsitf([employeeA.periodComponents, employeeB.periodComponents], rv);
+
+    // Total monthly payroll base = both employees' period gross combined
+    // (both employees' components are entirely "regular" kind here).
+    expect(nsitf.totalMonthlyPayrollBaseKobo).toBe(employeeA.grossKobo + employeeB.grossKobo);
+    expect(nsitf.totalMonthlyPayrollBaseKobo).toBe(naira(180_000 + 360_000));
+    expect(nsitf.employerKobo).toBe(naira(5_400)); // 1% of ₦540,000 combined base
   });
 });
