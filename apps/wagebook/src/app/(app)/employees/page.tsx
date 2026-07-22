@@ -38,6 +38,7 @@ export default async function EmployeesPage() {
               <th className={`${thClass} text-right`}>Basic</th>
               <th className={`${thClass} text-center`}>TIN</th>
               <th className={`${thClass} text-center`}>Status</th>
+              <th className={thClass}></th>
             </tr>
           </thead>
           <tbody>
@@ -55,11 +56,16 @@ export default async function EmployeesPage() {
                   <td className={`${tdClass} text-center`}>
                     <EmployeeStatusBadge status={employee.status} />
                   </td>
+                  <td className={`${tdClass} text-right`}>
+                    <Link href={`/employees/${employee.id}/edit`} className="font-bold text-primary">
+                      Edit
+                    </Link>
+                  </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={5} className="px-3 py-10 text-center text-[13px] text-ink-soft">
+                <td colSpan={6} className="px-3 py-10 text-center text-[13px] text-ink-soft">
                   No employees yet.
                 </td>
               </tr>
