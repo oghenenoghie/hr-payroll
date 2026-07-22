@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "Overview" },
   { href: "/employees", label: "Employees" },
   { href: "/payroll", label: "Payroll Runs" },
+  { href: "/reports", label: "Reports" },
 ];
 
 export function SidebarNav() {
