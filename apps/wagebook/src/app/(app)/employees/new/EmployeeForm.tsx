@@ -11,6 +11,7 @@ export function EmployeeForm() {
     <form action={formAction} className="flex flex-col gap-4">
       <FormError message={state?.error} />
       <FormField label="Full name" name="full_name" />
+      <FormField label="Email" name="email" type="email" required={false} />
       <FormField label="State of residence" name="state_of_residence" required={false} />
       <div className="grid grid-cols-3 gap-4">
         <FormField label="Basic (₦/yr)" name="basic" type="number" required={false} defaultValue="0" />

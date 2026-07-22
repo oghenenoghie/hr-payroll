@@ -1,12 +1,27 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatKobo } from "@/lib/format";
+import { getMembership } from "@/lib/membership";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const tdClass = "px-3 py-[10px] text-[13px]";
 
 export default async function PayrollPage() {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const membership = await getMembership(supabase, user.id);
+  if (membership?.role === "employee") {
+    redirect("/me");
+  }
+
   const { data: payRuns } = await supabase
     .from("pay_runs")
     .select("*")

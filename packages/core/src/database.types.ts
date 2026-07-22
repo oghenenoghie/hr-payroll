@@ -19,9 +19,11 @@ export type Database = {
           annual_rent_kobo: number
           basic_kobo: number
           created_at: string
+          email: string | null
           full_name: string
           housing_kobo: number
           id: string
+          linked_at: string | null
           manager_id: string | null
           org_id: string
           pfa: string | null
@@ -31,14 +33,17 @@ export type Database = {
           tin_valid_from: string | null
           tin_valid_to: string | null
           transport_kobo: number
+          user_id: string | null
         }
         Insert: {
           annual_rent_kobo?: number
           basic_kobo?: number
           created_at?: string
+          email?: string | null
           full_name: string
           housing_kobo?: number
           id?: string
+          linked_at?: string | null
           manager_id?: string | null
           org_id: string
           pfa?: string | null
@@ -48,14 +53,17 @@ export type Database = {
           tin_valid_from?: string | null
           tin_valid_to?: string | null
           transport_kobo?: number
+          user_id?: string | null
         }
         Update: {
           annual_rent_kobo?: number
           basic_kobo?: number
           created_at?: string
+          email?: string | null
           full_name?: string
           housing_kobo?: number
           id?: string
+          linked_at?: string | null
           manager_id?: string | null
           org_id?: string
           pfa?: string | null
@@ -65,6 +73,7 @@ export type Database = {
           tin_valid_from?: string | null
           tin_valid_to?: string | null
           transport_kobo?: number
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -416,6 +425,29 @@ export type Database = {
           period_end: string
           period_start: string
           rule_version_id: string
+        }
+      }
+      link_employee_account: {
+        Args: { p_employee_id: string; p_user_id: string }
+        Returns: {
+          annual_rent_kobo: number
+          basic_kobo: number
+          created_at: string
+          email: string | null
+          full_name: string
+          housing_kobo: number
+          id: string
+          linked_at: string | null
+          manager_id: string | null
+          org_id: string
+          pfa: string | null
+          state_of_residence: string | null
+          status: string
+          tin: string | null
+          tin_valid_from: string | null
+          tin_valid_to: string | null
+          transport_kobo: number
+          user_id: string | null
         }
       }
     }

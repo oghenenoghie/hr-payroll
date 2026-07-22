@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { EditEmployeeForm } from "./EditEmployeeForm";
+import { InviteAccountPanel } from "./InviteAccountPanel";
 
 export default async function EditEmployeePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -16,6 +17,9 @@ export default async function EditEmployeePage({ params }: { params: Promise<{ i
       </header>
       <div className="rounded-card border border-border bg-surface p-6">
         <EditEmployeeForm employee={employee} />
+      </div>
+      <div className="rounded-card border border-border bg-surface p-6">
+        <InviteAccountPanel employeeId={employee.id} email={employee.email} linkedAt={employee.linked_at} />
       </div>
     </div>
   );

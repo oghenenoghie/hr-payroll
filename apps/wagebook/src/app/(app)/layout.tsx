@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getMembership } from "@/lib/membership";
 import { signOut } from "./dashboard/actions";
 import { SidebarNav } from "./SidebarNav";
 
@@ -20,12 +21,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect("/login");
   }
 
-  const { data: memberships } = await supabase
-    .from("org_memberships")
-    .select("role, organizations(name)")
-    .eq("user_id", user.id);
-
-  const membership = memberships?.[0];
+  const membership = await getMembership(supabase, user.id);
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -37,13 +33,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               Technologies
             </span>
           </div>
-          <SidebarNav />
+          <SidebarNav role={membership?.role} />
         </div>
 
         <div className="flex flex-col gap-3 border-t border-primary px-2 pt-4">
           <div className="flex flex-col gap-0.5">
             <span className="truncate text-[12.5px] font-bold text-white">
-              {membership?.organizations?.name ?? "Your organization"}
+              {membership?.orgName ?? "Your organization"}
             </span>
             <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-primary-tint">
               {membership ? (ROLE_LABEL[membership.role] ?? membership.role) : ""}

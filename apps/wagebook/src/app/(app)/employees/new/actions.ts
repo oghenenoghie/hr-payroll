@@ -33,6 +33,7 @@ export async function addEmployee(_prevState: AddEmployeeState, formData: FormDa
     return { error: "Full name is required." };
   }
 
+  const email = String(formData.get("email") ?? "").trim() || null;
   const stateOfResidence = String(formData.get("state_of_residence") ?? "").trim() || null;
   const tin = String(formData.get("tin") ?? "").trim() || null;
   const pfa = String(formData.get("pfa") ?? "").trim() || null;
@@ -44,6 +45,7 @@ export async function addEmployee(_prevState: AddEmployeeState, formData: FormDa
   const { error } = await supabase.from("employees").insert({
     org_id: membership.org_id,
     full_name: fullName,
+    email,
     state_of_residence: stateOfResidence,
     basic_kobo: Number(naira(basicNaira)),
     housing_kobo: Number(naira(housingNaira)),

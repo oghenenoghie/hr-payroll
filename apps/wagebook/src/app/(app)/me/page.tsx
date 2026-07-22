@@ -1,0 +1,97 @@
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { formatKobo } from "@/lib/format";
+import { TinBadge } from "@/components/Badge";
+
+export default async function MePage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data: employee } = await supabase.from("employees").select("*").eq("user_id", user.id).maybeSingle();
+
+  if (!employee) {
+    return (
+      <div className="mx-auto flex w-full max-w-[560px] flex-col gap-5 px-6 py-10">
+        <header className="flex flex-col gap-1">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Overview</span>
+          <h1 className="text-[22px] font-extrabold text-ink">No employee record linked</h1>
+        </header>
+        <p className="text-[13px] text-ink-soft">
+          Your account isn&apos;t linked to an employee record yet. Ask your employer to send an invite from your
+          employee profile.
+        </p>
+      </div>
+    );
+  }
+
+  const { data: latestPayslip } = await supabase
+    .from("payslips")
+    .select("*, pay_runs(period_start, period_end)")
+    .eq("employee_id", employee.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return (
+    <div className="mx-auto flex w-full max-w-[560px] flex-col gap-5 px-6 py-10">
+      <header className="flex flex-col gap-1">
+        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Overview</span>
+        <h1 className="text-[22px] font-extrabold text-ink">{employee.full_name}</h1>
+        <p className="text-[13px] text-ink-soft">Signed in as {user.email}</p>
+      </header>
+
+      <div className="flex items-center justify-between rounded-card border border-border bg-surface p-6">
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">TIN status</span>
+          <span className="text-[13px] text-ink-soft">{employee.tin ?? "Not on file"}</span>
+        </div>
+        <TinBadge tin={employee.tin} />
+      </div>
+
+      <div className="rounded-card border border-border bg-surface p-6">
+        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Latest payslip</span>
+
+        {latestPayslip ? (
+          <div className="mt-3 flex flex-col gap-3">
+            <p className="text-[13px] font-bold text-ink">
+              {latestPayslip.pay_runs?.period_start} – {latestPayslip.pay_runs?.period_end}
+            </p>
+            <div className="flex flex-col gap-2 text-[13px]">
+              <Row label="Gross" amountKobo={latestPayslip.gross_kobo} />
+              <Row label="Pension (employee)" amountKobo={-latestPayslip.pension_employee_kobo} />
+              <Row label="NHF" amountKobo={-latestPayslip.nhf_kobo} />
+              <Row label="Rent relief" amountKobo={latestPayslip.rent_relief_kobo} />
+              <Row label="Chargeable income" amountKobo={latestPayslip.chargeable_income_kobo} />
+              <Row label="PAYE" amountKobo={-latestPayslip.paye_kobo} />
+              <div className="mt-1 flex items-center justify-between border-t border-border pt-2 font-extrabold text-ink">
+                <span>Net pay</span>
+                <span>{formatKobo(BigInt(latestPayslip.net_kobo))}</span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <p className="mt-2 text-[13px] text-ink-soft">No payslips yet.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Row({ label, amountKobo }: { label: string; amountKobo: number }) {
+  const negative = amountKobo < 0;
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-ink-soft">{label}</span>
+      <span className={negative ? "font-bold text-bad" : "font-bold text-ink"}>
+        {negative ? "-" : ""}
+        {formatKobo(BigInt(Math.abs(amountKobo)))}
+      </span>
+    </div>
+  );
+}

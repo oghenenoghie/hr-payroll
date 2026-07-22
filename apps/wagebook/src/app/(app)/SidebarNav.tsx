@@ -3,19 +3,22 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const NAV_ITEMS = [
+const ADMIN_NAV_ITEMS = [
   { href: "/dashboard", label: "Overview" },
   { href: "/employees", label: "Employees" },
   { href: "/payroll", label: "Payroll Runs" },
   { href: "/reports", label: "Reports" },
 ];
 
-export function SidebarNav() {
+const EMPLOYEE_NAV_ITEMS = [{ href: "/me", label: "Overview" }];
+
+export function SidebarNav({ role }: { role?: string }) {
   const pathname = usePathname();
+  const items = role === "employee" ? EMPLOYEE_NAV_ITEMS : ADMIN_NAV_ITEMS;
 
   return (
     <nav className="flex flex-col gap-1">
-      {NAV_ITEMS.map((item) => {
+      {items.map((item) => {
         const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
         return (
           <Link

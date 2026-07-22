@@ -21,6 +21,11 @@ export default async function DashboardPage() {
   }
 
   const membership = memberships[0]!;
+
+  if (membership.role === "employee") {
+    redirect("/me");
+  }
+
   const org = membership.organizations;
 
   return (

@@ -1,6 +1,8 @@
+import { redirect } from "next/navigation";
 import { NG_2026_1 } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
 import { formatKobo } from "@/lib/format";
+import { getMembership } from "@/lib/membership";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const tdClass = "px-3 py-[10px] text-[13px]";
@@ -34,6 +36,18 @@ function describeDeadline(scheme: keyof typeof SCHEME_ACCOUNT_CODES, rv: typeof 
 
 export default async function ReportsPage() {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const membership = await getMembership(supabase, user.id);
+  if (membership?.role === "employee") {
+    redirect("/me");
+  }
 
   const { data: postings } = await supabase
     .from("ledger_postings")
