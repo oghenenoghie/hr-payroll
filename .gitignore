@@ -13,3 +13,5 @@ yarn-error.log*
 .vercel
 *.tsbuildinfo
 apps/wagebook/next-env.d.ts
+supabase/.branches
+supabase/.temp
