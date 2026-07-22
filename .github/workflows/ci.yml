@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Typecheck, lint, test, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Unit + golden tests
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+  migration-check:
+    name: Migrations apply cleanly to a fresh DB
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # `supabase start` spins up a fresh local Postgres + Auth stack and
+      # applies every migration in supabase/migrations/ in order. A
+      # non-zero exit here means a migration doesn't apply cleanly from
+      # scratch — this must fail the build, per the "migrate before
+      # deploy" rule (see engineering-and-lifecycle.md §4, §8).
+      - name: Apply migrations to a fresh database
+        run: supabase start --exclude analytics,edge-runtime,functions,imgproxy,inbucket,storage,studio,vector
