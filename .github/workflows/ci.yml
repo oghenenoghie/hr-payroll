@@ -16,9 +16,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # No `version` input here: root package.json already pins the exact
+      # pnpm version via "packageManager": "pnpm@10.33.0", and the action
+      # errors out if both are set (ambiguous which one wins).
       - uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - uses: actions/setup-node@v4
         with:
