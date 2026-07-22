@@ -1,6 +1,6 @@
-import { applyRate, naira, type Kobo } from "./money.js";
-import { computeAnnualPaye, computeRentRelief, deriveChargeableIncome } from "./schemes/paye.js";
-import type { PayComponent, RuleVersion } from "./types.js";
+import { applyRate, naira, type Kobo } from "./money";
+import { computeAnnualPaye, computeRentRelief, deriveChargeableIncome } from "./schemes/paye";
+import type { PayComponent, RuleVersion } from "./types";
 
 /**
  * The illustrative 50/30/20 gross split from the PAYE Calculator screen.

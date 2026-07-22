@@ -1,5 +1,5 @@
-import { applyRate, sumKobo, type Kobo } from "../money.js";
-import type { PayComponent, RuleVersion } from "../types.js";
+import { applyRate, sumKobo, type Kobo } from "../money";
+import type { PayComponent, RuleVersion } from "../types";
 
 /** Base is basic salary only — do not reuse pension's basic+housing+transport base. */
 export function computeNhf(payComponents: PayComponent[], ruleVersion: RuleVersion): Kobo {

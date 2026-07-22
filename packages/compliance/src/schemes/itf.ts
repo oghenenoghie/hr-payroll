@@ -1,5 +1,5 @@
-import { applyRate, type Kobo } from "../money.js";
-import type { OrgStatutoryProfile, RuleVersion } from "../types.js";
+import { applyRate, type Kobo } from "../money";
+import type { OrgStatutoryProfile, RuleVersion } from "../types";
 
 export interface ItfResult {
   qualifies: boolean;

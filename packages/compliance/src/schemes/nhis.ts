@@ -1,4 +1,4 @@
-import { applyRate, type Kobo } from "../money.js";
+import { applyRate, type Kobo } from "../money";
 
 export class NhisSchemeNotConfiguredError extends Error {
   constructor(public readonly schemeId: string) {

@@ -1,4 +1,4 @@
-import { TinRequiredError } from "./errors.js";
+import { TinRequiredError } from "./errors";
 
 export interface TinGateSubject {
   employeeId: string;

@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { naira, toNaira } from "../src/money.js";
-import { NG_2026_1 } from "../src/rule-versions/ng-2026.1.js";
-import { computeAnnualPaye, computeCumulativePeriodPaye, computeRentRelief } from "../src/schemes/paye.js";
-import { computePension } from "../src/schemes/pension.js";
-import { computeNhf } from "../src/schemes/nhf.js";
-import { computeNsitf } from "../src/schemes/nsitf.js";
-import { computeItf } from "../src/schemes/itf.js";
-import { checkTinGate } from "../src/tin-gate.js";
-import { TinRequiredError } from "../src/errors.js";
-import { deriveDemoPaye } from "../src/demo.js";
-import type { PayComponent } from "../src/types.js";
+import { naira, toNaira } from "../src/money";
+import { NG_2026_1 } from "../src/rule-versions/ng-2026.1";
+import { computeAnnualPaye, computeCumulativePeriodPaye, computeRentRelief } from "../src/schemes/paye";
+import { computePension } from "../src/schemes/pension";
+import { computeNhf } from "../src/schemes/nhf";
+import { computeNsitf } from "../src/schemes/nsitf";
+import { computeItf } from "../src/schemes/itf";
+import { checkTinGate } from "../src/tin-gate";
+import { TinRequiredError } from "../src/errors";
+import { deriveDemoPaye } from "../src/demo";
+import type { PayComponent } from "../src/types";
 
 const rv = NG_2026_1;
 

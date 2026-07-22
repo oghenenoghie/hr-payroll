@@ -1,4 +1,4 @@
-import type { Kobo } from "./money.js";
+import type { Kobo } from "./money";
 
 export type ComponentCode = "basic" | "housing" | "transport" | (string & {});
 

@@ -1,5 +1,5 @@
-import { applyRate, clampNonNegative, type Kobo } from "../money.js";
-import type { RuleVersion } from "../types.js";
+import { applyRate, clampNonNegative, type Kobo } from "../money";
+import type { RuleVersion } from "../types";
 
 export interface PayeBandResult {
   upToKobo: Kobo | null;

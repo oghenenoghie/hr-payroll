@@ -1,5 +1,5 @@
-import { applyRate, sumKobo, type Kobo } from "../money.js";
-import type { PayComponent, RuleVersion } from "../types.js";
+import { applyRate, sumKobo, type Kobo } from "../money";
+import type { PayComponent, RuleVersion } from "../types";
 
 export interface PensionResult {
   pensionableBaseKobo: Kobo;

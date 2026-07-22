@@ -1,5 +1,5 @@
-import { applyRate, type Kobo } from "../money.js";
-import type { RuleVersion } from "../types.js";
+import { applyRate, type Kobo } from "../money";
+import type { RuleVersion } from "../types";
 
 export class UnknownWhtCategoryError extends Error {
   constructor(public readonly category: string) {

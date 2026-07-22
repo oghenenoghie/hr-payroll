@@ -1,5 +1,5 @@
-import { naira, rate } from "../money.js";
-import type { RuleVersion } from "../types.js";
+import { naira, rate } from "../money";
+import type { RuleVersion } from "../types";
 
 /**
  * Nigeria Tax Act 2025, effective 1 January 2026.
