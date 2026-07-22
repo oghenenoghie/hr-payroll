@@ -402,6 +402,22 @@ export type Database = {
           states_of_operation: string[]
         }
       }
+      create_pay_run: {
+        Args: { payload: Json }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          employee_count: number
+          frequency: string
+          gross_kobo: number
+          id: string
+          net_kobo: number
+          org_id: string
+          period_end: string
+          period_start: string
+          rule_version_id: string
+        }
+      }
     }
     Enums: {
       [_ in never]: never
