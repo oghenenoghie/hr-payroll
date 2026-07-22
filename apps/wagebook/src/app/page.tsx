@@ -12,12 +12,20 @@ export default function Home() {
           The compliance engine is live. Try the first shippable slice: verifiable
           PAYE arithmetic under the Nigeria Tax Act 2025 framework.
         </p>
-        <Link
-          href="/paye-calculator"
-          className="inline-block rounded-lg bg-[var(--primary)] text-[var(--surface)] px-5 py-2.5 text-sm font-bold hover:bg-[var(--primary-dark)] transition-colors"
-        >
-          Open PAYE Calculator
-        </Link>
+        <div className="flex items-center justify-center gap-3">
+          <Link
+            href="/paye-calculator"
+            className="inline-block rounded-lg bg-[var(--primary)] text-[var(--surface)] px-5 py-2.5 text-sm font-bold hover:bg-[var(--primary-dark)] transition-colors"
+          >
+            Open PAYE Calculator
+          </Link>
+          <Link
+            href="/login"
+            className="inline-block rounded-lg border border-[var(--border)] px-5 py-2.5 text-sm font-bold text-[var(--ink)] hover:bg-[var(--bg)] transition-colors"
+          >
+            Sign in
+          </Link>
+        </div>
       </div>
     </main>
   );

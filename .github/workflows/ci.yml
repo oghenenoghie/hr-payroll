@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Typecheck, lint, test, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck (tsc --noEmit, strict)
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Unit + golden tests
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+  migration-check:
+    name: Migrations apply cleanly to a fresh database
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # `supabase start` bootstraps a fresh local Postgres + Auth/Storage
+      # stack and applies every file in supabase/migrations/, in order, as
+      # part of that bootstrap. A migration that doesn't apply cleanly
+      # fails this step. This exists because of a real incident (README
+      # §12): core/ledger migrations were never pushed to the live project
+      # and the app queried tables that didn't exist. Migrate before
+      # deploy, enforced here.
+      - name: Start local Supabase stack (applies all migrations)
+        run: supabase start
