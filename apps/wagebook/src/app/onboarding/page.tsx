@@ -1,14 +1,9 @@
 import { redirect } from "next/navigation";
-import { AuthCard, FormError, FormField, SubmitButton } from "@/components/AuthCard";
+import { AuthCard } from "@/components/AuthCard";
 import { createClient } from "@/lib/supabase/server";
-import { createOrganization } from "./actions";
+import { OnboardingForm } from "./OnboardingForm";
 
-export default async function OnboardingPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ error?: string }>;
-}) {
-  const { error } = await searchParams;
+export default async function OnboardingPage() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -20,11 +15,7 @@ export default async function OnboardingPage({
 
   return (
     <AuthCard title="Set up your company" subtitle="This creates your organization and makes you its admin.">
-      <form action={createOrganization} className="flex flex-col gap-4">
-        <FormError message={error} />
-        <FormField label="Company name" name="name" />
-        <SubmitButton>Create organization</SubmitButton>
-      </form>
+      <OnboardingForm />
     </AuthCard>
   );
 }

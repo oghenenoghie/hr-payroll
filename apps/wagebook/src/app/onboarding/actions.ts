@@ -3,7 +3,12 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
-export async function createOrganization(formData: FormData) {
+export type CreateOrgState = { error?: string } | null;
+
+export async function createOrganization(
+  _prevState: CreateOrgState,
+  formData: FormData,
+): Promise<CreateOrgState> {
   const name = String(formData.get("name") ?? "");
 
   const supabase = await createClient();
@@ -18,7 +23,7 @@ export async function createOrganization(formData: FormData) {
   const { error } = await supabase.rpc("create_organization", { p_name: name });
 
   if (error) {
-    redirect(`/onboarding?error=${encodeURIComponent(error.message)}`);
+    return { error: error.message };
   }
 
   redirect("/dashboard");
