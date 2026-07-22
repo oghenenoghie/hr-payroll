@@ -42,9 +42,11 @@ export default async function PayrollPage() {
           <tbody>
             {payRuns && payRuns.length > 0 ? (
               payRuns.map((run) => (
-                <tr key={run.id} className="border-b border-border last:border-b-0">
-                  <td className={`${tdClass} font-bold text-ink`}>
-                    {run.period_start} – {run.period_end}
+                <tr key={run.id} className="border-b border-border last:border-b-0 hover:bg-bg">
+                  <td className={tdClass}>
+                    <Link href={`/payroll/${run.id}`} className="font-bold text-primary">
+                      {run.period_start} – {run.period_end}
+                    </Link>
                   </td>
                   <td className={`${tdClass} text-ink-soft capitalize`}>{run.frequency}</td>
                   <td className={`${tdClass} text-center text-ink`}>{run.employee_count}</td>
