@@ -1,0 +1,72 @@
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
+import { formatKobo } from "@/lib/format";
+import { TinBadge, EmployeeStatusBadge } from "@/components/Badge";
+
+const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
+const tdClass = "px-3 py-[10px] text-[13px]";
+
+export default async function EmployeesPage() {
+  const supabase = await createClient();
+  const { data: employees } = await supabase
+    .from("employees")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  return (
+    <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 px-6 py-10">
+      <header className="flex items-center justify-between">
+        <div className="flex flex-col gap-1">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Employees</span>
+          <h1 className="text-[22px] font-extrabold text-ink">Directory</h1>
+          <p className="text-[13px] text-ink-soft">Directory, TIN status and self-service</p>
+        </div>
+        <Link
+          href="/employees/new"
+          className="rounded-button bg-primary px-[22px] py-[11px] text-[13px] font-extrabold text-white"
+        >
+          + Add employee
+        </Link>
+      </header>
+
+      <div className="overflow-x-auto rounded-card border border-border bg-surface">
+        <table className="w-full min-w-[640px] border-collapse">
+          <thead>
+            <tr className="border-b border-border">
+              <th className={`${thClass} text-left`}>Name</th>
+              <th className={`${thClass} text-left`}>State</th>
+              <th className={`${thClass} text-right`}>Basic</th>
+              <th className={`${thClass} text-center`}>TIN</th>
+              <th className={`${thClass} text-center`}>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {employees && employees.length > 0 ? (
+              employees.map((employee) => (
+                <tr key={employee.id} className="border-b border-border last:border-b-0">
+                  <td className={`${tdClass} font-bold text-ink`}>{employee.full_name}</td>
+                  <td className={`${tdClass} text-ink-soft`}>{employee.state_of_residence ?? "—"}</td>
+                  <td className={`${tdClass} text-right font-bold text-ink`}>
+                    {formatKobo(BigInt(employee.basic_kobo))}
+                  </td>
+                  <td className={`${tdClass} text-center`}>
+                    <TinBadge tin={employee.tin} />
+                  </td>
+                  <td className={`${tdClass} text-center`}>
+                    <EmployeeStatusBadge status={employee.status} />
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={5} className="px-3 py-10 text-center text-[13px] text-ink-soft">
+                  No employees yet.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,30 @@
+const TONE_CLASSES = {
+  good: "bg-good-tint text-good border-good",
+  warn: "bg-warn-tint text-warn border-warn",
+  bad: "bg-bad-tint text-bad border-bad",
+  neutral: "bg-bg text-ink-soft border-border",
+} as const;
+
+export function Badge({
+  tone,
+  children,
+}: {
+  tone: keyof typeof TONE_CLASSES;
+  children: React.ReactNode;
+}) {
+  return (
+    <span
+      className={`inline-block rounded-badge border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.03em] ${TONE_CLASSES[tone]}`}
+    >
+      {children}
+    </span>
+  );
+}
+
+export function TinBadge({ tin }: { tin: string | null }) {
+  return tin ? <Badge tone="good">TIN valid</Badge> : <Badge tone="bad">TIN missing</Badge>;
+}
+
+export function EmployeeStatusBadge({ status }: { status: string }) {
+  return status === "active" ? <Badge tone="good">Active</Badge> : <Badge tone="neutral">Terminated</Badge>;
+}

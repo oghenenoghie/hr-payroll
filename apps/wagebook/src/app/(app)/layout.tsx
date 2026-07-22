@@ -1,9 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "./dashboard/actions";
-
-const NAV_ITEMS = [{ href: "/dashboard", label: "Overview" }];
+import { SidebarNav } from "./SidebarNav";
 
 const ROLE_LABEL: Record<string, string> = {
   admin: "Admin",
@@ -39,23 +37,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               Technologies
             </span>
           </div>
-          <nav className="flex flex-col gap-1">
-            {NAV_ITEMS.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="rounded-control bg-primary px-3 py-2 text-[13px] font-bold text-white"
-              >
-                {item.label}
-              </Link>
-            ))}
-            <Link
-              href="/"
-              className="rounded-control px-3 py-2 text-[13px] font-bold text-primary-tint hover:bg-primary"
-            >
-              PAYE Calculator
-            </Link>
-          </nav>
+          <SidebarNav />
         </div>
 
         <div className="flex flex-col gap-3 border-t border-primary px-2 pt-4">
