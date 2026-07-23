@@ -27,6 +27,7 @@ export function EmployeeForm({
       <FormField label="Email" name="email" type="email" required={false} />
       <FormField label="State of residence" name="state_of_residence" required={false} />
       <FormField label="Hire date" name="hire_date" type="date" required={false} />
+      <FormField label="Probation end date" name="probation_end_date" type="date" required={false} />
       <div className="grid grid-cols-2 gap-4">
         <FormField label="Date of birth" name="date_of_birth" type="date" required={false} />
         <FormField label="Nationality" name="nationality" required={false} />

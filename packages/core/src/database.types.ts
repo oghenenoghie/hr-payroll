@@ -254,6 +254,7 @@ export type Database = {
           bank_account_number: string | null
           bank_name: string | null
           basic_kobo: number
+          confirmed: boolean
           created_at: string
           date_of_birth: string | null
           department_id: string | null
@@ -268,6 +269,7 @@ export type Database = {
           nationality: string | null
           org_id: string
           pfa: string | null
+          probation_end_date: string | null
           salary_masked: boolean
           state_of_residence: string | null
           status: string
@@ -284,6 +286,7 @@ export type Database = {
           bank_account_number?: string | null
           bank_name?: string | null
           basic_kobo?: number
+          confirmed?: boolean
           created_at?: string
           date_of_birth?: string | null
           department_id?: string | null
@@ -298,6 +301,7 @@ export type Database = {
           nationality?: string | null
           org_id: string
           pfa?: string | null
+          probation_end_date?: string | null
           salary_masked?: boolean
           state_of_residence?: string | null
           status?: string
@@ -314,6 +318,7 @@ export type Database = {
           bank_account_number?: string | null
           bank_name?: string | null
           basic_kobo?: number
+          confirmed?: boolean
           created_at?: string
           date_of_birth?: string | null
           department_id?: string | null
@@ -328,6 +333,7 @@ export type Database = {
           nationality?: string | null
           org_id?: string
           pfa?: string | null
+          probation_end_date?: string | null
           salary_masked?: boolean
           state_of_residence?: string | null
           status?: string
@@ -1264,6 +1270,7 @@ export type Database = {
           bank_account_number: string | null
           bank_name: string | null
           basic_kobo: number | null
+          confirmed: boolean | null
           created_at: string | null
           date_of_birth: string | null
           department_id: string | null
@@ -1280,6 +1287,7 @@ export type Database = {
           nationality: string | null
           org_id: string | null
           pfa: string | null
+          probation_end_date: string | null
           salary_masked: boolean | null
           state_of_residence: string | null
           status: string | null
@@ -1399,6 +1407,7 @@ export type Database = {
           bank_account_number: string | null
           bank_name: string | null
           basic_kobo: number
+          confirmed: boolean
           created_at: string
           date_of_birth: string | null
           department_id: string | null
@@ -1413,6 +1422,7 @@ export type Database = {
           nationality: string | null
           org_id: string
           pfa: string | null
+          probation_end_date: string | null
           salary_masked: boolean
           state_of_residence: string | null
           status: string

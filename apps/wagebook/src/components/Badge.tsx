@@ -1,3 +1,5 @@
+import type { ProbationStatus } from "@/lib/format";
+
 const TONE_CLASSES = {
   good: "bg-good-tint text-good border-good",
   warn: "bg-warn-tint text-warn border-warn",
@@ -31,6 +33,21 @@ export function BankDetailsBadge({ bankAccountNumber }: { bankAccountNumber: str
 
 export function EmployeeStatusBadge({ status }: { status: string }) {
   return status === "active" ? <Badge tone="good">Active</Badge> : <Badge tone="neutral">Terminated</Badge>;
+}
+
+export function ProbationBadge({ status }: { status: ProbationStatus }) {
+  switch (status) {
+    case "confirmed":
+      return <Badge tone="good">Confirmed</Badge>;
+    case "overdue":
+      return <Badge tone="bad">Overdue</Badge>;
+    case "ends_soon":
+      return <Badge tone="warn">Ends soon</Badge>;
+    case "on_probation":
+      return <Badge tone="neutral">On probation</Badge>;
+    case "none":
+      return <span className="text-ink-soft">—</span>;
+  }
 }
 
 export function PayRunStatusBadge({ status }: { status: string }) {

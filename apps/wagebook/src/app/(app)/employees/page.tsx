@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { formatKobo } from "@/lib/format";
-import { TinBadge, EmployeeStatusBadge, BankDetailsBadge } from "@/components/Badge";
+import { formatKobo, getProbationStatus } from "@/lib/format";
+import { TinBadge, EmployeeStatusBadge, BankDetailsBadge, ProbationBadge } from "@/components/Badge";
 import { getMembership } from "@/lib/membership";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
@@ -140,6 +140,7 @@ export default async function EmployeesPage({
               <th className={`${thClass} text-center`}>TIN</th>
               <th className={`${thClass} text-center`}>Bank details</th>
               <th className={`${thClass} text-center`}>Status</th>
+              <th className={`${thClass} text-center`}>Probation</th>
               <th className={thClass}></th>
             </tr>
           </thead>
@@ -170,6 +171,11 @@ export default async function EmployeesPage({
                   <td className={`${tdClass} text-center`}>
                     <EmployeeStatusBadge status={employee.status ?? "active"} />
                   </td>
+                  <td className={`${tdClass} text-center`}>
+                    <ProbationBadge
+                      status={getProbationStatus(employee.probation_end_date, employee.confirmed ?? false)}
+                    />
+                  </td>
                   <td className={`${tdClass} text-right`}>
                     <Link href={`/employees/${employee.id}/edit`} className="font-bold text-primary">
                       Edit
@@ -179,7 +185,7 @@ export default async function EmployeesPage({
               ))
             ) : (
               <tr>
-                <td colSpan={8} className="px-3 py-10 text-center text-[13px] text-ink-soft">
+                <td colSpan={9} className="px-3 py-10 text-center text-[13px] text-ink-soft">
                   {hasActiveFilters ? "No employees match these filters." : "No employees yet."}
                 </td>
               </tr>

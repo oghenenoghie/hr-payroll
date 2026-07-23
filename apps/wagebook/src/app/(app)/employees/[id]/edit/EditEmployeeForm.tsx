@@ -57,6 +57,22 @@ export function EditEmployeeForm({
       <FormField label="Hire date" name="hire_date" type="date" required={false} defaultValue={employee.hire_date ?? ""} />
       <div className="grid grid-cols-2 gap-4">
         <FormField
+          label="Probation end date"
+          name="probation_end_date"
+          type="date"
+          required={false}
+          defaultValue={employee.probation_end_date ?? ""}
+        />
+        <div className="flex flex-col gap-2">
+          <label className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Probation</label>
+          <label className="flex h-[43px] items-center gap-2 text-[13px] text-ink">
+            <input type="checkbox" name="confirmed" value="true" defaultChecked={employee.confirmed ?? false} className="h-4 w-4" />
+            Confirmed (passed probation)
+          </label>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <FormField
           label="Date of birth"
           name="date_of_birth"
           type="date"
