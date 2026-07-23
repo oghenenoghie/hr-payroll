@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatKobo } from "@/lib/format";
-import { TinBadge, LoanStatusBadge, ExpenseStatusBadge, LeaveStatusBadge } from "@/components/Badge";
+import { TinBadge, LoanStatusBadge, ExpenseStatusBadge, LeaveStatusBadge, OvertimeStatusBadge } from "@/components/Badge";
 import { LoanRequestForm } from "./LoanRequestForm";
 import { ExpenseClaimForm } from "./ExpenseClaimForm";
 import { LeaveRequestForm } from "./LeaveRequestForm";
+import { OvertimeRequestForm } from "./OvertimeRequestForm";
 import { markNotificationRead } from "../notifications/actions";
 
 export default async function MePage() {
@@ -50,6 +51,12 @@ export default async function MePage() {
 
   const { data: expenses } = await supabase
     .from("expenses")
+    .select("*")
+    .eq("employee_id", employee.id)
+    .order("created_at", { ascending: false });
+
+  const { data: overtimeRequests } = await supabase
+    .from("overtime_requests")
     .select("*")
     .eq("employee_id", employee.id)
     .order("created_at", { ascending: false });
@@ -195,6 +202,33 @@ export default async function MePage() {
 
         <div className="mt-4 border-t border-border pt-4">
           <ExpenseClaimForm />
+        </div>
+      </div>
+
+      <div className="rounded-card border border-border bg-surface p-6">
+        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Overtime</span>
+
+        {overtimeRequests && overtimeRequests.length > 0 && (
+          <div className="mt-3 flex flex-col gap-3">
+            {overtimeRequests.map((request) => (
+              <div
+                key={request.id}
+                className="flex items-center justify-between border-b border-border pb-3 last:border-b-0"
+              >
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[13px] font-bold text-ink">
+                    {Number(request.hours)}h · {request.work_date}
+                  </span>
+                  <span className="text-[12px] text-ink-soft">{request.reason ?? "No reason given"}</span>
+                </div>
+                <OvertimeStatusBadge status={request.status} />
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-4 border-t border-border pt-4">
+          <OvertimeRequestForm />
         </div>
       </div>
 

@@ -128,6 +128,68 @@ export async function requestExpense(_prevState: RequestExpenseState, formData: 
   return { success: true };
 }
 
+export type RequestOvertimeState = { error?: string; success?: boolean } | null;
+
+export async function requestOvertime(
+  _prevState: RequestOvertimeState,
+  formData: FormData,
+): Promise<RequestOvertimeState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data: employee } = await supabase
+    .from("employees")
+    .select("id, org_id, full_name")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!employee) {
+    return { error: "Your account isn't linked to an employee record yet." };
+  }
+
+  const workDate = String(formData.get("work_date") ?? "");
+  const hours = Number(formData.get("hours") ?? 0);
+  const reason = String(formData.get("reason") ?? "").trim() || null;
+
+  if (!workDate) {
+    return { error: "Enter the date the overtime was worked." };
+  }
+  if (!(hours > 0) || hours > 24) {
+    return { error: "Enter hours worked between 0 and 24." };
+  }
+
+  const { error } = await supabase.from("overtime_requests").insert({
+    org_id: employee.org_id,
+    employee_id: employee.id,
+    work_date: workDate,
+    hours,
+    reason,
+    requested_by: user.id,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  const approverIds = await getOrgRoleUserIds(supabase, employee.org_id, ["admin", "payroll_manager"]);
+  await notifyUsers(supabase, {
+    orgId: employee.org_id,
+    recipientUserIds: approverIds,
+    type: "overtime_request_submitted",
+    message: `${employee.full_name} submitted an overtime request.`,
+    link: "/overtime",
+  });
+
+  revalidatePath("/me");
+  return { success: true };
+}
+
 export type RequestLeaveState = { error?: string; success?: boolean } | null;
 
 export async function requestLeave(_prevState: RequestLeaveState, formData: FormData): Promise<RequestLeaveState> {

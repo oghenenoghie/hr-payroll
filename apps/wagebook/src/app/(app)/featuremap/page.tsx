@@ -21,7 +21,7 @@ const MODULES: Module[] = [
   { name: "Deductions", status: "live", description: "PAYE, pension, NHF, loan repayments and benefit contributions, all itemised per payslip." },
   { name: "Attendance Integration", status: "live", description: "Weekly Present/Late/Absent grid; unrecorded absences deduct pay automatically." },
   { name: "Leave Management", status: "live", description: "Leave requests, balances, admin/HR/manager approval, unpaid leave deducts pay." },
-  { name: "Overtime Management", status: "roadmap", description: "No overtime rate, hours tracking or pay component yet." },
+  { name: "Overtime Management", status: "live", description: "Employee-submitted overtime requests, admin/payroll approval with a 1.5×/2× rate, paid via next pay run as taxable (non-pensionable) pay." },
   { name: "Loans & Advances", status: "live", description: "Employee-initiated requests, admin/payroll approval, automatic net-pay repayment." },
   { name: "Tax Management", status: "live", description: "Cumulative PAYE on the 2026 Nigeria Tax Act bands, re-derived every run." },
   { name: "Benefits Administration", status: "live", description: "HR-managed plan catalog and enrollment; employer cost and employee deduction per pay run." },

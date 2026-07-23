@@ -53,6 +53,18 @@ export function ExpenseStatusBadge({ status }: { status: string }) {
   return <Badge tone={tone}>{status}</Badge>;
 }
 
+const OVERTIME_STATUS_TONE = {
+  pending: "warn",
+  approved: "good",
+  rejected: "bad",
+  paid: "neutral",
+} as const;
+
+export function OvertimeStatusBadge({ status }: { status: string }) {
+  const tone = OVERTIME_STATUS_TONE[status as keyof typeof OVERTIME_STATUS_TONE] ?? "neutral";
+  return <Badge tone={tone}>{status}</Badge>;
+}
+
 const LEAVE_STATUS_TONE = {
   pending: "warn",
   approved: "good",

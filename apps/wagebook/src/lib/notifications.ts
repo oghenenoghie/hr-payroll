@@ -12,7 +12,10 @@ export type NotificationType =
   | "expense_approved"
   | "expense_rejected"
   | "benefit_enrolled"
-  | "pay_run_created";
+  | "pay_run_created"
+  | "overtime_request_submitted"
+  | "overtime_approved"
+  | "overtime_rejected";
 
 // Fire-and-forget: a notification is a side effect of an already-authorized
 // action, never the thing being authorized, so a failed insert here should

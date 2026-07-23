@@ -165,6 +165,23 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
     absencesByEmployee.set(absence.employee_id, list);
   }
 
+  // Approved overtime requests are paid out this run — earned income, not
+  // a claim to reimburse, so there's no separate "unpaid" table to query
+  // like expenses/loans: an approved request stays payable until a pay run
+  // marks it 'paid' (mirrors the expense-reimbursement lifecycle exactly).
+  const { data: approvedOvertime } = await supabase
+    .from("overtime_requests")
+    .select("id, employee_id, hours, rate_multiplier_bps")
+    .eq("org_id", membership.org_id)
+    .eq("status", "approved");
+
+  const overtimeByEmployee = new Map<string, NonNullable<typeof approvedOvertime>>();
+  for (const request of approvedOvertime ?? []) {
+    const list = overtimeByEmployee.get(request.employee_id) ?? [];
+    list.push(request);
+    overtimeByEmployee.set(request.employee_id, list);
+  }
+
   // Active benefit enrollments apply every run, automatically, for as long
   // as they stay active — no claim to approve, no balance to pay down.
   // Employer cost is a company cost (like NSITF or the pension employer
@@ -189,6 +206,7 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
   const expenseReimbursementsPayload: { expense_id: string; employee_id: string }[] = [];
   const leaveDeductionsPayload: { leave_request_id: string; employee_id: string }[] = [];
   const attendanceDeductionsPayload: { attendance_record_id: string; employee_id: string }[] = [];
+  const overtimePaymentsPayload: { overtime_request_id: string; employee_id: string }[] = [];
 
   const payslipsPayload = employees.map((employee) => {
     const prior = priorStateByEmployee.get(employee.id);
@@ -247,14 +265,31 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
 
     const daysOffDeductionKobo = unpaidLeaveDeductionKobo + attendanceAbsenceDeductionKobo;
 
+    // Approved overtime is earned income: always taxable and added to
+    // chargeable income (unlike a reimbursement, there's no non-taxable
+    // overtime), but never pensionable — pension is computed on Basic +
+    // Housing + Transport only (see NG_2026_1), not overtime pay. Hourly
+    // rate is annual basic salary ÷ 12 ÷ 173 standard monthly hours — a
+    // disclosed simplification (the common Nigerian payroll convention),
+    // not a claimed statutory formula. Hours (numeric(4,1)) are scaled by
+    // 10 to stay in integer bigint math throughout, matching this
+    // codebase's integer-only money rule.
+    let overtimePayKobo = 0n;
+    const hourlyRateKobo = BigInt(employee.basic_kobo) / 12n / 173n;
+    for (const request of overtimeByEmployee.get(employee.id) ?? []) {
+      const hoursScaledByTen = BigInt(Math.round(Number(request.hours) * 10));
+      overtimePayKobo += (hourlyRateKobo * hoursScaledByTen * BigInt(request.rate_multiplier_bps)) / 1000n;
+      overtimePaymentsPayload.push({ overtime_request_id: request.id, employee_id: employee.id });
+    }
+
     const chargeableIncomeKobo = clampNonNegative(
-      result.chargeableIncomeKobo + taxableReimbursementKobo - daysOffDeductionKobo,
+      result.chargeableIncomeKobo + taxableReimbursementKobo + overtimePayKobo - daysOffDeductionKobo,
     );
     const payeKobo =
-      taxableReimbursementKobo > 0n || daysOffDeductionKobo > 0n
+      taxableReimbursementKobo > 0n || overtimePayKobo > 0n || daysOffDeductionKobo > 0n
         ? computeCumulativePeriodPaye(chargeableIncomeKobo, prior?.payePaidAfterKobo ?? 0n, NG_2026_1)
         : result.payeKobo;
-    const grossKobo = clampNonNegative(result.grossKobo + reimbursementKobo - daysOffDeductionKobo);
+    const grossKobo = clampNonNegative(result.grossKobo + reimbursementKobo + overtimePayKobo - daysOffDeductionKobo);
     const netBeforeLoanKobo = clampNonNegative(grossKobo - result.pensionEmployeeKobo - result.nhfKobo - payeKobo);
 
     // Apply loan repayments on top — post-tax deductions, never touching
@@ -303,6 +338,7 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
         amount_kobo: clampNonNegative(result.grossKobo - daysOffDeductionKobo),
       },
       { account_code: "expense_reimbursement_expense", direction: "debit", amount_kobo: reimbursementKobo },
+      { account_code: "overtime_pay_expense", direction: "debit", amount_kobo: overtimePayKobo },
       { account_code: "employer_pension_expense", direction: "debit", amount_kobo: result.pensionEmployerKobo },
       { account_code: "benefits_expense", direction: "debit", amount_kobo: benefitEmployerCostKobo },
       { account_code: "net_pay_payable", direction: "credit", amount_kobo: netKobo },
@@ -341,6 +377,7 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
       benefit_employer_cost_kobo: Number(benefitEmployerCostKobo),
       benefit_employee_deduction_kobo: Number(benefitEmployeeDeductionKobo),
       attendance_absence_deduction_kobo: Number(attendanceAbsenceDeductionKobo),
+      overtime_pay_kobo: Number(overtimePayKobo),
       postings: postings.map((posting) => ({ ...posting, amount_kobo: Number(posting.amount_kobo) })),
     };
   });
@@ -370,6 +407,7 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
       expense_reimbursements: expenseReimbursementsPayload,
       leave_deductions: leaveDeductionsPayload,
       attendance_deductions: attendanceDeductionsPayload,
+      overtime_payments: overtimePaymentsPayload,
     },
   });
 
@@ -392,5 +430,6 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
   revalidatePath("/leave");
   revalidatePath("/benefits");
   revalidatePath("/attendance");
+  revalidatePath("/overtime");
   redirect("/payroll");
 }

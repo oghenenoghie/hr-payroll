@@ -813,6 +813,76 @@ export type Database = {
         }
         Relationships: []
       }
+      overtime_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          employee_id: string
+          hours: number
+          id: string
+          org_id: string
+          paid_pay_run_id: string | null
+          rate_multiplier_bps: number
+          reason: string | null
+          requested_by: string
+          status: string
+          work_date: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          employee_id: string
+          hours: number
+          id?: string
+          org_id: string
+          paid_pay_run_id?: string | null
+          rate_multiplier_bps?: number
+          reason?: string | null
+          requested_by: string
+          status?: string
+          work_date: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          employee_id?: string
+          hours?: number
+          id?: string
+          org_id?: string
+          paid_pay_run_id?: string | null
+          rate_multiplier_bps?: number
+          reason?: string | null
+          requested_by?: string
+          status?: string
+          work_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "overtime_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "overtime_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "overtime_requests_paid_pay_run_id_fkey"
+            columns: ["paid_pay_run_id"]
+            isOneToOne: false
+            referencedRelation: "pay_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pay_runs: {
         Row: {
           created_at: string
@@ -880,6 +950,7 @@ export type Database = {
           nhf_kobo: number
           non_taxable_reimbursement_kobo: number
           org_id: string
+          overtime_pay_kobo: number
           pay_run_id: string
           paye_kobo: number
           pension_employee_kobo: number
@@ -905,6 +976,7 @@ export type Database = {
           nhf_kobo: number
           non_taxable_reimbursement_kobo?: number
           org_id: string
+          overtime_pay_kobo?: number
           pay_run_id: string
           paye_kobo: number
           pension_employee_kobo: number
@@ -930,6 +1002,7 @@ export type Database = {
           nhf_kobo?: number
           non_taxable_reimbursement_kobo?: number
           org_id?: string
+          overtime_pay_kobo?: number
           pay_run_id?: string
           paye_kobo?: number
           pension_employee_kobo?: number
