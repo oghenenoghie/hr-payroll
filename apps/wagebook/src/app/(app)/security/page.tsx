@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -92,6 +93,10 @@ export default async function SecurityPage() {
           </tbody>
         </table>
       </div>
+
+      <Link href="/security/audit-log" className="w-fit text-[13px] font-bold text-primary">
+        View audit log →
+      </Link>
     </div>
   );
 }
