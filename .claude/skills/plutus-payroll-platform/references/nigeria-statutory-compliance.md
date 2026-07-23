@@ -165,3 +165,5 @@ Lock the engine against these. CI must fail if any regress.
 - Multi-state workforce → per-state PAYE liability sums to the org total.
 
 **Property tests:** sum of per-band tax ≤ chargeable income; net pay ≤ gross; no negative deduction; monthly figures × 12 reconcile to the annual computation within rounding tolerance.
+
+**Scenarios not yet specified.** Proration (new hire, termination, mid-period salary change), net-to-gross solving, retroactive pay, and payroll reversal all change the numbers and none is covered above. See `feature-backlog.md` §1 — each needs its own golden cases before the engine can be called complete. The retroactive-pay case carries an unresolved statutory question about which rule version applies to arrears, which must be answered before the data model is fixed.

@@ -148,7 +148,21 @@ Note that `borneBy` is modelled explicitly. Employer-side costs must never be ab
 Core entities, derived from the prototype's data shape:
 
 - **Organisation** — name, RC number, company TIN, default pay frequency, default PFA, states of operation.
-- **Employee** — name, role, state of residence, pay components (basic / housing / transport as separate values, not a derived split), TIN + validity, PFA, leave balance, access role, manager, **photo (object path + version + consent recorded at, nullable)**.
+- **Department / CostCentre** — required by pay-run scoping ("single department") and by payroll accounting allocation. Currently referenced by the product but not modelled.
+- **Branch / Location** — statutory filing is state-scoped, so an employer operating in several states needs locations as first-class records, not a free-text field.
+- **JobPosition / Grade / Level** — anchors salary bands, and later compensation review. Thin version acceptable early; don't invent it inside the employee record.
+- **Employee** — see the expanded shape below.
+- **BankAccount** — bank, account number/NUBAN, account name, verification status. Belongs to the employee; **without it, no disbursement file can be generated.**
+- **EmploymentContract** — type (permanent / fixed-term / part-time / intern / consultant), start date, end date, probation period and status, confirmation date, notice period. Drives proration, contract-expiry alerting, and statutory treatment that varies by employment type.
+- **Employee** — the record everything else hangs off, and the one most often under-modelled. Group the fields by what depends on them:
+  - *Identity:* employee ID/number, full name, date of birth, gender, nationality, marital status.
+  - *Contact:* email, phone, residential address, emergency contact / next of kin.
+  - *Statutory:* TIN + validity, pension PFA + RSA PIN, NHF number, NHIS scheme, **state of residence** (PAYE routing — distinct from state of origin and from work location).
+  - *Employment:* department, branch/location, job position/grade, manager, employment type, date of joining, current lifecycle state.
+  - *Pay:* pay components (basic / housing / transport stored separately, never a derived split), pay frequency, bank account, payroll group.
+  - *Other:* leave balance, access role, photo (object path + version + consent timestamp, nullable).
+
+  Date of birth is not decoration — it drives pension retirement eligibility. Nationality affects expatriate tax treatment. Date of joining is required for first-period proration.
 - **PayRun** — period, frequency (regular / bonus-13th / arrears-off-cycle), scope (all / department / contractors), status, **pinned rule version**, employee count, gross, net.
 - **Payslip** — per employee per run: gross, each statutory deduction, net, plus the stored derivation trail that powers the "how?" expander.
 - **StatutoryLiability** — per scheme per period per state: amount, authority, deadline, filing status, remittance evidence.
