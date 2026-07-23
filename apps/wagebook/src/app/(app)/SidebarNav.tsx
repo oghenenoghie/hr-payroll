@@ -17,6 +17,7 @@ const ADMIN_NAV_ITEMS = [
   { href: "/reports", label: "Reports" },
   { href: "/simulation", label: "Payroll Simulation" },
   { href: "/notifications", label: "Notifications" },
+  { href: "/featuremap", label: "Full Feature Map" },
 ];
 
 const EMPLOYEE_NAV_ITEMS = [{ href: "/me", label: "Overview" }];
