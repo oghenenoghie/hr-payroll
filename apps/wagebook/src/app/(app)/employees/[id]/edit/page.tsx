@@ -1,14 +1,32 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getMembership } from "@/lib/membership";
 import { EditEmployeeForm } from "./EditEmployeeForm";
 import { InviteAccountPanel } from "./InviteAccountPanel";
 
 export default async function EditEmployeePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
-  const { data: employee } = await supabase.from("employees").select("*").eq("id", id).maybeSingle();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const membership = await getMembership(supabase, user.id);
+
+  // Reads through the salary-masked view (see migration comment): for an
+  // hr_manager viewer of a salary_masked employee, the salary/bank columns
+  // come back null, which is exactly the signal used below to hide those
+  // fields from the edit form rather than a separate role check.
+  const { data: employee } = await supabase.from("employees_masked").select("*").eq("id", id).maybeSingle();
   if (!employee) notFound();
+
+  const canEditSalary = employee.basic_kobo !== null;
+  const canControlMasking = membership?.role === "admin" || membership?.role === "payroll_manager";
 
   return (
     <div className="mx-auto flex w-full max-w-[560px] flex-col gap-5 px-6 py-10">
@@ -17,10 +35,10 @@ export default async function EditEmployeePage({ params }: { params: Promise<{ i
         <h1 className="text-[22px] font-extrabold text-ink">{employee.full_name}</h1>
       </header>
       <div className="rounded-card border border-border bg-surface p-6">
-        <EditEmployeeForm employee={employee} />
+        <EditEmployeeForm employee={employee} canEditSalary={canEditSalary} canControlMasking={canControlMasking} />
       </div>
       <div className="rounded-card border border-border bg-surface p-6">
-        <InviteAccountPanel employeeId={employee.id} email={employee.email} linkedAt={employee.linked_at} />
+        <InviteAccountPanel employeeId={employee.id!} email={employee.email} linkedAt={employee.linked_at} />
       </div>
       {employee.status === "terminated" && (
         <div className="rounded-card border border-border bg-surface p-6">

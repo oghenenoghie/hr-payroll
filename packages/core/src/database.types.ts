@@ -183,6 +183,7 @@ export type Database = {
           manager_id: string | null
           org_id: string
           pfa: string | null
+          salary_masked: boolean
           state_of_residence: string | null
           status: string
           tin: string | null
@@ -208,6 +209,7 @@ export type Database = {
           manager_id?: string | null
           org_id: string
           pfa?: string | null
+          salary_masked?: boolean
           state_of_residence?: string | null
           status?: string
           tin?: string | null
@@ -233,6 +235,7 @@ export type Database = {
           manager_id?: string | null
           org_id?: string
           pfa?: string | null
+          salary_masked?: boolean
           state_of_residence?: string | null
           status?: string
           tin?: string | null
@@ -1050,7 +1053,109 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      employees_masked: {
+        Row: {
+          annual_leave_balance_days: number | null
+          annual_rent_kobo: number | null
+          bank_account_name: string | null
+          bank_account_number: string | null
+          bank_name: string | null
+          basic_kobo: number | null
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          hire_date: string | null
+          housing_kobo: number | null
+          id: string | null
+          linked_at: string | null
+          manager_id: string | null
+          org_id: string | null
+          pfa: string | null
+          salary_masked: boolean | null
+          state_of_residence: string | null
+          status: string | null
+          tin: string | null
+          tin_valid_from: string | null
+          tin_valid_to: string | null
+          transport_kobo: number | null
+          user_id: string | null
+        }
+        Insert: {
+          annual_leave_balance_days?: number | null
+          annual_rent_kobo?: never
+          bank_account_name?: never
+          bank_account_number?: never
+          bank_name?: never
+          basic_kobo?: never
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          hire_date?: string | null
+          housing_kobo?: never
+          id?: string | null
+          linked_at?: string | null
+          manager_id?: string | null
+          org_id?: string | null
+          pfa?: string | null
+          salary_masked?: boolean | null
+          state_of_residence?: string | null
+          status?: string | null
+          tin?: string | null
+          tin_valid_from?: string | null
+          tin_valid_to?: string | null
+          transport_kobo?: never
+          user_id?: string | null
+        }
+        Update: {
+          annual_leave_balance_days?: number | null
+          annual_rent_kobo?: never
+          bank_account_name?: never
+          bank_account_number?: never
+          bank_name?: never
+          basic_kobo?: never
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          hire_date?: string | null
+          housing_kobo?: never
+          id?: string | null
+          linked_at?: string | null
+          manager_id?: string | null
+          org_id?: string | null
+          pfa?: string | null
+          salary_masked?: boolean | null
+          state_of_residence?: string | null
+          status?: string | null
+          tin?: string | null
+          tin_valid_from?: string | null
+          tin_valid_to?: string | null
+          transport_kobo?: never
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       create_organization: {
@@ -1132,6 +1237,7 @@ export type Database = {
           manager_id: string | null
           org_id: string
           pfa: string | null
+          salary_masked: boolean
           state_of_residence: string | null
           status: string
           tin: string | null

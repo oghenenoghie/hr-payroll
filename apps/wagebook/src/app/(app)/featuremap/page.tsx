@@ -36,7 +36,7 @@ const MODULES: Module[] = [
   { name: "Accounting Integration", status: "partial", description: "Real, fully itemised general-ledger CSV export per pay run. No live accounting-software API sync (QuickBooks, Xero, Sage) yet." },
   { name: "Workflow & Approvals", status: "live", description: "Leave, loan, expense and benefit-enrollment approval flows across admin/HR/payroll/manager roles." },
   { name: "Notifications", status: "live", description: "Requests and decisions notify the right people; unread counts surface in the sidebar and on /me." },
-  { name: "Security", status: "live", description: "Role-based access (admin/payroll manager/HR manager/employee), mandatory TOTP MFA for admin and payroll manager, and an org-scoped authentication audit log." },
+  { name: "Security", status: "live", description: "Role-based access (admin/payroll manager/HR manager/employee), mandatory TOTP MFA for admin and payroll manager, an org-scoped authentication audit log, and per-employee salary masking from HR Manager view (a real database-level mask, not just a hidden UI field)." },
   { name: "Multi-Company & Global Payroll", status: "roadmap", description: "Nigeria only. Ghana (SSNIT) and Kenya (NSSF/SHIF) rule sets are roadmap, not built." },
   { name: "Integrations", status: "partial", description: "Bank disbursement connections are a real per-org toggle, but explicitly a demo — no bank API calls, no disbursement file generation." },
   { name: "Final Settlement", status: "live", description: "Exit payroll: leave payout, gratuity and full loan clearance in one off-cycle run." },

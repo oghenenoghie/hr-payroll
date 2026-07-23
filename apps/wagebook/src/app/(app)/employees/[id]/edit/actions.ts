@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { naira } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getMembership } from "@/lib/membership";
 
 export type EditEmployeeState = { error?: string } | null;
 
@@ -39,10 +40,25 @@ export async function editEmployee(
   const housingNaira = Number(formData.get("housing") ?? 0);
   const transportNaira = Number(formData.get("transport") ?? 0);
   const annualRentNaira = Number(formData.get("annual_rent") ?? 0);
+  const salaryMaskedRequested = formData.get("salary_masked") === "true";
 
   if (bankAccountNumber && !/^\d{10}$/.test(bankAccountNumber)) {
     return { error: "Bank account number (NUBAN) must be exactly 10 digits." };
   }
+
+  // Salary masking gate: an hr_manager can never write salary/bank fields
+  // for an employee currently masked from them (regardless of what a
+  // crafted request sends — the client already hides these inputs, but
+  // this is the actual enforcement), and never controls the mask flag
+  // itself, since letting HR unmask their own view would defeat it.
+  const membership = await getMembership(supabase, user.id);
+  const isAdminOrPayroll = membership?.role === "admin" || membership?.role === "payroll_manager";
+  const { data: currentEmployee } = await supabase
+    .from("employees")
+    .select("salary_masked")
+    .eq("id", employeeId)
+    .maybeSingle();
+  const canEditSalary = isAdminOrPayroll || !currentEmployee?.salary_masked;
 
   const { error } = await supabase
     .from("employees")
@@ -50,16 +66,21 @@ export async function editEmployee(
       full_name: fullName,
       state_of_residence: stateOfResidence,
       hire_date: hireDate,
-      basic_kobo: Number(naira(basicNaira)),
-      housing_kobo: Number(naira(housingNaira)),
-      transport_kobo: Number(naira(transportNaira)),
-      annual_rent_kobo: Number(naira(annualRentNaira)),
       tin,
       pfa,
       status,
-      bank_name: bankName,
-      bank_account_number: bankAccountNumber,
-      bank_account_name: bankAccountName,
+      ...(canEditSalary
+        ? {
+            basic_kobo: Number(naira(basicNaira)),
+            housing_kobo: Number(naira(housingNaira)),
+            transport_kobo: Number(naira(transportNaira)),
+            annual_rent_kobo: Number(naira(annualRentNaira)),
+            bank_name: bankName,
+            bank_account_number: bankAccountNumber,
+            bank_account_name: bankAccountName,
+          }
+        : {}),
+      ...(isAdminOrPayroll ? { salary_masked: salaryMaskedRequested } : {}),
     })
     .eq("id", employeeId);
 

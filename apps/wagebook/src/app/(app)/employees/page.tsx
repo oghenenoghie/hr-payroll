@@ -23,8 +23,12 @@ export default async function EmployeesPage() {
     redirect("/me");
   }
 
+  // Queries the salary-masked view rather than the raw table — for an
+  // hr_manager viewer, any employee flagged salary_masked comes back with
+  // null salary/bank columns (see the migration comment for why); admin
+  // and payroll_manager always see real values through the same view.
   const { data: employees } = await supabase
-    .from("employees")
+    .from("employees_masked")
     .select("*")
     .order("created_at", { ascending: false });
 
@@ -64,16 +68,24 @@ export default async function EmployeesPage() {
                   <td className={`${tdClass} font-bold text-ink`}>{employee.full_name}</td>
                   <td className={`${tdClass} text-ink-soft`}>{employee.state_of_residence ?? "—"}</td>
                   <td className={`${tdClass} text-right font-bold text-ink`}>
-                    {formatKobo(BigInt(employee.basic_kobo))}
+                    {employee.basic_kobo !== null ? (
+                      formatKobo(BigInt(employee.basic_kobo))
+                    ) : (
+                      <span className="font-normal text-ink-soft">Restricted</span>
+                    )}
                   </td>
                   <td className={`${tdClass} text-center`}>
                     <TinBadge tin={employee.tin} />
                   </td>
                   <td className={`${tdClass} text-center`}>
-                    <BankDetailsBadge bankAccountNumber={employee.bank_account_number} />
+                    {employee.salary_masked && employee.bank_account_number === null ? (
+                      <span className="text-ink-soft">Restricted</span>
+                    ) : (
+                      <BankDetailsBadge bankAccountNumber={employee.bank_account_number} />
+                    )}
                   </td>
                   <td className={`${tdClass} text-center`}>
-                    <EmployeeStatusBadge status={employee.status} />
+                    <EmployeeStatusBadge status={employee.status ?? "active"} />
                   </td>
                   <td className={`${tdClass} text-right`}>
                     <Link href={`/employees/${employee.id}/edit`} className="font-bold text-primary">
