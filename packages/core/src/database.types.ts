@@ -934,6 +934,58 @@ export type Database = {
           },
         ]
       }
+      pay_run_reversals: {
+        Row: {
+          created_at: string
+          id: string
+          org_id: string
+          pay_run_id: string
+          reason: string
+          reversal_journal_entry_id: string
+          reversed_by: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          org_id: string
+          pay_run_id: string
+          reason: string
+          reversal_journal_entry_id: string
+          reversed_by: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          org_id?: string
+          pay_run_id?: string
+          reason?: string
+          reversal_journal_entry_id?: string
+          reversed_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pay_run_reversals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pay_run_reversals_pay_run_id_fkey"
+            columns: ["pay_run_id"]
+            isOneToOne: true
+            referencedRelation: "pay_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pay_run_reversals_reversal_journal_entry_id_fkey"
+            columns: ["reversal_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pay_runs: {
         Row: {
           created_at: string
@@ -947,6 +999,7 @@ export type Database = {
           period_end: string
           period_start: string
           rule_version_id: string
+          status: string
         }
         Insert: {
           created_at?: string
@@ -960,6 +1013,7 @@ export type Database = {
           period_end: string
           period_start: string
           rule_version_id: string
+          status?: string
         }
         Update: {
           created_at?: string
@@ -973,6 +1027,7 @@ export type Database = {
           period_end?: string
           period_start?: string
           rule_version_id?: string
+          status?: string
         }
         Relationships: [
           {
@@ -1250,6 +1305,7 @@ export type Database = {
           period_end: string
           period_start: string
           rule_version_id: string
+          status: string
         }
         SetofOptions: {
           from: "*"
@@ -1302,6 +1358,24 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "employees"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      reverse_pay_run: {
+        Args: { p_pay_run_id: string; p_reason: string }
+        Returns: {
+          created_at: string
+          id: string
+          org_id: string
+          pay_run_id: string
+          reason: string
+          reversal_journal_entry_id: string
+          reversed_by: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "pay_run_reversals"
           isOneToOne: true
           isSetofReturn: false
         }

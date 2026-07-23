@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatKobo } from "@/lib/format";
 import { getMembership } from "@/lib/membership";
 import { FREQUENCY_LABEL } from "@/lib/accounts";
+import { PayRunStatusBadge } from "@/components/Badge";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const tdClass = "px-3 py-[10px] text-[13px]";
@@ -53,6 +54,7 @@ export default async function PayrollPage() {
               <th className={`${thClass} text-right`}>Gross</th>
               <th className={`${thClass} text-right`}>Net</th>
               <th className={`${thClass} text-left`}>Rule version</th>
+              <th className={`${thClass} text-center`}>Status</th>
             </tr>
           </thead>
           <tbody>
@@ -71,11 +73,14 @@ export default async function PayrollPage() {
                   <td className={`${tdClass} text-right font-bold text-ink`}>{formatKobo(BigInt(run.gross_kobo))}</td>
                   <td className={`${tdClass} text-right font-bold text-ink`}>{formatKobo(BigInt(run.net_kobo))}</td>
                   <td className={`${tdClass} text-ink-soft`}>{run.rule_version_id}</td>
+                  <td className={`${tdClass} text-center`}>
+                    <PayRunStatusBadge status={run.status} />
+                  </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={6} className="px-3 py-10 text-center text-[13px] text-ink-soft">
+                <td colSpan={7} className="px-3 py-10 text-center text-[13px] text-ink-soft">
                   No payroll runs yet.
                 </td>
               </tr>

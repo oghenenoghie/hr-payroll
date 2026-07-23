@@ -33,6 +33,10 @@ export function EmployeeStatusBadge({ status }: { status: string }) {
   return status === "active" ? <Badge tone="good">Active</Badge> : <Badge tone="neutral">Terminated</Badge>;
 }
 
+export function PayRunStatusBadge({ status }: { status: string }) {
+  return status === "reversed" ? <Badge tone="bad">Reversed</Badge> : <Badge tone="good">Posted</Badge>;
+}
+
 const LOAN_STATUS_TONE = {
   pending: "warn",
   approved: "good",

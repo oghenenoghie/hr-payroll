@@ -1,8 +1,11 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatKobo } from "@/lib/format";
+import { getMembership } from "@/lib/membership";
 import { ACCOUNT_LABEL, FREQUENCY_LABEL } from "@/lib/accounts";
+import { PayRunStatusBadge } from "@/components/Badge";
 import { PayslipTable } from "./PayslipTable";
+import { ReversalForm } from "./ReversalForm";
 
 function SummaryTile({ label, value }: { label: string; value: string }) {
   return (
@@ -16,9 +19,23 @@ function SummaryTile({ label, value }: { label: string; value: string }) {
 export default async function PayRunDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const membership = await getMembership(supabase, user.id);
 
   const { data: payRun } = await supabase.from("pay_runs").select("*").eq("id", id).maybeSingle();
   if (!payRun) notFound();
+
+  const { data: reversal } =
+    payRun.status === "reversed"
+      ? await supabase.from("pay_run_reversals").select("reason, created_at").eq("pay_run_id", id).maybeSingle()
+      : { data: null };
 
   const { data: payslips } = await supabase
     .from("payslips")
@@ -46,9 +63,12 @@ export default async function PayRunDetailPage({ params }: { params: Promise<{ i
       <header className="flex items-start justify-between gap-4">
         <div className="flex flex-col gap-1">
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Payroll Runs</span>
-          <h1 className="text-[22px] font-extrabold text-ink">
-            {payRun.period_start} – {payRun.period_end}
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-[22px] font-extrabold text-ink">
+              {payRun.period_start} – {payRun.period_end}
+            </h1>
+            <PayRunStatusBadge status={payRun.status} />
+          </div>
           <p className="text-[13px] capitalize text-ink-soft">
             {FREQUENCY_LABEL[payRun.frequency] ?? payRun.frequency} · {payRun.employee_count} employees ·{" "}
             {payRun.rule_version_id}
@@ -90,6 +110,23 @@ export default async function PayRunDetailPage({ params }: { params: Promise<{ i
                   <span className="text-[13px] font-bold text-ink">{formatKobo(BigInt(posting.amount_kobo))}</span>
                 </div>
               ))}
+          </div>
+        </div>
+      )}
+
+      {reversal && (
+        <div className="rounded-card border border-bad bg-bad-tint p-6">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-bad">Reversed</span>
+          <p className="mt-2 text-[13px] text-ink">{reversal.reason}</p>
+          <p className="mt-1 text-[12px] text-ink-soft">{new Date(reversal.created_at).toLocaleString()}</p>
+        </div>
+      )}
+
+      {payRun.status === "posted" && membership?.role === "admin" && (
+        <div className="rounded-card border border-border bg-surface p-6">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Reverse this run</span>
+          <div className="mt-3">
+            <ReversalForm payRunId={payRun.id} />
           </div>
         </div>
       )}
