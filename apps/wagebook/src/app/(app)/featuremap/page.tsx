@@ -23,7 +23,7 @@ const MODULES: Module[] = [
   { name: "Leave Management", status: "live", description: "Leave requests, balances, admin/HR/manager approval, unpaid leave deducts pay." },
   { name: "Overtime Management", status: "live", description: "Employee-submitted overtime requests, admin/payroll approval with a 1.5×/2× rate, paid via next pay run as taxable (non-pensionable) pay." },
   { name: "Loans & Advances", status: "live", description: "Employee-initiated requests, admin/payroll approval, automatic net-pay repayment." },
-  { name: "Tax Management", status: "live", description: "Cumulative PAYE on the 2026 Nigeria Tax Act bands, re-derived every run." },
+  { name: "Tax Management", status: "live", description: "Cumulative PAYE on the 2026 Nigeria Tax Act bands, re-derived every run. The public PAYE Calculator also solves net-to-gross (gross-up) for a target take-home; gross-up against a real employee's own pay components isn't wired into pay-run creation yet." },
   { name: "Benefits Administration", status: "live", description: "HR-managed plan catalog and enrollment; employer cost and employee deduction per pay run." },
   { name: "Payroll Processing", status: "live", description: "Atomic pay-run creation with a balanced double-entry ledger; new-hire pay is prorated to actual days employed this period. Termination and mid-period salary-change proration are not built." },
   { name: "Payslips", status: "live", description: "Itemised digital payslips with a step-by-step \"· how?\" derivation of every figure." },

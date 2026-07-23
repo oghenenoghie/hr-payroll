@@ -8,7 +8,7 @@ import { computeNsitf } from "../src/schemes/nsitf";
 import { computeItf } from "../src/schemes/itf";
 import { checkTinGate } from "../src/tin-gate";
 import { TinRequiredError } from "../src/errors";
-import { deriveDemoPaye } from "../src/demo";
+import { deriveDemoPaye, solveDemoGrossForNet } from "../src/demo";
 import type { PayComponent } from "../src/types";
 
 const rv = NG_2026_1;
@@ -244,5 +244,46 @@ describe("Demo PAYE Calculator derivation (product's illustrative screen)", () =
     expect(toNaira(derivation.chargeableIncomeKobo)).toBeCloseTo(5_000_000 - 400_000 - 62_500 - 240_000, 2);
     expect(derivation.annualPayeKobo).toBeGreaterThan(0n);
     expect(derivation.monthlyPayeKobo).toBe(derivation.annualPayeKobo / 12n);
+  });
+});
+
+describe("Gross-up (net-to-gross) solver — correctness gap from feature-backlog.md §1", () => {
+  it("round-trips: solving for the net a known gross actually produces recovers that gross (or a smaller one on the same integer plateau)", () => {
+    const originalGrossKobo = naira(7_500_000);
+    const forward = deriveDemoPaye(originalGrossKobo, naira(1_200_000), rv);
+    const targetNetKobo =
+      originalGrossKobo - forward.pensionEmployeeKobo - forward.nhfKobo - forward.annualPayeKobo;
+
+    const solved = solveDemoGrossForNet(targetNetKobo, naira(1_200_000), rv);
+
+    expect(solved.annualGrossKobo).toBeLessThanOrEqual(originalGrossKobo);
+    expect(solved.netKobo).toBeGreaterThanOrEqual(targetNetKobo);
+    expect(solved.netKobo - targetNetKobo).toBeLessThan(naira(1)); // within ₦1 of the target
+    expect(solved.iterations).toBeLessThan(100);
+  });
+
+  it("stays monotonic and converges near every PAYE band boundary", () => {
+    const boundaries = [800_000, 3_000_000, 12_000_000, 25_000_000, 50_000_000];
+    for (const boundary of boundaries) {
+      const lowerTargetKobo = naira(boundary);
+      const higherTargetKobo = naira(boundary) + naira(1);
+
+      const lower = solveDemoGrossForNet(lowerTargetKobo, naira(0), rv);
+      const higher = solveDemoGrossForNet(higherTargetKobo, naira(0), rv);
+
+      // A ₦1 higher target net never solves to a lower gross — net-of-gross
+      // is non-decreasing in gross under every band, including right at
+      // the step where the marginal rate changes.
+      expect(higher.annualGrossKobo).toBeGreaterThanOrEqual(lower.annualGrossKobo);
+      expect(lower.netKobo).toBeGreaterThanOrEqual(lowerTargetKobo);
+      expect(higher.netKobo).toBeGreaterThanOrEqual(higherTargetKobo);
+      expect(lower.iterations).toBeLessThan(100);
+      expect(higher.iterations).toBeLessThan(100);
+    }
+  });
+
+  it("rejects a non-positive target net rather than solving toward a meaningless answer", () => {
+    expect(() => solveDemoGrossForNet(0n, naira(0), rv)).toThrow();
+    expect(() => solveDemoGrossForNet(-naira(1), naira(0), rv)).toThrow();
   });
 });

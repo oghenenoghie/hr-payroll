@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { NG_2026_1, computeAnnualPaye, deriveDemoPaye, naira } from "@plutus/compliance";
+import { NG_2026_1, computeAnnualPaye, deriveDemoPaye, naira, solveDemoGrossForNet } from "@plutus/compliance";
 import { formatKobo, formatPercent } from "@/lib/format";
 
 const inputBase =
@@ -27,15 +27,35 @@ function StepRow({ label, value, emphasis = false }: { label: string; value: str
 }
 
 export function PayeCalculator() {
+  const [mode, setMode] = useState<"gross" | "net">("gross");
   const [grossInput, setGrossInput] = useState("5000000");
+  const [netInput, setNetInput] = useState("4000000");
   const [rentInput, setRentInput] = useState("1200000");
 
-  const derivation = useMemo(() => {
-    const gross = Number(grossInput);
+  const grossUp = useMemo(() => {
+    if (mode !== "net") return null;
+    const net = Number(netInput);
     const rent = Number(rentInput);
+    if (!Number.isFinite(net) || net <= 0) return null;
+    try {
+      return solveDemoGrossForNet(naira(net), naira(Number.isFinite(rent) && rent >= 0 ? rent : 0), NG_2026_1);
+    } catch {
+      return null;
+    }
+  }, [mode, netInput, rentInput]);
+
+  const derivation = useMemo(() => {
+    const rent = Number(rentInput);
+    const rentKobo = naira(Number.isFinite(rent) && rent >= 0 ? rent : 0);
+
+    if (mode === "net") {
+      return grossUp?.derivation ?? null;
+    }
+
+    const gross = Number(grossInput);
     if (!Number.isFinite(gross) || gross <= 0) return null;
-    return deriveDemoPaye(naira(gross), naira(Number.isFinite(rent) && rent >= 0 ? rent : 0), NG_2026_1);
-  }, [grossInput, rentInput]);
+    return deriveDemoPaye(naira(gross), rentKobo, NG_2026_1);
+  }, [mode, grossInput, rentInput, grossUp]);
 
   return (
     <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 px-6 py-10">
@@ -55,18 +75,54 @@ export function PayeCalculator() {
 
       <div className="grid grid-cols-1 gap-5 md:grid-cols-[320px_1fr]">
         <Card className="flex flex-col gap-4 h-fit">
-          <div className="flex flex-col gap-2">
-            <label className={microLabel} htmlFor="gross">
-              Annual gross (₦)
-            </label>
-            <input
-              id="gross"
-              inputMode="numeric"
-              className={inputBase}
-              value={grossInput}
-              onChange={(e) => setGrossInput(e.target.value.replace(/[^0-9]/g, ""))}
-            />
+          <div className="flex rounded-control border border-border p-1">
+            {(["gross", "net"] as const).map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => setMode(option)}
+                className={`flex-1 rounded-control px-3 py-[7px] text-[12px] font-bold ${
+                  mode === option ? "bg-primary text-white" : "text-ink-soft"
+                }`}
+              >
+                {option === "gross" ? "I know my gross" : "I know my net (gross-up)"}
+              </button>
+            ))}
           </div>
+
+          {mode === "gross" ? (
+            <div className="flex flex-col gap-2">
+              <label className={microLabel} htmlFor="gross">
+                Annual gross (₦)
+              </label>
+              <input
+                id="gross"
+                inputMode="numeric"
+                className={inputBase}
+                value={grossInput}
+                onChange={(e) => setGrossInput(e.target.value.replace(/[^0-9]/g, ""))}
+              />
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <label className={microLabel} htmlFor="net">
+                Target annual net / take-home (₦)
+              </label>
+              <input
+                id="net"
+                inputMode="numeric"
+                className={inputBase}
+                value={netInput}
+                onChange={(e) => setNetInput(e.target.value.replace(/[^0-9]/g, ""))}
+              />
+              <p className="text-[11px] text-ink-soft">
+                Solves for the gross the employer must pay so this employee actually takes home this
+                much — the arrangement common in senior/expatriate contracts where the employer bears
+                the tax.
+              </p>
+            </div>
+          )}
+
           <div className="flex flex-col gap-2">
             <label className={microLabel} htmlFor="rent">
               Annual rent paid (₦)
@@ -79,6 +135,14 @@ export function PayeCalculator() {
               onChange={(e) => setRentInput(e.target.value.replace(/[^0-9]/g, ""))}
             />
           </div>
+
+          {mode === "net" && grossUp && (
+            <div className="flex flex-col gap-1 rounded-control bg-bg px-3 py-[10px]">
+              <span className={microLabel}>Solved annual gross</span>
+              <span className="text-[15px] font-extrabold text-ink">{formatKobo(grossUp.annualGrossKobo)}</span>
+            </div>
+          )}
+
           <div className="mt-2 flex flex-col gap-1 border-t border-border pt-4">
             <span className={microLabel}>Rule version</span>
             <span className="text-[13px] font-bold text-ink">{NG_2026_1.id}</span>
@@ -143,10 +207,41 @@ export function PayeCalculator() {
                 <StepRow label="Monthly PAYE" value={formatKobo(derivation.monthlyPayeKobo)} emphasis />
               </div>
             </Card>
+
+            <Card>
+              <span className={microLabel}>Step 5 · Net pay</span>
+              <div className="mt-3">
+                <StepRow
+                  label="Annual net"
+                  value={formatKobo(
+                    derivation.annualGrossKobo -
+                      derivation.pensionEmployeeKobo -
+                      derivation.nhfKobo -
+                      derivation.annualPayeKobo,
+                  )}
+                  emphasis
+                />
+                <StepRow
+                  label="Monthly net"
+                  value={formatKobo(
+                    (derivation.annualGrossKobo -
+                      derivation.pensionEmployeeKobo -
+                      derivation.nhfKobo -
+                      derivation.annualPayeKobo) /
+                      12n,
+                  )}
+                  emphasis
+                />
+              </div>
+            </Card>
           </div>
         ) : (
           <Card>
-            <span className="text-[13px] text-ink-soft">Enter an annual gross above zero to see the derivation.</span>
+            <span className="text-[13px] text-ink-soft">
+              {mode === "gross"
+                ? "Enter an annual gross above zero to see the derivation."
+                : "Enter a target annual net above zero to solve for the required gross."}
+            </span>
           </Card>
         )}
       </div>
