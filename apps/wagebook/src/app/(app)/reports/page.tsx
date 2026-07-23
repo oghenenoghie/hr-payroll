@@ -83,9 +83,14 @@ export default async function ReportsPage() {
           Totals posted across every pay run to date. Remittance/filing-status tracking isn&apos;t built yet — these
           are liability totals, not a claim about what has actually been paid to each authority.
         </p>
-        <Link href="/reports/register" className="mt-1 text-[12.5px] font-bold text-primary">
-          View payroll register &amp; reconciliation →
-        </Link>
+        <div className="mt-1 flex flex-col gap-1">
+          <Link href="/reports/register" className="text-[12.5px] font-bold text-primary">
+            View payroll register &amp; reconciliation →
+          </Link>
+          <Link href="/reports/annual" className="text-[12.5px] font-bold text-primary">
+            View annual tax reconciliation →
+          </Link>
+        </div>
       </header>
 
       <div className="overflow-x-auto rounded-card border border-border bg-surface">
