@@ -4,16 +4,21 @@ import { useActionState } from "react";
 import { toNaira } from "@plutus/compliance";
 import type { Tables } from "@plutus/core";
 import { FormError, FormField, SubmitButton } from "@/components/AuthCard";
+import { formatKobo } from "@/lib/format";
 import { editEmployee, type EditEmployeeState } from "./actions";
+
+type JobGrade = { id: string; name: string; min_annual_kobo: number; max_annual_kobo: number };
 
 export function EditEmployeeForm({
   employee,
   departments,
+  jobGrades,
   canEditSalary,
   canControlMasking,
 }: {
   employee: Tables<"employees_masked">;
   departments: { id: string; name: string }[];
+  jobGrades: JobGrade[];
   canEditSalary: boolean;
   canControlMasking: boolean;
 }) {
@@ -21,6 +26,20 @@ export function EditEmployeeForm({
     (prevState: EditEmployeeState, formData: FormData) => editEmployee(employee.id!, prevState, formData),
     null,
   );
+
+  const assignedGrade = jobGrades.find((grade) => grade.id === employee.job_grade_id);
+  const annualTotalKobo =
+    canEditSalary && employee.basic_kobo !== null && employee.housing_kobo !== null && employee.transport_kobo !== null
+      ? BigInt(employee.basic_kobo) + BigInt(employee.housing_kobo) + BigInt(employee.transport_kobo)
+      : null;
+  const bandStatus =
+    assignedGrade && annualTotalKobo !== null
+      ? annualTotalKobo < BigInt(assignedGrade.min_annual_kobo)
+        ? "below"
+        : annualTotalKobo > BigInt(assignedGrade.max_annual_kobo)
+          ? "above"
+          : "within"
+      : null;
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -61,6 +80,35 @@ export function EditEmployeeForm({
             </option>
           ))}
         </select>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <label className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft" htmlFor="job_grade_id">
+          Job grade
+        </label>
+        <select
+          id="job_grade_id"
+          name="job_grade_id"
+          defaultValue={employee.job_grade_id ?? ""}
+          className="w-full rounded-control border border-border bg-surface px-[13px] py-[11px] text-[13px] text-ink outline-none focus:border-primary"
+        >
+          <option value="">No job grade</option>
+          {jobGrades.map((grade) => (
+            <option key={grade.id} value={grade.id}>
+              {grade.name} ({formatKobo(BigInt(grade.min_annual_kobo))} – {formatKobo(BigInt(grade.max_annual_kobo))})
+            </option>
+          ))}
+        </select>
+        {bandStatus === "below" && (
+          <p className="text-[12px] font-bold text-warn">
+            Below this grade&apos;s band (min {formatKobo(BigInt(assignedGrade!.min_annual_kobo))}/yr).
+          </p>
+        )}
+        {bandStatus === "above" && (
+          <p className="text-[12px] font-bold text-warn">
+            Above this grade&apos;s band (max {formatKobo(BigInt(assignedGrade!.max_annual_kobo))}/yr).
+          </p>
+        )}
       </div>
 
       {canEditSalary ? (

@@ -2,9 +2,18 @@
 
 import { useActionState } from "react";
 import { FormError, FormField, SubmitButton } from "@/components/AuthCard";
+import { formatKobo } from "@/lib/format";
 import { addEmployee } from "./actions";
 
-export function EmployeeForm({ departments }: { departments: { id: string; name: string }[] }) {
+type JobGrade = { id: string; name: string; min_annual_kobo: number; max_annual_kobo: number };
+
+export function EmployeeForm({
+  departments,
+  jobGrades,
+}: {
+  departments: { id: string; name: string }[];
+  jobGrades: JobGrade[];
+}) {
   const [state, formAction] = useActionState(addEmployee, null);
 
   return (
@@ -32,6 +41,24 @@ export function EmployeeForm({ departments }: { departments: { id: string; name:
           {departments.map((department) => (
             <option key={department.id} value={department.id}>
               {department.name}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="flex flex-col gap-2">
+        <label className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft" htmlFor="job_grade_id">
+          Job grade
+        </label>
+        <select
+          id="job_grade_id"
+          name="job_grade_id"
+          defaultValue=""
+          className="w-full rounded-control border border-border bg-surface px-[13px] py-[11px] text-[13px] text-ink outline-none focus:border-primary"
+        >
+          <option value="">No job grade</option>
+          {jobGrades.map((grade) => (
+            <option key={grade.id} value={grade.id}>
+              {grade.name} ({formatKobo(BigInt(grade.min_annual_kobo))} – {formatKobo(BigInt(grade.max_annual_kobo))})
             </option>
           ))}
         </select>

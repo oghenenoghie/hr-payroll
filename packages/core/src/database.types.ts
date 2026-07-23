@@ -262,6 +262,7 @@ export type Database = {
           hire_date: string | null
           housing_kobo: number
           id: string
+          job_grade_id: string | null
           linked_at: string | null
           manager_id: string | null
           nationality: string | null
@@ -291,6 +292,7 @@ export type Database = {
           hire_date?: string | null
           housing_kobo?: number
           id?: string
+          job_grade_id?: string | null
           linked_at?: string | null
           manager_id?: string | null
           nationality?: string | null
@@ -320,6 +322,7 @@ export type Database = {
           hire_date?: string | null
           housing_kobo?: number
           id?: string
+          job_grade_id?: string | null
           linked_at?: string | null
           manager_id?: string | null
           nationality?: string | null
@@ -340,6 +343,13 @@ export type Database = {
             columns: ["department_id"]
             isOneToOne: false
             referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_job_grade_id_fkey"
+            columns: ["job_grade_id"]
+            isOneToOne: false
+            referencedRelation: "job_grades"
             referencedColumns: ["id"]
           },
           {
@@ -520,6 +530,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "integration_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_grades: {
+        Row: {
+          created_at: string
+          id: string
+          max_annual_kobo: number
+          min_annual_kobo: number
+          name: string
+          org_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          max_annual_kobo: number
+          min_annual_kobo: number
+          name: string
+          org_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          max_annual_kobo?: number
+          min_annual_kobo?: number
+          name?: string
+          org_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_grades_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -1222,6 +1267,8 @@ export type Database = {
           hire_date: string | null
           housing_kobo: number | null
           id: string | null
+          job_grade_id: string | null
+          job_grade_name: string | null
           linked_at: string | null
           manager_id: string | null
           nationality: string | null
@@ -1242,6 +1289,13 @@ export type Database = {
             columns: ["department_id"]
             isOneToOne: false
             referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_job_grade_id_fkey"
+            columns: ["job_grade_id"]
+            isOneToOne: false
+            referencedRelation: "job_grades"
             referencedColumns: ["id"]
           },
           {
@@ -1347,6 +1401,7 @@ export type Database = {
           hire_date: string | null
           housing_kobo: number
           id: string
+          job_grade_id: string | null
           linked_at: string | null
           manager_id: string | null
           nationality: string | null

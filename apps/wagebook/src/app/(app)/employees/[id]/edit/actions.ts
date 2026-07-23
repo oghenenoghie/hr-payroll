@@ -34,6 +34,7 @@ export async function editEmployee(
   const pfa = String(formData.get("pfa") ?? "").trim() || null;
   const status = String(formData.get("status") ?? "active");
   const departmentId = String(formData.get("department_id") ?? "").trim() || null;
+  const jobGradeId = String(formData.get("job_grade_id") ?? "").trim() || null;
   const dateOfBirth = String(formData.get("date_of_birth") ?? "").trim() || null;
   const nationality = String(formData.get("nationality") ?? "").trim() || null;
   const bankName = String(formData.get("bank_name") ?? "").trim() || null;
@@ -73,6 +74,7 @@ export async function editEmployee(
       pfa,
       status,
       department_id: departmentId,
+      job_grade_id: jobGradeId,
       date_of_birth: dateOfBirth,
       nationality,
       ...(canEditSalary
