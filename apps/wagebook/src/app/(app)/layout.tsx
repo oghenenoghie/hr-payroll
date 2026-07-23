@@ -32,6 +32,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     : { count: 0 };
   const isManager = (reportCount ?? 0) > 0;
 
+  const { count: unreadNotifications } = await supabase
+    .from("notifications")
+    .select("id", { count: "exact", head: true })
+    .eq("recipient_user_id", user.id)
+    .is("read_at", null);
+
   return (
     <div className="flex h-screen overflow-hidden">
       <aside className="flex w-[240px] shrink-0 flex-col justify-between bg-primary-dark px-4 py-6">
@@ -42,7 +48,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               Technologies
             </span>
           </div>
-          <SidebarNav role={membership?.role} isManager={isManager} />
+          <SidebarNav role={membership?.role} isManager={isManager} unreadNotifications={unreadNotifications ?? 0} />
         </div>
 
         <div className="flex flex-col gap-3 border-t border-primary px-2 pt-4">

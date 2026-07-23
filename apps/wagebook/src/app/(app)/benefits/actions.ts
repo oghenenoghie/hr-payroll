@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { naira } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
+import { notifyUsers } from "@/lib/notifications";
 
 export type CreateBenefitPlanState = { error?: string; success?: boolean } | null;
 
@@ -107,6 +108,21 @@ export async function enrollEmployee(
     return {
       error: error.code === "23505" ? "This employee is already enrolled in that plan." : error.message,
     };
+  }
+
+  const [{ data: employee }, { data: plan }] = await Promise.all([
+    supabase.from("employees").select("user_id").eq("id", employeeId).maybeSingle(),
+    supabase.from("benefit_plans").select("name").eq("id", benefitPlanId).maybeSingle(),
+  ]);
+
+  if (employee?.user_id) {
+    await notifyUsers(supabase, {
+      orgId: membership.orgId,
+      recipientUserIds: [employee.user_id],
+      type: "benefit_enrolled",
+      message: `You've been enrolled in ${plan?.name ?? "a benefit plan"}.`,
+      link: "/me",
+    });
   }
 
   revalidatePath("/benefits");

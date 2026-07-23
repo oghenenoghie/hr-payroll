@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { naira } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
+import { getOrgRoleUserIds, notifyUsers } from "@/lib/notifications";
 
 export type RequestLoanState = { error?: string; success?: boolean } | null;
 
@@ -17,7 +18,11 @@ export async function requestLoan(_prevState: RequestLoanState, formData: FormDa
     redirect("/login");
   }
 
-  const { data: employee } = await supabase.from("employees").select("id, org_id").eq("user_id", user.id).maybeSingle();
+  const { data: employee } = await supabase
+    .from("employees")
+    .select("id, org_id, full_name")
+    .eq("user_id", user.id)
+    .maybeSingle();
 
   if (!employee) {
     return { error: "Your account isn't linked to an employee record yet." };
@@ -53,6 +58,15 @@ export async function requestLoan(_prevState: RequestLoanState, formData: FormDa
     return { error: error.message };
   }
 
+  const approverIds = await getOrgRoleUserIds(supabase, employee.org_id, ["admin", "payroll_manager"]);
+  await notifyUsers(supabase, {
+    orgId: employee.org_id,
+    recipientUserIds: approverIds,
+    type: "loan_request_submitted",
+    message: `${employee.full_name} requested a loan.`,
+    link: "/loans",
+  });
+
   revalidatePath("/me");
   return { success: true };
 }
@@ -69,7 +83,11 @@ export async function requestExpense(_prevState: RequestExpenseState, formData: 
     redirect("/login");
   }
 
-  const { data: employee } = await supabase.from("employees").select("id, org_id").eq("user_id", user.id).maybeSingle();
+  const { data: employee } = await supabase
+    .from("employees")
+    .select("id, org_id, full_name")
+    .eq("user_id", user.id)
+    .maybeSingle();
 
   if (!employee) {
     return { error: "Your account isn't linked to an employee record yet." };
@@ -97,6 +115,15 @@ export async function requestExpense(_prevState: RequestExpenseState, formData: 
     return { error: error.message };
   }
 
+  const approverIds = await getOrgRoleUserIds(supabase, employee.org_id, ["admin", "payroll_manager"]);
+  await notifyUsers(supabase, {
+    orgId: employee.org_id,
+    recipientUserIds: approverIds,
+    type: "expense_submitted",
+    message: `${employee.full_name} submitted an expense claim.`,
+    link: "/expenses",
+  });
+
   revalidatePath("/me");
   return { success: true };
 }
@@ -113,7 +140,11 @@ export async function requestLeave(_prevState: RequestLeaveState, formData: Form
     redirect("/login");
   }
 
-  const { data: employee } = await supabase.from("employees").select("id, org_id").eq("user_id", user.id).maybeSingle();
+  const { data: employee } = await supabase
+    .from("employees")
+    .select("id, org_id, full_name, manager_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
 
   if (!employee) {
     return { error: "Your account isn't linked to an employee record yet." };
@@ -152,6 +183,23 @@ export async function requestLeave(_prevState: RequestLeaveState, formData: Form
   if (leaveError) {
     return { error: leaveError.message };
   }
+
+  const approverIds = await getOrgRoleUserIds(supabase, employee.org_id, ["admin", "hr_manager"]);
+  if (employee.manager_id) {
+    const { data: manager } = await supabase
+      .from("employees")
+      .select("user_id")
+      .eq("id", employee.manager_id)
+      .maybeSingle();
+    if (manager?.user_id) approverIds.push(manager.user_id);
+  }
+  await notifyUsers(supabase, {
+    orgId: employee.org_id,
+    recipientUserIds: approverIds,
+    type: "leave_request_submitted",
+    message: `${employee.full_name} requested ${leaveType} leave.`,
+    link: "/leave",
+  });
 
   revalidatePath("/me");
   return { success: true };

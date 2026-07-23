@@ -5,6 +5,7 @@ import { TinBadge, LoanStatusBadge, ExpenseStatusBadge, LeaveStatusBadge } from 
 import { LoanRequestForm } from "./LoanRequestForm";
 import { ExpenseClaimForm } from "./ExpenseClaimForm";
 import { LeaveRequestForm } from "./LeaveRequestForm";
+import { markNotificationRead } from "../notifications/actions";
 
 export default async function MePage() {
   const supabase = await createClient();
@@ -66,6 +67,13 @@ export default async function MePage() {
     .eq("status", "active")
     .order("enrolled_at", { ascending: false });
 
+  const { data: unreadNotifications } = await supabase
+    .from("notifications")
+    .select("id, message, link")
+    .eq("recipient_user_id", user.id)
+    .is("read_at", null)
+    .order("created_at", { ascending: false });
+
   return (
     <div className="mx-auto flex w-full max-w-[560px] flex-col gap-5 px-6 py-10">
       <header className="flex flex-col gap-1">
@@ -73,6 +81,24 @@ export default async function MePage() {
         <h1 className="text-[22px] font-extrabold text-ink">{employee.full_name}</h1>
         <p className="text-[13px] text-ink-soft">Signed in as {user.email}</p>
       </header>
+
+      {unreadNotifications && unreadNotifications.length > 0 && (
+        <div className="flex flex-col gap-2">
+          {unreadNotifications.map((n) => (
+            <div
+              key={n.id}
+              className="flex items-center justify-between rounded-card border border-primary bg-primary-tint px-4 py-3"
+            >
+              <span className="text-[13px] font-bold text-ink">{n.message}</span>
+              <form action={markNotificationRead.bind(null, n.id)}>
+                <button type="submit" className="text-[12px] font-bold text-primary">
+                  Mark read
+                </button>
+              </form>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="flex items-center justify-between rounded-card border border-border bg-surface p-6">
         <div className="flex flex-col gap-0.5">

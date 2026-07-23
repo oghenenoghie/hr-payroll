@@ -15,13 +15,22 @@ const ADMIN_NAV_ITEMS = [
   { href: "/settlements", label: "Final Settlement" },
   { href: "/reports", label: "Reports" },
   { href: "/simulation", label: "Payroll Simulation" },
+  { href: "/notifications", label: "Notifications" },
 ];
 
 const EMPLOYEE_NAV_ITEMS = [{ href: "/me", label: "Overview" }];
 
 const MANAGER_NAV_ITEM = { href: "/team", label: "My Team" };
 
-export function SidebarNav({ role, isManager = false }: { role?: string; isManager?: boolean }) {
+export function SidebarNav({
+  role,
+  isManager = false,
+  unreadNotifications = 0,
+}: {
+  role?: string;
+  isManager?: boolean;
+  unreadNotifications?: number;
+}) {
   const pathname = usePathname();
   const baseItems = role === "employee" ? EMPLOYEE_NAV_ITEMS : ADMIN_NAV_ITEMS;
   const items = isManager ? [...baseItems, MANAGER_NAV_ITEM] : baseItems;
@@ -34,11 +43,16 @@ export function SidebarNav({ role, isManager = false }: { role?: string; isManag
           <Link
             key={item.href}
             href={item.href}
-            className={`rounded-control px-3 py-2 text-[13px] font-bold ${
+            className={`flex items-center justify-between rounded-control px-3 py-2 text-[13px] font-bold ${
               active ? "bg-primary text-white" : "text-primary-tint hover:bg-primary"
             }`}
           >
-            {item.label}
+            <span>{item.label}</span>
+            {item.href === "/notifications" && unreadNotifications > 0 && (
+              <span className="rounded-badge bg-white px-[7px] py-[1px] text-[11px] font-extrabold text-primary-dark">
+                {unreadNotifications}
+              </span>
+            )}
           </Link>
         );
       })}

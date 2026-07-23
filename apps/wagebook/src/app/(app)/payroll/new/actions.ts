@@ -13,6 +13,7 @@ import {
   type PayFrequency,
 } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
+import { getOrgRoleUserIds, notifyUsers } from "@/lib/notifications";
 
 export type CreatePayRunState = { error?: string; missingTin?: string[] } | null;
 
@@ -344,6 +345,15 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
   if (rpcError) {
     return { error: rpcError.message };
   }
+
+  const approverIds = await getOrgRoleUserIds(supabase, membership.org_id, ["admin", "payroll_manager"]);
+  await notifyUsers(supabase, {
+    orgId: membership.org_id,
+    recipientUserIds: approverIds.filter((id) => id !== user.id),
+    type: "pay_run_created",
+    message: `Payroll run for ${periodStart} – ${periodEnd} was created.`,
+    link: "/payroll",
+  });
 
   revalidatePath("/payroll");
   revalidatePath("/loans");
