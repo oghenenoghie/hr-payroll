@@ -194,6 +194,58 @@ export type Database = {
           },
         ]
       }
+      employee_status_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          employee_id: string
+          id: string
+          new_status: string
+          old_status: string | null
+          org_id: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          employee_id: string
+          id?: string
+          new_status: string
+          old_status?: string | null
+          org_id: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          employee_id?: string
+          id?: string
+          new_status?: string
+          old_status?: string | null
+          org_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_status_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_status_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_status_history_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           annual_leave_balance_days: number

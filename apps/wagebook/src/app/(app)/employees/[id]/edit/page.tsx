@@ -29,6 +29,12 @@ export default async function EditEmployeePage({ params }: { params: Promise<{ i
     ? await supabase.from("departments").select("id, name").eq("org_id", employee.org_id).order("name")
     : { data: null };
 
+  const { data: statusHistory } = await supabase
+    .from("employee_status_history")
+    .select("old_status, new_status, changed_at")
+    .eq("employee_id", id)
+    .order("changed_at", { ascending: false });
+
   const canEditSalary = employee.basic_kobo !== null;
   const canControlMasking = membership?.role === "admin" || membership?.role === "payroll_manager";
 
@@ -49,6 +55,21 @@ export default async function EditEmployeePage({ params }: { params: Promise<{ i
       <div className="rounded-card border border-border bg-surface p-6">
         <InviteAccountPanel employeeId={employee.id!} email={employee.email} linkedAt={employee.linked_at} />
       </div>
+      {statusHistory && statusHistory.length > 0 && (
+        <div className="rounded-card border border-border bg-surface p-6">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Status history</span>
+          <div className="mt-3 flex flex-col gap-2">
+            {statusHistory.map((change, index) => (
+              <div key={index} className="flex items-baseline justify-between text-[13px]">
+                <span className="text-ink">
+                  {change.old_status ?? "—"} → {change.new_status}
+                </span>
+                <span className="text-ink-soft">{new Date(change.changed_at).toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {employee.status === "terminated" && (
         <div className="rounded-card border border-border bg-surface p-6">
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Final settlement</span>

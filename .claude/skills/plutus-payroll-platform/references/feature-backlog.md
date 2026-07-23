@@ -103,6 +103,8 @@ The business model is **per-employee-per-month**, but no module meters employees
 
 Note the metering subtlety: "employees" for billing means *active in the period*, which must reconcile with — but is not identical to — the headcount a pay run processes. Define it precisely or every invoice is arguable.
 
+One prerequisite is now in place: `employee_status_history` records every status transition (old value, new value, who changed it, when — auto-logged by a database trigger, never client-written), so a period's active headcount is finally reconstructable from real history rather than a mutable current-value field with no memory of when it changed. Metering itself — the actual per-period calculation, plans, invoicing, payment — is still entirely unbuilt; this only removes the specific data-model blocker the note above calls out.
+
 ### Field-level security and salary masking
 
 Currently RLS isolates tenants and roles gate screens, but nothing masks salary within an authorised role. An HR Manager may legitimately need employee records without seeing executive compensation. Given how sensitive payroll is, field-level permissions and salary masking are closer to table stakes than to a premium feature.
