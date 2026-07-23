@@ -107,6 +107,7 @@ function DerivationDetail({ slip, ruleVersion }: { slip: PayslipRow; ruleVersion
   const unpaidLeaveDeductionKobo = BigInt(slip.unpaid_leave_deduction_kobo);
   const attendanceAbsenceDeductionKobo = BigInt(slip.attendance_absence_deduction_kobo);
   const overtimePayKobo = BigInt(slip.overtime_pay_kobo);
+  const newHireProrationDeductionKobo = BigInt(slip.new_hire_proration_deduction_kobo);
   const benefitEmployerCostKobo = BigInt(slip.benefit_employer_cost_kobo);
 
   return (
@@ -115,7 +116,8 @@ function DerivationDetail({ slip, ruleVersion }: { slip: PayslipRow; ruleVersion
         nonTaxableReimbursementKobo > 0n ||
         unpaidLeaveDeductionKobo > 0n ||
         attendanceAbsenceDeductionKobo > 0n ||
-        overtimePayKobo > 0n) && (
+        overtimePayKobo > 0n ||
+        newHireProrationDeductionKobo > 0n) && (
         <div>
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
             Reimbursements, leave, attendance &amp; overtime adjustments
@@ -139,6 +141,12 @@ function DerivationDetail({ slip, ruleVersion }: { slip: PayslipRow; ruleVersion
             <Row
               label="Approved overtime — added to gross and chargeable income, not pensionable"
               value={`+ ${formatKobo(overtimePayKobo)}`}
+            />
+          )}
+          {newHireProrationDeductionKobo > 0n && (
+            <Row
+              label="New-hire proration — days before hire date this period, reduces gross and chargeable income"
+              value={`− ${formatKobo(newHireProrationDeductionKobo)}`}
             />
           )}
         </div>

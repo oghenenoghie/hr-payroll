@@ -947,6 +947,7 @@ export type Database = {
           gross_kobo: number
           id: string
           net_kobo: number
+          new_hire_proration_deduction_kobo: number
           nhf_kobo: number
           non_taxable_reimbursement_kobo: number
           org_id: string
@@ -973,6 +974,7 @@ export type Database = {
           gross_kobo: number
           id?: string
           net_kobo: number
+          new_hire_proration_deduction_kobo?: number
           nhf_kobo: number
           non_taxable_reimbursement_kobo?: number
           org_id: string
@@ -999,6 +1001,7 @@ export type Database = {
           gross_kobo?: number
           id?: string
           net_kobo?: number
+          new_hire_proration_deduction_kobo?: number
           nhf_kobo?: number
           non_taxable_reimbursement_kobo?: number
           org_id?: string

@@ -263,7 +263,28 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
       attendanceDeductionsPayload.push({ attendance_record_id: absence.id, employee_id: employee.id });
     }
 
-    const daysOffDeductionKobo = unpaidLeaveDeductionKobo + attendanceAbsenceDeductionKobo;
+    // New-hire proration: an employee whose hire date falls inside this
+    // period wasn't employed for the whole thing, so the days before
+    // their hire date are deducted the same daily-rate way as unpaid
+    // leave/attendance — calendar days, not working days (see migration
+    // comment for why this basis was chosen). daysNotEmployed naturally
+    // clamps to 0 for an employee hired on or before period_start, and to
+    // the full period if hire_date falls after period_end (a hire date
+    // entered ahead of an actual start date), rather than needing a
+    // separate branch for either edge. Termination proration is handled
+    // by Final Settlement, not here — terminated employees never reach
+    // this regular-run query in the first place.
+    let newHireProrationDeductionKobo = 0n;
+    if (employee.hire_date) {
+      const hireTime = Date.parse(employee.hire_date);
+      const periodStartTime = Date.parse(periodStart);
+      const periodEndTime = Date.parse(periodEnd);
+      const lastUnemployedTime = Math.min(hireTime - 86_400_000, periodEndTime);
+      const daysNotEmployed = Math.max(0, Math.round((lastUnemployedTime - periodStartTime) / 86_400_000) + 1);
+      newHireProrationDeductionKobo = dailyRateKobo * BigInt(daysNotEmployed);
+    }
+
+    const daysOffDeductionKobo = unpaidLeaveDeductionKobo + attendanceAbsenceDeductionKobo + newHireProrationDeductionKobo;
 
     // Approved overtime is earned income: always taxable and added to
     // chargeable income (unlike a reimbursement, there's no non-taxable
@@ -378,6 +399,7 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
       benefit_employee_deduction_kobo: Number(benefitEmployeeDeductionKobo),
       attendance_absence_deduction_kobo: Number(attendanceAbsenceDeductionKobo),
       overtime_pay_kobo: Number(overtimePayKobo),
+      new_hire_proration_deduction_kobo: Number(newHireProrationDeductionKobo),
       postings: postings.map((posting) => ({ ...posting, amount_kobo: Number(posting.amount_kobo) })),
     };
   });
