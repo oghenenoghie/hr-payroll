@@ -30,7 +30,12 @@ export function PayRunForm() {
           <option value="weekly">Weekly</option>
           <option value="biweekly">Biweekly</option>
           <option value="monthly">Monthly</option>
+          <option value="thirteenth_month">13th Month</option>
         </select>
+        <p className="text-[11.5px] text-ink-soft">
+          13th Month pays each active employee one month&apos;s basic salary, taxed on top of what they&apos;ve
+          already earned this year. It doesn&apos;t apply leave, attendance, overtime or loan deductions.
+        </p>
       </div>
       <SubmitButton>Run payroll</SubmitButton>
     </form>

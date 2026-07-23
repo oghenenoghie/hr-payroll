@@ -17,7 +17,7 @@ const MODULES: Module[] = [
   { name: "Employee Management", status: "live", description: "Employee CRUD, TIN/PFA/bank account (NUBAN) capture, self-service account linking via invite." },
   { name: "Payroll Setup", status: "live", description: "Company setup on sign-up: pay frequency, PFA default, states of operation." },
   { name: "Salary Structure", status: "live", description: "Basic / housing / transport pay components per employee." },
-  { name: "Earnings Management", status: "live", description: "Monthly, bonus, 13th-month, arrears and off-cycle pay run frequencies." },
+  { name: "Earnings Management", status: "partial", description: "Weekly/biweekly/monthly and 13th Month (one month's basic, taxed on top of year-to-date) frequencies are real. Off-cycle exists via Final Settlement specifically. Discretionary bonus and arrears frequencies are not built — there's no UI for a per-employee one-off amount yet." },
   { name: "Deductions", status: "live", description: "PAYE, pension, NHF, loan repayments and benefit contributions, all itemised per payslip." },
   { name: "Attendance Integration", status: "live", description: "Weekly Present/Late/Absent grid; unrecorded absences deduct pay automatically." },
   { name: "Leave Management", status: "live", description: "Leave requests, balances, admin/HR/manager approval, unpaid leave deducts pay." },

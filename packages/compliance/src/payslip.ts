@@ -95,3 +95,50 @@ export function derivePeriodPayslip(input: PeriodPayslipInput, ruleVersion: Rule
     periodComponents,
   };
 }
+
+export type LumpSumKind = "bonus" | "thirteenth_month";
+
+export interface LumpSumPayslipInput {
+  kind: LumpSumKind;
+  amountKobo: Kobo;
+  /** State carried from the employee's most recent prior payslip — a lump
+   * sum is taxed on top of whatever the employee has already earned this
+   * year, never as if it were their only income. */
+  cumulativeChargeableIncomeBeforeKobo: Kobo;
+  cumulativePayePaidBeforeKobo: Kobo;
+}
+
+export interface LumpSumPayslipResult {
+  grossKobo: Kobo;
+  chargeableIncomeKobo: Kobo;
+  payeKobo: Kobo;
+  netKobo: Kobo;
+  periodComponents: PayComponent[];
+}
+
+/**
+ * Derives a standalone bonus or 13th-month payslip — a lump sum added
+ * whole to this period (no proration by frequency, unlike
+ * derivePeriodPayslip), taxed via the same cumulative-PAYE mechanism so it
+ * correctly pushes the employee's year-to-date position into a higher
+ * marginal band when it's large enough to (feature-backlog.md §1's
+ * specifically-flagged case).
+ *
+ * Deliberately not pensionable and outside the NHF base: the component is
+ * tagged with `kind` (never "regular") and coded to match, so
+ * computePension (basic/housing/transport only) and computeNhf (basic
+ * only) naturally compute zero against it without a special case here —
+ * and the same tag excludes it from computeNsitf's base at the caller's
+ * org-level aggregation. No rent relief either: relief is already fully
+ * allocated across the employee's regular periods this year: applying it
+ * again here would double-count it.
+ */
+export function deriveLumpSumPayslip(input: LumpSumPayslipInput, ruleVersion: RuleVersion): LumpSumPayslipResult {
+  const periodComponents: PayComponent[] = [{ code: input.kind, amountKobo: input.amountKobo, kind: input.kind }];
+  const grossKobo = input.amountKobo;
+  const chargeableIncomeKobo = input.cumulativeChargeableIncomeBeforeKobo + grossKobo;
+  const payeKobo = computeCumulativePeriodPaye(chargeableIncomeKobo, input.cumulativePayePaidBeforeKobo, ruleVersion);
+  const netKobo = clampNonNegative(grossKobo - payeKobo);
+
+  return { grossKobo, chargeableIncomeKobo, payeKobo, netKobo, periodComponents };
+}

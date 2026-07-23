@@ -3,7 +3,9 @@ import { naira } from "../src/money";
 import { NG_2026_1 } from "../src/rule-versions/ng-2026.1";
 import { computeAnnualPaye } from "../src/schemes/paye";
 import { computeNsitf } from "../src/schemes/nsitf";
-import { derivePeriodPayslip } from "../src/payslip";
+import { derivePeriodPayslip, deriveLumpSumPayslip } from "../src/payslip";
+import { computePension } from "../src/schemes/pension";
+import { computeNhf } from "../src/schemes/nhf";
 import type { PayComponent } from "../src/types";
 
 const rv = NG_2026_1;
@@ -164,5 +166,100 @@ describe("derivePeriodPayslip", () => {
     expect(nsitf.totalMonthlyPayrollBaseKobo).toBe(employeeA.grossKobo + employeeB.grossKobo);
     expect(nsitf.totalMonthlyPayrollBaseKobo).toBe(naira(180_000 + 360_000));
     expect(nsitf.employerKobo).toBe(naira(5_400)); // 1% of ₦540,000 combined base
+  });
+});
+
+describe("deriveLumpSumPayslip (bonus / 13th month) — feature-backlog.md §1's flagged gap", () => {
+  it("a 13th-month payment that crosses a PAYE band boundary is taxed more than a flat single-band estimate", () => {
+    // Cumulative position sits ₦500,000 below the 18%->21% boundary at
+    // ₦12,000,000; a ₦1,000,000 lump sum pushes ₦500,000 of itself into
+    // the 21% band. A naive engine that taxed the whole lump sum at the
+    // band it started in (18%) would understate this by a real amount.
+    const cumulativeChargeableIncomeBeforeKobo = naira(11_500_000);
+    const cumulativePayePaidBeforeKobo = computeAnnualPaye(cumulativeChargeableIncomeBeforeKobo, rv).annualPayeKobo;
+
+    const result = deriveLumpSumPayslip(
+      {
+        kind: "thirteenth_month",
+        amountKobo: naira(1_000_000),
+        cumulativeChargeableIncomeBeforeKobo,
+        cumulativePayePaidBeforeKobo,
+      },
+      rv,
+    );
+
+    const expectedPayeKobo =
+      computeAnnualPaye(naira(12_500_000), rv).annualPayeKobo -
+      computeAnnualPaye(naira(11_500_000), rv).annualPayeKobo;
+    const naiveFlatRatePayeKobo = naira(1_000_000 * 0.18); // if taxed entirely at the pre-lump-sum band's rate
+
+    expect(result.grossKobo).toBe(naira(1_000_000));
+    expect(result.chargeableIncomeKobo).toBe(naira(12_500_000));
+    expect(result.payeKobo).toBe(expectedPayeKobo);
+    expect(result.payeKobo).toBeGreaterThan(naiveFlatRatePayeKobo);
+    expect(result.netKobo).toBe(result.grossKobo - result.payeKobo);
+  });
+
+  it("is neither pensionable nor in the NHF base — the component's kind/code never matches either allowlist", () => {
+    const result = deriveLumpSumPayslip(
+      {
+        kind: "bonus",
+        amountKobo: naira(2_000_000),
+        cumulativeChargeableIncomeBeforeKobo: 0n,
+        cumulativePayePaidBeforeKobo: 0n,
+      },
+      rv,
+    );
+
+    const pension = computePension(result.periodComponents, rv);
+    const nhfKobo = computeNhf(result.periodComponents, rv);
+
+    expect(pension.pensionableBaseKobo).toBe(0n);
+    expect(pension.employeeKobo).toBe(0n);
+    expect(pension.employerKobo).toBe(0n);
+    expect(nhfKobo).toBe(0n);
+  });
+
+  it("is excluded from NSITF's base via its kind tag, unlike a regular component", () => {
+    const lumpSum = deriveLumpSumPayslip(
+      {
+        kind: "bonus",
+        amountKobo: naira(3_000_000),
+        cumulativeChargeableIncomeBeforeKobo: 0n,
+        cumulativePayePaidBeforeKobo: 0n,
+      },
+      rv,
+    );
+    const regular = derivePeriodPayslip(
+      {
+        annualPayComponents: annualComponents(1_200_000, 600_000, 360_000),
+        annualRentPaidKobo: 0n,
+        frequency: "monthly",
+        cumulativeChargeableIncomeBeforeKobo: 0n,
+        cumulativePayePaidBeforeKobo: 0n,
+      },
+      rv,
+    );
+
+    const nsitf = computeNsitf([lumpSum.periodComponents, regular.periodComponents], rv);
+
+    // Only the regular employee's components count toward the base — the
+    // bonus contributes nothing, even combined in the same org-level call.
+    expect(nsitf.totalMonthlyPayrollBaseKobo).toBe(regular.grossKobo);
+  });
+
+  it("net pay never exceeds gross, even at the top marginal band", () => {
+    const result = deriveLumpSumPayslip(
+      {
+        kind: "bonus",
+        amountKobo: naira(20_000_000),
+        cumulativeChargeableIncomeBeforeKobo: naira(60_000_000), // already in the 25% top band
+        cumulativePayePaidBeforeKobo: computeAnnualPaye(naira(60_000_000), rv).annualPayeKobo,
+      },
+      rv,
+    );
+
+    expect(result.netKobo).toBeLessThan(result.grossKobo);
+    expect(result.netKobo).toBeGreaterThanOrEqual(0n);
   });
 });

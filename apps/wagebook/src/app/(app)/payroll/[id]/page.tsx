@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatKobo } from "@/lib/format";
-import { ACCOUNT_LABEL } from "@/lib/accounts";
+import { ACCOUNT_LABEL, FREQUENCY_LABEL } from "@/lib/accounts";
 import { PayslipTable } from "./PayslipTable";
 
 function SummaryTile({ label, value }: { label: string; value: string }) {
@@ -50,7 +50,8 @@ export default async function PayRunDetailPage({ params }: { params: Promise<{ i
             {payRun.period_start} – {payRun.period_end}
           </h1>
           <p className="text-[13px] capitalize text-ink-soft">
-            {payRun.frequency} · {payRun.employee_count} employees · {payRun.rule_version_id}
+            {FREQUENCY_LABEL[payRun.frequency] ?? payRun.frequency} · {payRun.employee_count} employees ·{" "}
+            {payRun.rule_version_id}
           </p>
         </div>
         {journalEntry && (

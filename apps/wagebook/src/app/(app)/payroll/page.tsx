@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatKobo } from "@/lib/format";
 import { getMembership } from "@/lib/membership";
+import { FREQUENCY_LABEL } from "@/lib/accounts";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const tdClass = "px-3 py-[10px] text-[13px]";
@@ -63,7 +64,9 @@ export default async function PayrollPage() {
                       {run.period_start} – {run.period_end}
                     </Link>
                   </td>
-                  <td className={`${tdClass} text-ink-soft capitalize`}>{run.frequency}</td>
+                  <td className={`${tdClass} text-ink-soft capitalize`}>
+                    {FREQUENCY_LABEL[run.frequency] ?? run.frequency}
+                  </td>
                   <td className={`${tdClass} text-center text-ink`}>{run.employee_count}</td>
                   <td className={`${tdClass} text-right font-bold text-ink`}>{formatKobo(BigInt(run.gross_kobo))}</td>
                   <td className={`${tdClass} text-right font-bold text-ink`}>{formatKobo(BigInt(run.net_kobo))}</td>
