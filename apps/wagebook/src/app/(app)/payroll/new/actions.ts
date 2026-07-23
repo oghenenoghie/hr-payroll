@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import {
   NG_2026_1,
   checkTinGate,
+  computeCumulativePeriodPaye,
   computeNsitf,
   derivePeriodPayslip,
   type PayComponent,
@@ -108,10 +109,28 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
     loansByEmployee.set(loan.employee_id, list);
   }
 
+  // Approved-but-unpaid expense claims are reimbursed this run. Taxable
+  // claims add to chargeable income and get re-taxed through the normal
+  // progressive bands; non-taxable claims are pure pass-through cash.
+  // Neither touches pension or NHF base — reimbursements aren't pensionable.
+  const { data: unpaidExpenses } = await supabase
+    .from("expenses")
+    .select("id, employee_id, amount_kobo, taxable")
+    .eq("org_id", membership.org_id)
+    .eq("status", "approved");
+
+  const expensesByEmployee = new Map<string, NonNullable<typeof unpaidExpenses>>();
+  for (const expense of unpaidExpenses ?? []) {
+    const list = expensesByEmployee.get(expense.employee_id) ?? [];
+    list.push(expense);
+    expensesByEmployee.set(expense.employee_id, list);
+  }
+
   let totalGrossKobo = 0n;
   let totalNetKobo = 0n;
   const allPeriodComponents: PayComponent[][] = [];
   const loanRepaymentsPayload: { loan_id: string; employee_id: string; amount_kobo: number }[] = [];
+  const expenseReimbursementsPayload: { expense_id: string; employee_id: string }[] = [];
 
   const payslipsPayload = employees.map((employee) => {
     const prior = priorStateByEmployee.get(employee.id);
@@ -134,13 +153,36 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
 
     allPeriodComponents.push(result.periodComponents);
 
-    // Apply loan repayments on top of the compliance engine's result —
-    // post-tax deductions, never touching chargeable income or PAYE.
-    // Oldest loan first; each capped at its own outstanding balance and at
-    // whatever net pay remains, so a loan can never push net pay negative.
+    // Approved expense claims are reimbursed this run. Taxable claims add
+    // straight to chargeable income and get re-taxed through the normal
+    // cumulative bands; non-taxable claims are pure cash on top of gross.
+    let taxableReimbursementKobo = 0n;
+    let nonTaxableReimbursementKobo = 0n;
+    for (const expense of expensesByEmployee.get(employee.id) ?? []) {
+      if (expense.taxable) {
+        taxableReimbursementKobo += BigInt(expense.amount_kobo);
+      } else {
+        nonTaxableReimbursementKobo += BigInt(expense.amount_kobo);
+      }
+      expenseReimbursementsPayload.push({ expense_id: expense.id, employee_id: employee.id });
+    }
+    const reimbursementKobo = taxableReimbursementKobo + nonTaxableReimbursementKobo;
+
+    const chargeableIncomeKobo = result.chargeableIncomeKobo + taxableReimbursementKobo;
+    const payeKobo =
+      taxableReimbursementKobo > 0n
+        ? computeCumulativePeriodPaye(chargeableIncomeKobo, prior?.payePaidAfterKobo ?? 0n, NG_2026_1)
+        : result.payeKobo;
+    const grossKobo = result.grossKobo + reimbursementKobo;
+    const netBeforeLoanKobo = grossKobo - result.pensionEmployeeKobo - result.nhfKobo - payeKobo;
+
+    // Apply loan repayments on top — post-tax deductions, never touching
+    // chargeable income or PAYE. Oldest loan first; each capped at its own
+    // outstanding balance and at whatever net pay remains, so a loan can
+    // never push net pay negative.
     let loanDeductionKobo = 0n;
     for (const loan of loansByEmployee.get(employee.id) ?? []) {
-      const remainingNet = result.netKobo - loanDeductionKobo;
+      const remainingNet = netBeforeLoanKobo - loanDeductionKobo;
       if (remainingNet <= 0n) break;
       const repaymentKobo = [BigInt(loan.monthly_repayment_kobo), BigInt(loan.outstanding_kobo), remainingNet].reduce(
         (a, b) => (a < b ? a : b),
@@ -150,18 +192,19 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
       loanRepaymentsPayload.push({ loan_id: loan.id, employee_id: employee.id, amount_kobo: Number(repaymentKobo) });
     }
 
-    const netKobo = result.netKobo - loanDeductionKobo;
-    const employeeDeductionsKobo = result.employeeDeductionsKobo + loanDeductionKobo;
-    totalGrossKobo += result.grossKobo;
+    const netKobo = netBeforeLoanKobo - loanDeductionKobo;
+    const employeeDeductionsKobo = result.pensionEmployeeKobo + result.nhfKobo + payeKobo + loanDeductionKobo;
+    totalGrossKobo += grossKobo;
     totalNetKobo += netKobo;
 
     // Employer costs (pension employer share) are tracked on their own
     // ledger line — never folded into an employee-facing deduction total.
     const postings = [
       { account_code: "payroll_expense", direction: "debit", amount_kobo: result.grossKobo },
+      { account_code: "expense_reimbursement_expense", direction: "debit", amount_kobo: reimbursementKobo },
       { account_code: "employer_pension_expense", direction: "debit", amount_kobo: result.pensionEmployerKobo },
       { account_code: "net_pay_payable", direction: "credit", amount_kobo: netKobo },
-      { account_code: "paye_payable", direction: "credit", amount_kobo: result.payeKobo },
+      { account_code: "paye_payable", direction: "credit", amount_kobo: payeKobo },
       {
         account_code: "pension_payable",
         direction: "credit",
@@ -173,18 +216,20 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
 
     return {
       employee_id: employee.id,
-      gross_kobo: Number(result.grossKobo),
+      gross_kobo: Number(grossKobo),
       pensionable_kobo: Number(result.pensionableKobo),
       pension_employee_kobo: Number(result.pensionEmployeeKobo),
       pension_employer_kobo: Number(result.pensionEmployerKobo),
       nhf_kobo: Number(result.nhfKobo),
       rent_relief_kobo: Number(result.rentReliefKobo),
-      chargeable_income_kobo: Number(result.chargeableIncomeKobo),
-      paye_kobo: Number(result.payeKobo),
+      chargeable_income_kobo: Number(chargeableIncomeKobo),
+      paye_kobo: Number(payeKobo),
       employee_deductions_kobo: Number(employeeDeductionsKobo),
       net_kobo: Number(netKobo),
       cumulative_chargeable_income_before_kobo: Number(prior?.chargeableIncomeKobo ?? 0n),
       cumulative_paye_paid_before_kobo: Number(prior?.payePaidAfterKobo ?? 0n),
+      taxable_reimbursement_kobo: Number(taxableReimbursementKobo),
+      non_taxable_reimbursement_kobo: Number(nonTaxableReimbursementKobo),
       postings: postings.map((posting) => ({ ...posting, amount_kobo: Number(posting.amount_kobo) })),
     };
   });
@@ -211,6 +256,7 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
       payslips: payslipsPayload,
       org_postings: orgPostings.map((posting) => ({ ...posting, amount_kobo: Number(posting.amount_kobo) })),
       loan_repayments: loanRepaymentsPayload,
+      expense_reimbursements: expenseReimbursementsPayload,
     },
   });
 
@@ -220,5 +266,6 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
 
   revalidatePath("/payroll");
   revalidatePath("/loans");
+  revalidatePath("/expenses");
   redirect("/payroll");
 }

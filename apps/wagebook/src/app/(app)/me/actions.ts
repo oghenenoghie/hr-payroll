@@ -56,3 +56,47 @@ export async function requestLoan(_prevState: RequestLoanState, formData: FormDa
   revalidatePath("/me");
   return { success: true };
 }
+
+export type RequestExpenseState = { error?: string; success?: boolean } | null;
+
+export async function requestExpense(_prevState: RequestExpenseState, formData: FormData): Promise<RequestExpenseState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data: employee } = await supabase.from("employees").select("id, org_id").eq("user_id", user.id).maybeSingle();
+
+  if (!employee) {
+    return { error: "Your account isn't linked to an employee record yet." };
+  }
+
+  const amountNaira = Number(formData.get("amount") ?? 0);
+  const description = String(formData.get("description") ?? "").trim();
+
+  if (!(amountNaira > 0)) {
+    return { error: "Enter a claim amount greater than zero." };
+  }
+  if (!description) {
+    return { error: "Describe what the claim is for." };
+  }
+
+  const { error } = await supabase.from("expenses").insert({
+    org_id: employee.org_id,
+    employee_id: employee.id,
+    amount_kobo: Number(naira(amountNaira)),
+    description,
+    requested_by: user.id,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/me");
+  return { success: true };
+}

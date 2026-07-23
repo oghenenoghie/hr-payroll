@@ -9,6 +9,7 @@ const ADMIN_NAV_ITEMS = [
   { href: "/payroll", label: "Payroll Runs" },
   { href: "/compliance", label: "Compliance Engine" },
   { href: "/loans", label: "Loans & Advances" },
+  { href: "/expenses", label: "Expenses" },
   { href: "/reports", label: "Reports" },
   { href: "/simulation", label: "Payroll Simulation" },
 ];

@@ -40,3 +40,15 @@ export function LoanStatusBadge({ status }: { status: string }) {
   const tone = LOAN_STATUS_TONE[status as keyof typeof LOAN_STATUS_TONE] ?? "neutral";
   return <Badge tone={tone}>{status}</Badge>;
 }
+
+const EXPENSE_STATUS_TONE = {
+  pending: "warn",
+  approved: "good",
+  rejected: "bad",
+  paid: "neutral",
+} as const;
+
+export function ExpenseStatusBadge({ status }: { status: string }) {
+  const tone = EXPENSE_STATUS_TONE[status as keyof typeof EXPENSE_STATUS_TONE] ?? "neutral";
+  return <Badge tone={tone}>{status}</Badge>;
+}

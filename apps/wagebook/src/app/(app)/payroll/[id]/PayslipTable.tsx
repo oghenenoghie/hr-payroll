@@ -98,8 +98,25 @@ function DerivationDetail({ slip, ruleVersion }: { slip: PayslipRow; ruleVersion
     BigInt(slip.nhf_kobo) -
     BigInt(slip.paye_kobo);
 
+  const taxableReimbursementKobo = BigInt(slip.taxable_reimbursement_kobo);
+  const nonTaxableReimbursementKobo = BigInt(slip.non_taxable_reimbursement_kobo);
+
   return (
     <div className="flex flex-col gap-4 text-[12.5px]">
+      {(taxableReimbursementKobo > 0n || nonTaxableReimbursementKobo > 0n) && (
+        <div>
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
+            Expense reimbursement
+          </span>
+          {taxableReimbursementKobo > 0n && (
+            <Row label="Taxable — added to chargeable income" value={`+ ${formatKobo(taxableReimbursementKobo)}`} />
+          )}
+          {nonTaxableReimbursementKobo > 0n && (
+            <Row label="Non-taxable — pure cash on top of gross" value={`+ ${formatKobo(nonTaxableReimbursementKobo)}`} />
+          )}
+        </div>
+      )}
+
       <div>
         <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
           Statutory deductions

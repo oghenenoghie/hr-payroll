@@ -92,6 +92,73 @@ export type Database = {
           },
         ]
       }
+      expenses: {
+        Row: {
+          amount_kobo: number
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          description: string
+          employee_id: string
+          id: string
+          org_id: string
+          paid_pay_run_id: string | null
+          requested_by: string
+          status: string
+          taxable: boolean | null
+        }
+        Insert: {
+          amount_kobo: number
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          description: string
+          employee_id: string
+          id?: string
+          org_id: string
+          paid_pay_run_id?: string | null
+          requested_by: string
+          status?: string
+          taxable?: boolean | null
+        }
+        Update: {
+          amount_kobo?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          description?: string
+          employee_id?: string
+          id?: string
+          org_id?: string
+          paid_pay_run_id?: string | null
+          requested_by?: string
+          status?: string
+          taxable?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_paid_pay_run_id_fkey"
+            columns: ["paid_pay_run_id"]
+            isOneToOne: false
+            referencedRelation: "pay_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       journal_entries: {
         Row: {
           created_at: string
@@ -435,6 +502,7 @@ export type Database = {
           id: string
           net_kobo: number
           nhf_kobo: number
+          non_taxable_reimbursement_kobo: number
           org_id: string
           pay_run_id: string
           paye_kobo: number
@@ -442,6 +510,7 @@ export type Database = {
           pension_employer_kobo: number
           pensionable_kobo: number
           rent_relief_kobo: number
+          taxable_reimbursement_kobo: number
         }
         Insert: {
           chargeable_income_kobo: number
@@ -454,6 +523,7 @@ export type Database = {
           id?: string
           net_kobo: number
           nhf_kobo: number
+          non_taxable_reimbursement_kobo?: number
           org_id: string
           pay_run_id: string
           paye_kobo: number
@@ -461,6 +531,7 @@ export type Database = {
           pension_employer_kobo: number
           pensionable_kobo: number
           rent_relief_kobo: number
+          taxable_reimbursement_kobo?: number
         }
         Update: {
           chargeable_income_kobo?: number
@@ -473,6 +544,7 @@ export type Database = {
           id?: string
           net_kobo?: number
           nhf_kobo?: number
+          non_taxable_reimbursement_kobo?: number
           org_id?: string
           pay_run_id?: string
           paye_kobo?: number
@@ -480,6 +552,7 @@ export type Database = {
           pension_employer_kobo?: number
           pensionable_kobo?: number
           rent_relief_kobo?: number
+          taxable_reimbursement_kobo?: number
         }
         Relationships: [
           {

@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatKobo } from "@/lib/format";
-import { TinBadge, LoanStatusBadge } from "@/components/Badge";
+import { TinBadge, LoanStatusBadge, ExpenseStatusBadge } from "@/components/Badge";
 import { LoanRequestForm } from "./LoanRequestForm";
+import { ExpenseClaimForm } from "./ExpenseClaimForm";
 
 export default async function MePage() {
   const supabase = await createClient();
@@ -41,6 +42,12 @@ export default async function MePage() {
 
   const { data: loans } = await supabase
     .from("loans")
+    .select("*")
+    .eq("employee_id", employee.id)
+    .order("created_at", { ascending: false });
+
+  const { data: expenses } = await supabase
+    .from("expenses")
     .select("*")
     .eq("employee_id", employee.id)
     .order("created_at", { ascending: false });
@@ -110,6 +117,34 @@ export default async function MePage() {
 
         <div className="mt-4 border-t border-border pt-4">
           <LoanRequestForm />
+        </div>
+      </div>
+
+      <div className="rounded-card border border-border bg-surface p-6">
+        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Expense claims</span>
+
+        {expenses && expenses.length > 0 && (
+          <div className="mt-3 flex flex-col gap-3">
+            {expenses.map((expense) => (
+              <div
+                key={expense.id}
+                className="flex items-center justify-between border-b border-border pb-3 last:border-b-0"
+              >
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[13px] font-bold text-ink">{formatKobo(BigInt(expense.amount_kobo))}</span>
+                  <span className="text-[12px] text-ink-soft">
+                    {expense.description}
+                    {expense.taxable !== null ? (expense.taxable ? " · taxable" : " · non-taxable") : ""}
+                  </span>
+                </div>
+                <ExpenseStatusBadge status={expense.status} />
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-4 border-t border-border pt-4">
+          <ExpenseClaimForm />
         </div>
       </div>
     </div>
