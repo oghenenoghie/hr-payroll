@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
@@ -86,8 +87,17 @@ export default async function IntegrationsPage() {
         <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
           Accounting sync &amp; open APIs
         </span>
-        <div className="rounded-card border border-border bg-surface px-4 py-6 text-center text-[13px] text-ink-soft">
-          Not available in this build yet.
+        <div className="rounded-card border border-border bg-surface px-4 py-6 text-[13px] text-ink-soft">
+          <p>
+            Every pay run&apos;s general ledger — payroll expense, statutory payables, benefits, loans, overtime,
+            all fully itemised — can be exported as a real CSV a bookkeeper imports into QuickBooks, Xero or Sage.
+            Open the run from{" "}
+            <Link href="/payroll" className="font-bold text-primary">
+              Payroll Runs
+            </Link>{" "}
+            and use &quot;Export general ledger (CSV)&quot;.
+          </p>
+          <p className="mt-3">No live accounting-software API sync yet — this is a manual export, not a connection.</p>
         </div>
       </div>
     </div>

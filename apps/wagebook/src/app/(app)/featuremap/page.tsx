@@ -33,7 +33,7 @@ const MODULES: Module[] = [
   { name: "Employee Self-Service", status: "live", description: "Payslips, leave, loans, expenses, benefits and notifications in one dashboard." },
   { name: "Manager Self-Service", status: "live", description: "Direct-report roster and leave approval for any employee with reports." },
   { name: "Reporting & Analytics", status: "live", description: "Statutory liability totals and PAYE-by-state breakdowns." },
-  { name: "Accounting Integration", status: "roadmap", description: "No general-ledger export or accounting-software sync." },
+  { name: "Accounting Integration", status: "partial", description: "Real, fully itemised general-ledger CSV export per pay run. No live accounting-software API sync (QuickBooks, Xero, Sage) yet." },
   { name: "Workflow & Approvals", status: "live", description: "Leave, loan, expense and benefit-enrollment approval flows across admin/HR/payroll/manager roles." },
   { name: "Notifications", status: "live", description: "Requests and decisions notify the right people; unread counts surface in the sidebar and on /me." },
   { name: "Security", status: "live", description: "Role-based access (admin/payroll manager/HR manager/employee), mandatory TOTP MFA for admin and payroll manager, and an org-scoped authentication audit log." },

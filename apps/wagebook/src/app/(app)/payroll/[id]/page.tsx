@@ -1,12 +1,8 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatKobo } from "@/lib/format";
+import { ACCOUNT_LABEL } from "@/lib/accounts";
 import { PayslipTable } from "./PayslipTable";
-
-const ACCOUNT_LABEL: Record<string, string> = {
-  nsitf_expense: "NSITF expense",
-  nsitf_payable: "NSITF payable (due NSITF, before the 16th)",
-};
 
 function SummaryTile({ label, value }: { label: string; value: string }) {
   return (
@@ -47,14 +43,24 @@ export default async function PayRunDetailPage({ params }: { params: Promise<{ i
 
   return (
     <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 px-6 py-10">
-      <header className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Payroll Runs</span>
-        <h1 className="text-[22px] font-extrabold text-ink">
-          {payRun.period_start} – {payRun.period_end}
-        </h1>
-        <p className="text-[13px] capitalize text-ink-soft">
-          {payRun.frequency} · {payRun.employee_count} employees · {payRun.rule_version_id}
-        </p>
+      <header className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-1">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Payroll Runs</span>
+          <h1 className="text-[22px] font-extrabold text-ink">
+            {payRun.period_start} – {payRun.period_end}
+          </h1>
+          <p className="text-[13px] capitalize text-ink-soft">
+            {payRun.frequency} · {payRun.employee_count} employees · {payRun.rule_version_id}
+          </p>
+        </div>
+        {journalEntry && (
+          <a
+            href={`/payroll/${id}/export`}
+            className="whitespace-nowrap rounded-button border border-border px-[18px] py-[10px] text-[12.5px] font-extrabold text-ink"
+          >
+            Export general ledger (CSV)
+          </a>
+        )}
       </header>
 
       <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
