@@ -263,3 +263,100 @@ describe("deriveLumpSumPayslip (bonus / 13th month) — feature-backlog.md §1's
     expect(result.netKobo).toBeGreaterThanOrEqual(0n);
   });
 });
+
+describe("deriveLumpSumPayslip (final settlement: leave encashment + gratuity, kind 'one_off')", () => {
+  it("a combined leave-payout + gratuity settlement that crosses a PAYE band boundary is taxed on top of year-to-date, not in isolation", () => {
+    // Same band-boundary scenario as the 13th-month case, but for a
+    // terminated employee's settlement: feature-backlog.md flags both
+    // "leave encashment and its tax treatment" and "termination payments:
+    // gratuity is taxable under the new Act" as needing exactly this
+    // cumulative-carry-forward coverage, combined into one "one_off" payout.
+    const cumulativeChargeableIncomeBeforeKobo = naira(11_500_000);
+    const cumulativePayePaidBeforeKobo = computeAnnualPaye(cumulativeChargeableIncomeBeforeKobo, rv).annualPayeKobo;
+
+    const leavePayoutKobo = naira(400_000);
+    const gratuityKobo = naira(600_000);
+
+    const result = deriveLumpSumPayslip(
+      {
+        kind: "one_off",
+        amountKobo: leavePayoutKobo + gratuityKobo,
+        cumulativeChargeableIncomeBeforeKobo,
+        cumulativePayePaidBeforeKobo,
+      },
+      rv,
+    );
+
+    const expectedPayeKobo =
+      computeAnnualPaye(naira(12_500_000), rv).annualPayeKobo -
+      computeAnnualPaye(naira(11_500_000), rv).annualPayeKobo;
+    const naiveFlatRatePayeKobo = naira(1_000_000 * 0.18); // if taxed entirely at the pre-settlement band's rate
+
+    expect(result.grossKobo).toBe(naira(1_000_000));
+    expect(result.chargeableIncomeKobo).toBe(naira(12_500_000));
+    expect(result.payeKobo).toBe(expectedPayeKobo);
+    expect(result.payeKobo).toBeGreaterThan(naiveFlatRatePayeKobo);
+    expect(result.netKobo).toBe(result.grossKobo - result.payeKobo);
+  });
+
+  it("is neither pensionable nor in the NHF base — a terminated employee's settlement never re-triggers active-employment deductions", () => {
+    const result = deriveLumpSumPayslip(
+      {
+        kind: "one_off",
+        amountKobo: naira(1_500_000),
+        cumulativeChargeableIncomeBeforeKobo: 0n,
+        cumulativePayePaidBeforeKobo: 0n,
+      },
+      rv,
+    );
+
+    const pension = computePension(result.periodComponents, rv);
+    const nhfKobo = computeNhf(result.periodComponents, rv);
+
+    expect(pension.pensionableBaseKobo).toBe(0n);
+    expect(pension.employeeKobo).toBe(0n);
+    expect(pension.employerKobo).toBe(0n);
+    expect(nhfKobo).toBe(0n);
+  });
+
+  it("ignoring the employee's cumulative chargeable income before the settlement would understate PAYE — guards the exact bug class in settle/compute.ts", () => {
+    // If a caller passed only the settlement amount itself as "chargeable
+    // income" (i.e. treated cumulativeChargeableIncomeBeforeKobo as 0
+    // rather than the employee's real year-to-date position), the result
+    // would be taxed as if the settlement were the employee's only income
+    // of the year — always understating PAYE once the employee has earned
+    // anything at all this year. This test locks in that the two must
+    // differ whenever prior income is nonzero, so a regression that drops
+    // the carry-forward (as settle/compute.ts's pre-refactor version did)
+    // fails loudly here rather than silently under-taxing a real payout.
+    const cumulativeChargeableIncomeBeforeKobo = naira(9_000_000);
+    const cumulativePayePaidBeforeKobo = computeAnnualPaye(cumulativeChargeableIncomeBeforeKobo, rv).annualPayeKobo;
+    const amountKobo = naira(1_000_000);
+
+    const correct = deriveLumpSumPayslip(
+      { kind: "one_off", amountKobo, cumulativeChargeableIncomeBeforeKobo, cumulativePayePaidBeforeKobo },
+      rv,
+    );
+    const asIfOnlyIncomeThisYear = deriveLumpSumPayslip(
+      { kind: "one_off", amountKobo, cumulativeChargeableIncomeBeforeKobo: 0n, cumulativePayePaidBeforeKobo: 0n },
+      rv,
+    );
+
+    expect(correct.payeKobo).toBeGreaterThan(asIfOnlyIncomeThisYear.payeKobo);
+  });
+
+  it("net pay never exceeds gross, even at the top marginal band", () => {
+    const result = deriveLumpSumPayslip(
+      {
+        kind: "one_off",
+        amountKobo: naira(20_000_000),
+        cumulativeChargeableIncomeBeforeKobo: naira(60_000_000), // already in the 25% top band
+        cumulativePayePaidBeforeKobo: computeAnnualPaye(naira(60_000_000), rv).annualPayeKobo,
+      },
+      rv,
+    );
+
+    expect(result.netKobo).toBeLessThan(result.grossKobo);
+    expect(result.netKobo).toBeGreaterThanOrEqual(0n);
+  });
+});

@@ -96,7 +96,7 @@ export function derivePeriodPayslip(input: PeriodPayslipInput, ruleVersion: Rule
   };
 }
 
-export type LumpSumKind = "bonus" | "thirteenth_month";
+export type LumpSumKind = "bonus" | "thirteenth_month" | "one_off";
 
 export interface LumpSumPayslipInput {
   kind: LumpSumKind;
@@ -117,12 +117,15 @@ export interface LumpSumPayslipResult {
 }
 
 /**
- * Derives a standalone bonus or 13th-month payslip — a lump sum added
- * whole to this period (no proration by frequency, unlike
- * derivePeriodPayslip), taxed via the same cumulative-PAYE mechanism so it
- * correctly pushes the employee's year-to-date position into a higher
- * marginal band when it's large enough to (feature-backlog.md §1's
- * specifically-flagged case).
+ * Derives a standalone lump-sum payslip — bonus, 13th month, or a final
+ * settlement's combined leave-encashment + gratuity payout (kind
+ * "one_off") — added whole to this period (no proration by frequency,
+ * unlike derivePeriodPayslip), taxed via the same cumulative-PAYE
+ * mechanism so it correctly pushes the employee's year-to-date position
+ * into a higher marginal band when it's large enough to (feature-
+ * backlog.md §1's specifically-flagged case, called out separately for
+ * both the 13th-month scenario and "termination payments: gratuity is
+ * taxable under the new Act").
  *
  * Deliberately not pensionable and outside the NHF base: the component is
  * tagged with `kind` (never "regular") and coded to match, so

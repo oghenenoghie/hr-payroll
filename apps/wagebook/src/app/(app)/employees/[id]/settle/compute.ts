@@ -1,4 +1,4 @@
-import { NG_2026_1, clampNonNegative, computeCumulativePeriodPaye } from "@plutus/compliance";
+import { NG_2026_1, clampNonNegative, deriveLumpSumPayslip } from "@plutus/compliance";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@plutus/core";
 
@@ -22,6 +22,11 @@ export interface SettlementPreview {
   gratuityKobo: bigint;
   grossSettlementKobo: bigint;
   payeKobo: bigint;
+  /** Cumulative year-to-date chargeable income as of (including) this settlement — persisted so a later payslip can carry it forward. */
+  chargeableIncomeKobo: bigint;
+  /** The employee's actual year-to-date position going into this settlement — carried from their most recent payslip, never zero for someone who was paid this year. */
+  cumulativeChargeableIncomeBeforeKobo: bigint;
+  cumulativePayePaidBeforeKobo: bigint;
   loanClearanceKobo: bigint;
   netSettlementKobo: bigint;
   activeLoans: { id: string; outstandingKobo: bigint }[];
@@ -44,6 +49,9 @@ export async function computeSettlementPreview(
     | "gratuityKobo"
     | "grossSettlementKobo"
     | "payeKobo"
+    | "chargeableIncomeKobo"
+    | "cumulativeChargeableIncomeBeforeKobo"
+    | "cumulativePayePaidBeforeKobo"
     | "loanClearanceKobo"
     | "netSettlementKobo"
     | "activeLoans"
@@ -64,6 +72,9 @@ export async function computeSettlementPreview(
       gratuityKobo: 0n,
       grossSettlementKobo: 0n,
       payeKobo: 0n,
+      chargeableIncomeKobo: 0n,
+      cumulativeChargeableIncomeBeforeKobo: 0n,
+      cumulativePayePaidBeforeKobo: 0n,
       loanClearanceKobo: 0n,
       netSettlementKobo: 0n,
       activeLoans: [],
@@ -81,6 +92,9 @@ export async function computeSettlementPreview(
       gratuityKobo: 0n,
       grossSettlementKobo: 0n,
       payeKobo: 0n,
+      chargeableIncomeKobo: 0n,
+      cumulativeChargeableIncomeBeforeKobo: 0n,
+      cumulativePayePaidBeforeKobo: 0n,
       loanClearanceKobo: 0n,
       netSettlementKobo: 0n,
       activeLoans: [],
@@ -104,6 +118,9 @@ export async function computeSettlementPreview(
       gratuityKobo: 0n,
       grossSettlementKobo: 0n,
       payeKobo: 0n,
+      chargeableIncomeKobo: 0n,
+      cumulativeChargeableIncomeBeforeKobo: 0n,
+      cumulativePayePaidBeforeKobo: 0n,
       loanClearanceKobo: 0n,
       netSettlementKobo: 0n,
       activeLoans: [],
@@ -129,17 +146,27 @@ export async function computeSettlementPreview(
   // isn't taxed as if it were the employee's only income of the year.
   const { data: recentPayslip } = await supabase
     .from("payslips")
-    .select("cumulative_paye_paid_before_kobo, paye_kobo")
+    .select("chargeable_income_kobo, cumulative_paye_paid_before_kobo, paye_kobo")
     .eq("employee_id", employeeId)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  const payePaidBeforeKobo = recentPayslip
+  const cumulativeChargeableIncomeBeforeKobo = recentPayslip ? BigInt(recentPayslip.chargeable_income_kobo) : 0n;
+  const cumulativePayePaidBeforeKobo = recentPayslip
     ? BigInt(recentPayslip.cumulative_paye_paid_before_kobo) + BigInt(recentPayslip.paye_kobo)
     : 0n;
 
-  const payeKobo = computeCumulativePeriodPaye(grossSettlementKobo, payePaidBeforeKobo, NG_2026_1);
+  const lumpSum = deriveLumpSumPayslip(
+    {
+      kind: "one_off",
+      amountKobo: grossSettlementKobo,
+      cumulativeChargeableIncomeBeforeKobo,
+      cumulativePayePaidBeforeKobo,
+    },
+    NG_2026_1,
+  );
+  const payeKobo = lumpSum.payeKobo;
 
   const { data: activeLoans } = await supabase
     .from("loans")
@@ -165,6 +192,9 @@ export async function computeSettlementPreview(
     gratuityKobo,
     grossSettlementKobo,
     payeKobo,
+    chargeableIncomeKobo: lumpSum.chargeableIncomeKobo,
+    cumulativeChargeableIncomeBeforeKobo,
+    cumulativePayePaidBeforeKobo,
     loanClearanceKobo,
     netSettlementKobo,
     activeLoans: loansForRepayment,
