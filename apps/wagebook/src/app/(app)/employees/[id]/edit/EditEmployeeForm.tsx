@@ -33,6 +33,16 @@ export function EditEmployeeForm({
         defaultValue={employee.state_of_residence ?? ""}
       />
       <FormField label="Hire date" name="hire_date" type="date" required={false} defaultValue={employee.hire_date ?? ""} />
+      <div className="grid grid-cols-2 gap-4">
+        <FormField
+          label="Date of birth"
+          name="date_of_birth"
+          type="date"
+          required={false}
+          defaultValue={employee.date_of_birth ?? ""}
+        />
+        <FormField label="Nationality" name="nationality" required={false} defaultValue={employee.nationality ?? ""} />
+      </div>
 
       <div className="flex flex-col gap-2">
         <label className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft" htmlFor="department_id">

@@ -14,6 +14,10 @@ export function EmployeeForm({ departments }: { departments: { id: string; name:
       <FormField label="Email" name="email" type="email" required={false} />
       <FormField label="State of residence" name="state_of_residence" required={false} />
       <FormField label="Hire date" name="hire_date" type="date" required={false} />
+      <div className="grid grid-cols-2 gap-4">
+        <FormField label="Date of birth" name="date_of_birth" type="date" required={false} />
+        <FormField label="Nationality" name="nationality" required={false} />
+      </div>
       <div className="flex flex-col gap-2">
         <label className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft" htmlFor="department_id">
           Department
