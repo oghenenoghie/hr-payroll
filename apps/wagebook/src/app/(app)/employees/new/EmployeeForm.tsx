@@ -7,12 +7,16 @@ import { addEmployee } from "./actions";
 
 type JobGrade = { id: string; name: string; min_annual_kobo: number; max_annual_kobo: number };
 
+type Manager = { id: string; full_name: string };
+
 export function EmployeeForm({
   departments,
   jobGrades,
+  managers,
 }: {
   departments: { id: string; name: string }[];
   jobGrades: JobGrade[];
+  managers: Manager[];
 }) {
   const [state, formAction] = useActionState(addEmployee, null);
 
@@ -59,6 +63,24 @@ export function EmployeeForm({
           {jobGrades.map((grade) => (
             <option key={grade.id} value={grade.id}>
               {grade.name} ({formatKobo(BigInt(grade.min_annual_kobo))} – {formatKobo(BigInt(grade.max_annual_kobo))})
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="flex flex-col gap-2">
+        <label className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft" htmlFor="manager_id">
+          Manager
+        </label>
+        <select
+          id="manager_id"
+          name="manager_id"
+          defaultValue=""
+          className="w-full rounded-control border border-border bg-surface px-[13px] py-[11px] text-[13px] text-ink outline-none focus:border-primary"
+        >
+          <option value="">No manager</option>
+          {managers.map((manager) => (
+            <option key={manager.id} value={manager.id}>
+              {manager.full_name}
             </option>
           ))}
         </select>

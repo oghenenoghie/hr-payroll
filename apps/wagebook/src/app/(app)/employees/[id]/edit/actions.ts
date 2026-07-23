@@ -35,6 +35,10 @@ export async function editEmployee(
   const status = String(formData.get("status") ?? "active");
   const departmentId = String(formData.get("department_id") ?? "").trim() || null;
   const jobGradeId = String(formData.get("job_grade_id") ?? "").trim() || null;
+  const managerId = String(formData.get("manager_id") ?? "").trim() || null;
+  if (managerId === employeeId) {
+    return { error: "An employee cannot be their own manager." };
+  }
   const dateOfBirth = String(formData.get("date_of_birth") ?? "").trim() || null;
   const nationality = String(formData.get("nationality") ?? "").trim() || null;
   const bankName = String(formData.get("bank_name") ?? "").trim() || null;
@@ -75,6 +79,7 @@ export async function editEmployee(
       status,
       department_id: departmentId,
       job_grade_id: jobGradeId,
+      manager_id: managerId,
       date_of_birth: dateOfBirth,
       nationality,
       ...(canEditSalary

@@ -8,6 +8,7 @@ const ADMIN_NAV_ITEMS = [
   { href: "/employees", label: "Employees" },
   { href: "/departments", label: "Departments" },
   { href: "/job-grades", label: "Job Grades" },
+  { href: "/org-chart", label: "Org Chart" },
   { href: "/payroll", label: "Payroll Runs" },
   { href: "/compliance", label: "Compliance Engine" },
   { href: "/loans", label: "Loans & Advances" },

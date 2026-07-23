@@ -24,6 +24,14 @@ export default async function NewEmployeePage() {
         .eq("org_id", membership.orgId)
         .order("min_annual_kobo")
     : { data: null };
+  const { data: managers } = membership
+    ? await supabase
+        .from("employees")
+        .select("id, full_name")
+        .eq("org_id", membership.orgId)
+        .eq("status", "active")
+        .order("full_name")
+    : { data: null };
 
   return (
     <div className="mx-auto flex w-full max-w-[560px] flex-col gap-5 px-6 py-10">
@@ -32,7 +40,7 @@ export default async function NewEmployeePage() {
         <h1 className="text-[22px] font-extrabold text-ink">Add employee</h1>
       </header>
       <div className="rounded-card border border-border bg-surface p-6">
-        <EmployeeForm departments={departments ?? []} jobGrades={jobGrades ?? []} />
+        <EmployeeForm departments={departments ?? []} jobGrades={jobGrades ?? []} managers={managers ?? []} />
       </div>
     </div>
   );

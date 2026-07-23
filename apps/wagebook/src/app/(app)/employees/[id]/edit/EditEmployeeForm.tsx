@@ -8,17 +8,20 @@ import { formatKobo } from "@/lib/format";
 import { editEmployee, type EditEmployeeState } from "./actions";
 
 type JobGrade = { id: string; name: string; min_annual_kobo: number; max_annual_kobo: number };
+type Manager = { id: string; full_name: string };
 
 export function EditEmployeeForm({
   employee,
   departments,
   jobGrades,
+  managers,
   canEditSalary,
   canControlMasking,
 }: {
   employee: Tables<"employees_masked">;
   departments: { id: string; name: string }[];
   jobGrades: JobGrade[];
+  managers: Manager[];
   canEditSalary: boolean;
   canControlMasking: boolean;
 }) {
@@ -109,6 +112,25 @@ export function EditEmployeeForm({
             Above this grade&apos;s band (max {formatKobo(BigInt(assignedGrade!.max_annual_kobo))}/yr).
           </p>
         )}
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <label className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft" htmlFor="manager_id">
+          Manager
+        </label>
+        <select
+          id="manager_id"
+          name="manager_id"
+          defaultValue={employee.manager_id ?? ""}
+          className="w-full rounded-control border border-border bg-surface px-[13px] py-[11px] text-[13px] text-ink outline-none focus:border-primary"
+        >
+          <option value="">No manager</option>
+          {managers.map((manager) => (
+            <option key={manager.id} value={manager.id}>
+              {manager.full_name}
+            </option>
+          ))}
+        </select>
       </div>
 
       {canEditSalary ? (
