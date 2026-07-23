@@ -25,6 +25,10 @@ export function TinBadge({ tin }: { tin: string | null }) {
   return tin ? <Badge tone="good">TIN valid</Badge> : <Badge tone="bad">TIN missing</Badge>;
 }
 
+export function BankDetailsBadge({ bankAccountNumber }: { bankAccountNumber: string | null }) {
+  return bankAccountNumber ? <Badge tone="good">On file</Badge> : <Badge tone="neutral">Missing</Badge>;
+}
+
 export function EmployeeStatusBadge({ status }: { status: string }) {
   return status === "active" ? <Badge tone="good">Active</Badge> : <Badge tone="neutral">Terminated</Badge>;
 }

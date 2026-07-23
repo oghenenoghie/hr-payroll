@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatKobo } from "@/lib/format";
-import { TinBadge, EmployeeStatusBadge } from "@/components/Badge";
+import { TinBadge, EmployeeStatusBadge, BankDetailsBadge } from "@/components/Badge";
 import { getMembership } from "@/lib/membership";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
@@ -52,6 +52,7 @@ export default async function EmployeesPage() {
               <th className={`${thClass} text-left`}>State</th>
               <th className={`${thClass} text-right`}>Basic</th>
               <th className={`${thClass} text-center`}>TIN</th>
+              <th className={`${thClass} text-center`}>Bank details</th>
               <th className={`${thClass} text-center`}>Status</th>
               <th className={thClass}></th>
             </tr>
@@ -69,6 +70,9 @@ export default async function EmployeesPage() {
                     <TinBadge tin={employee.tin} />
                   </td>
                   <td className={`${tdClass} text-center`}>
+                    <BankDetailsBadge bankAccountNumber={employee.bank_account_number} />
+                  </td>
+                  <td className={`${tdClass} text-center`}>
                     <EmployeeStatusBadge status={employee.status} />
                   </td>
                   <td className={`${tdClass} text-right`}>
@@ -80,7 +84,7 @@ export default async function EmployeesPage() {
               ))
             ) : (
               <tr>
-                <td colSpan={6} className="px-3 py-10 text-center text-[13px] text-ink-soft">
+                <td colSpan={7} className="px-3 py-10 text-center text-[13px] text-ink-soft">
                   No employees yet.
                 </td>
               </tr>

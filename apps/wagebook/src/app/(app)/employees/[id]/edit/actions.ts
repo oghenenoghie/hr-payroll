@@ -32,10 +32,17 @@ export async function editEmployee(
   const tin = String(formData.get("tin") ?? "").trim() || null;
   const pfa = String(formData.get("pfa") ?? "").trim() || null;
   const status = String(formData.get("status") ?? "active");
+  const bankName = String(formData.get("bank_name") ?? "").trim() || null;
+  const bankAccountNumber = String(formData.get("bank_account_number") ?? "").trim() || null;
+  const bankAccountName = String(formData.get("bank_account_name") ?? "").trim() || null;
   const basicNaira = Number(formData.get("basic") ?? 0);
   const housingNaira = Number(formData.get("housing") ?? 0);
   const transportNaira = Number(formData.get("transport") ?? 0);
   const annualRentNaira = Number(formData.get("annual_rent") ?? 0);
+
+  if (bankAccountNumber && !/^\d{10}$/.test(bankAccountNumber)) {
+    return { error: "Bank account number (NUBAN) must be exactly 10 digits." };
+  }
 
   const { error } = await supabase
     .from("employees")
@@ -50,6 +57,9 @@ export async function editEmployee(
       tin,
       pfa,
       status,
+      bank_name: bankName,
+      bank_account_number: bankAccountNumber,
+      bank_account_name: bankAccountName,
     })
     .eq("id", employeeId);
 

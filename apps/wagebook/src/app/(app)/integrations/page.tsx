@@ -36,6 +36,14 @@ export default async function IntegrationsPage() {
 
   const connectedByProvider = new Map((connections ?? []).map((c) => [c.provider, c.connected]));
 
+  const { data: activeEmployees } = await supabase
+    .from("employees")
+    .select("bank_account_number")
+    .eq("status", "active");
+
+  const totalActive = activeEmployees?.length ?? 0;
+  const withBankDetails = (activeEmployees ?? []).filter((e) => e.bank_account_number).length;
+
   return (
     <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 px-6 py-10">
       <header className="flex flex-col gap-1">
@@ -50,6 +58,17 @@ export default async function IntegrationsPage() {
 
       <div className="flex flex-col gap-2">
         <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Bank disbursement</span>
+
+        <div className="flex items-center justify-between rounded-card border border-border bg-surface px-4 py-3">
+          <span className="text-[13px] text-ink-soft">
+            Employee bank details on file (real data — required before any disbursement file could ever be
+            generated)
+          </span>
+          <Link href="/employees" className="text-[13px] font-extrabold text-ink">
+            {withBankDetails} of {totalActive} active employees
+          </Link>
+        </div>
+
         <div className="overflow-x-auto rounded-card border border-border bg-surface">
           <table className="w-full min-w-[480px] border-collapse">
             <thead>

@@ -169,6 +169,9 @@ export type Database = {
         Row: {
           annual_leave_balance_days: number
           annual_rent_kobo: number
+          bank_account_name: string | null
+          bank_account_number: string | null
+          bank_name: string | null
           basic_kobo: number
           created_at: string
           email: string | null
@@ -191,6 +194,9 @@ export type Database = {
         Insert: {
           annual_leave_balance_days?: number
           annual_rent_kobo?: number
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
           basic_kobo?: number
           created_at?: string
           email?: string | null
@@ -213,6 +219,9 @@ export type Database = {
         Update: {
           annual_leave_balance_days?: number
           annual_rent_kobo?: number
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
           basic_kobo?: number
           created_at?: string
           email?: string | null
@@ -1109,6 +1118,9 @@ export type Database = {
         Returns: {
           annual_leave_balance_days: number
           annual_rent_kobo: number
+          bank_account_name: string | null
+          bank_account_number: string | null
+          bank_name: string | null
           basic_kobo: number
           created_at: string
           email: string | null

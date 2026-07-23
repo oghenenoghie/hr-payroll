@@ -55,6 +55,21 @@ export function EditEmployeeForm({ employee }: { employee: Tables<"employees"> }
       />
       <FormField label="TIN" name="tin" required={false} defaultValue={employee.tin ?? ""} />
       <FormField label="PFA" name="pfa" required={false} defaultValue={employee.pfa ?? ""} />
+      <div className="grid grid-cols-2 gap-4">
+        <FormField label="Bank name" name="bank_name" required={false} defaultValue={employee.bank_name ?? ""} />
+        <FormField
+          label="Bank account number (NUBAN)"
+          name="bank_account_number"
+          required={false}
+          defaultValue={employee.bank_account_number ?? ""}
+        />
+      </div>
+      <FormField
+        label="Bank account name"
+        name="bank_account_name"
+        required={false}
+        defaultValue={employee.bank_account_name ?? ""}
+      />
       <div className="flex flex-col gap-2">
         <label className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft" htmlFor="status">
           Status

@@ -14,7 +14,7 @@ type Module = {
 // product could eventually cover. An inflated feature map is the fastest
 // way to lose credibility with a finance buyer who clicks into things.
 const MODULES: Module[] = [
-  { name: "Employee Management", status: "live", description: "Employee CRUD, TIN/PFA tracking, self-service account linking via invite." },
+  { name: "Employee Management", status: "live", description: "Employee CRUD, TIN/PFA/bank account (NUBAN) capture, self-service account linking via invite." },
   { name: "Payroll Setup", status: "live", description: "Company setup on sign-up: pay frequency, PFA default, states of operation." },
   { name: "Salary Structure", status: "live", description: "Basic / housing / transport pay components per employee." },
   { name: "Earnings Management", status: "live", description: "Monthly, bonus, 13th-month, arrears and off-cycle pay run frequencies." },
@@ -27,7 +27,7 @@ const MODULES: Module[] = [
   { name: "Benefits Administration", status: "live", description: "HR-managed plan catalog and enrollment; employer cost and employee deduction per pay run." },
   { name: "Payroll Processing", status: "live", description: "Atomic pay-run creation with a balanced double-entry ledger; new-hire pay is prorated to actual days employed this period. Termination and mid-period salary-change proration are not built." },
   { name: "Payslips", status: "live", description: "Itemised digital payslips with a step-by-step \"· how?\" derivation of every figure." },
-  { name: "Direct Deposit & Payments", status: "roadmap", description: "Net pay is posted to the ledger; no bank disbursement file or transfer integration." },
+  { name: "Direct Deposit & Payments", status: "roadmap", description: "Employee bank account (NUBAN) capture is real, and Integrations shows real coverage. Net pay is posted to the ledger; still no bank disbursement file or transfer integration." },
   { name: "Expense Reimbursement", status: "live", description: "Claims, admin/payroll approval with taxable/non-taxable treatment, paid via next run." },
   { name: "Compliance", status: "live", description: "PAYE, pension, NHF, NHIS, NSITF, ITF and WHT schemes with TIN gating before every run." },
   { name: "Employee Self-Service", status: "live", description: "Payslips, leave, loans, expenses, benefits and notifications in one dashboard." },

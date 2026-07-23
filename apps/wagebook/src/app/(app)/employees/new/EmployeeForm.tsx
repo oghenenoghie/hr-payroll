@@ -22,6 +22,11 @@ export function EmployeeForm() {
       <FormField label="Annual rent paid (₦)" name="annual_rent" type="number" required={false} defaultValue="0" />
       <FormField label="TIN" name="tin" required={false} />
       <FormField label="PFA" name="pfa" required={false} />
+      <div className="grid grid-cols-2 gap-4">
+        <FormField label="Bank name" name="bank_name" required={false} />
+        <FormField label="Bank account number (NUBAN)" name="bank_account_number" required={false} />
+      </div>
+      <FormField label="Bank account name" name="bank_account_name" required={false} />
       <SubmitButton>Add employee</SubmitButton>
     </form>
   );
