@@ -8,6 +8,8 @@
 >
 > **Sourcing status:** PAYE bands and reliefs reflect the Nigeria Tax Act 2025 schedule. Remittance deadlines in §10 were re-verified July 2026 against Nigerian tax-practice sources and corrected — see §11 errata. Deadlines are the figures most likely to be stated inconsistently across secondary sources, so treat §10 as the highest-priority section to re-confirm against primary agency guidance before go-live.
 
+> **Scope note:** this file covers *tax and statutory contribution* rules. Nigerian **Labour Act** minimums — leave entitlement, sick leave, maternity duration, notice periods, terminal benefits, working hours — are equally statutory, flow directly into payroll (encashment, maternity pay, notice pay, final settlement), and must be versioned and sourced the same way. They belong in a `labour` block on `RuleVersion`. See `hr-modules.md`. Do not default or approximate them any more than you would a tax band.
+
 ## Table of contents
 1. Personal Income Tax (PAYE) — bands, reliefs, TIN
 2. The reference calculation (how the engine derives PAYE)
