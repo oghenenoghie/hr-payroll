@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       employees: {
         Row: {
+          annual_leave_balance_days: number
           annual_rent_kobo: number
           basic_kobo: number
           created_at: string
@@ -36,6 +37,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          annual_leave_balance_days?: number
           annual_rent_kobo?: number
           basic_kobo?: number
           created_at?: string
@@ -56,6 +58,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          annual_leave_balance_days?: number
           annual_rent_kobo?: number
           basic_kobo?: number
           created_at?: string
@@ -195,6 +198,79 @@ export type Database = {
           {
             foreignKeyName: "journal_entries_pay_run_id_fkey"
             columns: ["pay_run_id"]
+            isOneToOne: false
+            referencedRelation: "pay_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leave_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          days: number
+          employee_id: string
+          end_date: string
+          id: string
+          leave_type: string
+          org_id: string
+          paid_pay_run_id: string | null
+          reason: string | null
+          requested_by: string
+          start_date: string
+          status: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          days: number
+          employee_id: string
+          end_date: string
+          id?: string
+          leave_type: string
+          org_id: string
+          paid_pay_run_id?: string | null
+          reason?: string | null
+          requested_by: string
+          start_date: string
+          status?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          days?: number
+          employee_id?: string
+          end_date?: string
+          id?: string
+          leave_type?: string
+          org_id?: string
+          paid_pay_run_id?: string | null
+          reason?: string | null
+          requested_by?: string
+          start_date?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_requests_paid_pay_run_id_fkey"
+            columns: ["paid_pay_run_id"]
             isOneToOne: false
             referencedRelation: "pay_runs"
             referencedColumns: ["id"]
@@ -511,6 +587,7 @@ export type Database = {
           pensionable_kobo: number
           rent_relief_kobo: number
           taxable_reimbursement_kobo: number
+          unpaid_leave_deduction_kobo: number
         }
         Insert: {
           chargeable_income_kobo: number
@@ -532,6 +609,7 @@ export type Database = {
           pensionable_kobo: number
           rent_relief_kobo: number
           taxable_reimbursement_kobo?: number
+          unpaid_leave_deduction_kobo?: number
         }
         Update: {
           chargeable_income_kobo?: number
@@ -553,6 +631,7 @@ export type Database = {
           pensionable_kobo?: number
           rent_relief_kobo?: number
           taxable_reimbursement_kobo?: number
+          unpaid_leave_deduction_kobo?: number
         }
         Relationships: [
           {
@@ -622,6 +701,7 @@ export type Database = {
       link_employee_account: {
         Args: { p_employee_id: string; p_user_id: string }
         Returns: {
+          annual_leave_balance_days: number
           annual_rent_kobo: number
           basic_kobo: number
           created_at: string
@@ -640,6 +720,25 @@ export type Database = {
           tin_valid_to: string | null
           transport_kobo: number
           user_id: string | null
+        }
+      }
+      review_leave_request: {
+        Args: { p_approve: boolean; p_leave_request_id: string }
+        Returns: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          days: number
+          employee_id: string
+          end_date: string
+          id: string
+          leave_type: string
+          org_id: string
+          paid_pay_run_id: string | null
+          reason: string | null
+          requested_by: string
+          start_date: string
+          status: string
         }
       }
     }

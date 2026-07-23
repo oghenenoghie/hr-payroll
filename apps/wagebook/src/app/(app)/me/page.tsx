@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatKobo } from "@/lib/format";
-import { TinBadge, LoanStatusBadge, ExpenseStatusBadge } from "@/components/Badge";
+import { TinBadge, LoanStatusBadge, ExpenseStatusBadge, LeaveStatusBadge } from "@/components/Badge";
 import { LoanRequestForm } from "./LoanRequestForm";
 import { ExpenseClaimForm } from "./ExpenseClaimForm";
+import { LeaveRequestForm } from "./LeaveRequestForm";
 
 export default async function MePage() {
   const supabase = await createClient();
@@ -48,6 +49,12 @@ export default async function MePage() {
 
   const { data: expenses } = await supabase
     .from("expenses")
+    .select("*")
+    .eq("employee_id", employee.id)
+    .order("created_at", { ascending: false });
+
+  const { data: leaveRequests } = await supabase
+    .from("leave_requests")
     .select("*")
     .eq("employee_id", employee.id)
     .order("created_at", { ascending: false });
@@ -145,6 +152,40 @@ export default async function MePage() {
 
         <div className="mt-4 border-t border-border pt-4">
           <ExpenseClaimForm />
+        </div>
+      </div>
+
+      <div className="rounded-card border border-border bg-surface p-6">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Leave &amp; attendance</span>
+          <span className="text-[13px] font-bold text-ink">
+            {Number(employee.annual_leave_balance_days)} days left
+          </span>
+        </div>
+
+        {leaveRequests && leaveRequests.length > 0 && (
+          <div className="mt-3 flex flex-col gap-3">
+            {leaveRequests.map((leave) => (
+              <div
+                key={leave.id}
+                className="flex items-center justify-between border-b border-border pb-3 last:border-b-0"
+              >
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[13px] font-bold text-ink capitalize">
+                    {leave.leave_type} · {leave.days} day{leave.days === 1 ? "" : "s"}
+                  </span>
+                  <span className="text-[12px] text-ink-soft">
+                    {leave.start_date} – {leave.end_date}
+                  </span>
+                </div>
+                <LeaveStatusBadge status={leave.status} />
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-4 border-t border-border pt-4">
+          <LeaveRequestForm />
         </div>
       </div>
     </div>

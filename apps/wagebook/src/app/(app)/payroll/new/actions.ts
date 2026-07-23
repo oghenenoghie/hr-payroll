@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import {
   NG_2026_1,
   checkTinGate,
+  clampNonNegative,
   computeCumulativePeriodPaye,
   computeNsitf,
   derivePeriodPayslip,
@@ -126,11 +127,31 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
     expensesByEmployee.set(expense.employee_id, list);
   }
 
+  // Approved unpaid-leave requests are deducted this run too — those days
+  // genuinely weren't earned, so the deduction reduces gross itself (and
+  // chargeable income with it), not a post-tax line like a loan repayment.
+  // Daily rate is annual contractual pay ÷ 365 calendar days — a disclosed
+  // simplification, not a claimed statutory formula.
+  const { data: approvedUnpaidLeave } = await supabase
+    .from("leave_requests")
+    .select("id, employee_id, days")
+    .eq("org_id", membership.org_id)
+    .eq("status", "approved")
+    .eq("leave_type", "unpaid");
+
+  const unpaidLeaveByEmployee = new Map<string, NonNullable<typeof approvedUnpaidLeave>>();
+  for (const leave of approvedUnpaidLeave ?? []) {
+    const list = unpaidLeaveByEmployee.get(leave.employee_id) ?? [];
+    list.push(leave);
+    unpaidLeaveByEmployee.set(leave.employee_id, list);
+  }
+
   let totalGrossKobo = 0n;
   let totalNetKobo = 0n;
   const allPeriodComponents: PayComponent[][] = [];
   const loanRepaymentsPayload: { loan_id: string; employee_id: string; amount_kobo: number }[] = [];
   const expenseReimbursementsPayload: { expense_id: string; employee_id: string }[] = [];
+  const leaveDeductionsPayload: { leave_request_id: string; employee_id: string }[] = [];
 
   const payslipsPayload = employees.map((employee) => {
     const prior = priorStateByEmployee.get(employee.id);
@@ -168,13 +189,26 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
     }
     const reimbursementKobo = taxableReimbursementKobo + nonTaxableReimbursementKobo;
 
-    const chargeableIncomeKobo = result.chargeableIncomeKobo + taxableReimbursementKobo;
+    // Unpaid leave reduces gross (and, via chargeable income, PAYE) — the
+    // employee simply wasn't paid for those days. Capped at this period's
+    // annual-basis daily rate × days; never lets gross go negative.
+    let unpaidLeaveDeductionKobo = 0n;
+    const annualContractualKobo = BigInt(employee.basic_kobo) + BigInt(employee.housing_kobo) + BigInt(employee.transport_kobo);
+    const dailyRateKobo = annualContractualKobo / 365n;
+    for (const leave of unpaidLeaveByEmployee.get(employee.id) ?? []) {
+      unpaidLeaveDeductionKobo += dailyRateKobo * BigInt(leave.days);
+      leaveDeductionsPayload.push({ leave_request_id: leave.id, employee_id: employee.id });
+    }
+
+    const chargeableIncomeKobo = clampNonNegative(
+      result.chargeableIncomeKobo + taxableReimbursementKobo - unpaidLeaveDeductionKobo,
+    );
     const payeKobo =
-      taxableReimbursementKobo > 0n
+      taxableReimbursementKobo > 0n || unpaidLeaveDeductionKobo > 0n
         ? computeCumulativePeriodPaye(chargeableIncomeKobo, prior?.payePaidAfterKobo ?? 0n, NG_2026_1)
         : result.payeKobo;
-    const grossKobo = result.grossKobo + reimbursementKobo;
-    const netBeforeLoanKobo = grossKobo - result.pensionEmployeeKobo - result.nhfKobo - payeKobo;
+    const grossKobo = clampNonNegative(result.grossKobo + reimbursementKobo - unpaidLeaveDeductionKobo);
+    const netBeforeLoanKobo = clampNonNegative(grossKobo - result.pensionEmployeeKobo - result.nhfKobo - payeKobo);
 
     // Apply loan repayments on top — post-tax deductions, never touching
     // chargeable income or PAYE. Oldest loan first; each capped at its own
@@ -199,8 +233,15 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
 
     // Employer costs (pension employer share) are tracked on their own
     // ledger line — never folded into an employee-facing deduction total.
+    // payroll_expense is reduced by the unpaid-leave amount directly (the
+    // expense was never incurred), which is what keeps this posting set
+    // balanced without a separate contra-account line.
     const postings = [
-      { account_code: "payroll_expense", direction: "debit", amount_kobo: result.grossKobo },
+      {
+        account_code: "payroll_expense",
+        direction: "debit",
+        amount_kobo: clampNonNegative(result.grossKobo - unpaidLeaveDeductionKobo),
+      },
       { account_code: "expense_reimbursement_expense", direction: "debit", amount_kobo: reimbursementKobo },
       { account_code: "employer_pension_expense", direction: "debit", amount_kobo: result.pensionEmployerKobo },
       { account_code: "net_pay_payable", direction: "credit", amount_kobo: netKobo },
@@ -230,6 +271,7 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
       cumulative_paye_paid_before_kobo: Number(prior?.payePaidAfterKobo ?? 0n),
       taxable_reimbursement_kobo: Number(taxableReimbursementKobo),
       non_taxable_reimbursement_kobo: Number(nonTaxableReimbursementKobo),
+      unpaid_leave_deduction_kobo: Number(unpaidLeaveDeductionKobo),
       postings: postings.map((posting) => ({ ...posting, amount_kobo: Number(posting.amount_kobo) })),
     };
   });
@@ -257,6 +299,7 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
       org_postings: orgPostings.map((posting) => ({ ...posting, amount_kobo: Number(posting.amount_kobo) })),
       loan_repayments: loanRepaymentsPayload,
       expense_reimbursements: expenseReimbursementsPayload,
+      leave_deductions: leaveDeductionsPayload,
     },
   });
 
@@ -267,5 +310,6 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
   revalidatePath("/payroll");
   revalidatePath("/loans");
   revalidatePath("/expenses");
+  revalidatePath("/leave");
   redirect("/payroll");
 }

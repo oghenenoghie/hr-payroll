@@ -100,3 +100,59 @@ export async function requestExpense(_prevState: RequestExpenseState, formData: 
   revalidatePath("/me");
   return { success: true };
 }
+
+export type RequestLeaveState = { error?: string; success?: boolean } | null;
+
+export async function requestLeave(_prevState: RequestLeaveState, formData: FormData): Promise<RequestLeaveState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data: employee } = await supabase.from("employees").select("id, org_id").eq("user_id", user.id).maybeSingle();
+
+  if (!employee) {
+    return { error: "Your account isn't linked to an employee record yet." };
+  }
+
+  const leaveType = String(formData.get("leave_type") ?? "annual");
+  const startDate = String(formData.get("start_date") ?? "");
+  const endDate = String(formData.get("end_date") ?? "");
+  const reason = String(formData.get("reason") ?? "").trim() || null;
+
+  if (leaveType !== "annual" && leaveType !== "unpaid") {
+    return { error: "Invalid leave type." };
+  }
+  if (!startDate || !endDate) {
+    return { error: "Start and end dates are required." };
+  }
+
+  // Computed server-side, never trusted from the client — the days column
+  // has a check constraint that must match end_date - start_date + 1.
+  const days = Math.round((Date.parse(endDate) - Date.parse(startDate)) / 86_400_000) + 1;
+  if (!(days > 0)) {
+    return { error: "End date must be on or after the start date." };
+  }
+
+  const { error: leaveError } = await supabase.from("leave_requests").insert({
+    org_id: employee.org_id,
+    employee_id: employee.id,
+    leave_type: leaveType,
+    start_date: startDate,
+    end_date: endDate,
+    days,
+    reason,
+    requested_by: user.id,
+  });
+
+  if (leaveError) {
+    return { error: leaveError.message };
+  }
+
+  revalidatePath("/me");
+  return { success: true };
+}

@@ -52,3 +52,15 @@ export function ExpenseStatusBadge({ status }: { status: string }) {
   const tone = EXPENSE_STATUS_TONE[status as keyof typeof EXPENSE_STATUS_TONE] ?? "neutral";
   return <Badge tone={tone}>{status}</Badge>;
 }
+
+const LEAVE_STATUS_TONE = {
+  pending: "warn",
+  approved: "good",
+  rejected: "bad",
+  paid: "neutral",
+} as const;
+
+export function LeaveStatusBadge({ status }: { status: string }) {
+  const tone = LEAVE_STATUS_TONE[status as keyof typeof LEAVE_STATUS_TONE] ?? "neutral";
+  return <Badge tone={tone}>{status}</Badge>;
+}
