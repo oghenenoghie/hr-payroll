@@ -48,7 +48,7 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
     return { error: "Period start and end are required." };
   }
 
-  const { data: employees, error: employeesError } = await supabase
+  const { data: activeEmployees, error: employeesError } = await supabase
     .from("employees")
     .select("*")
     .eq("org_id", membership.org_id)
@@ -58,8 +58,27 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
     return { error: employeesError.message };
   }
 
-  if (!employees || employees.length === 0) {
+  if (!activeEmployees || activeEmployees.length === 0) {
     return { error: "No active employees to run payroll for." };
+  }
+
+  // Bonus is discretionary and per-employee — unlike every other frequency,
+  // which pays whoever is active automatically, only employees with a
+  // nonzero entered amount are processed (and TIN-gated) at all.
+  let employees = activeEmployees;
+  const bonusAmountByEmployee = new Map<string, bigint>();
+  if (frequency === "bonus") {
+    for (const employee of activeEmployees) {
+      const raw = formData.get(`bonus_amount_${employee.id}`);
+      if (raw === null) continue;
+      const amountNaira = Number(raw);
+      if (!Number.isFinite(amountNaira) || amountNaira <= 0) continue;
+      bonusAmountByEmployee.set(employee.id, BigInt(Math.round(amountNaira * 100)));
+    }
+    employees = activeEmployees.filter((employee) => bonusAmountByEmployee.has(employee.id));
+    if (employees.length === 0) {
+      return { error: "Enter a bonus amount for at least one employee." };
+    }
   }
 
   // TIN gate: flag before the run, never process a TIN-less employee silently.
@@ -161,6 +180,53 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
 
       const postings = [
         { account_code: "thirteenth_month_expense", direction: "debit", amount_kobo: result.grossKobo },
+        { account_code: "net_pay_payable", direction: "credit", amount_kobo: result.netKobo },
+        { account_code: "paye_payable", direction: "credit", amount_kobo: result.payeKobo },
+      ].filter((posting) => posting.amount_kobo > 0n);
+
+      return {
+        employee_id: employee.id,
+        gross_kobo: Number(result.grossKobo),
+        pensionable_kobo: 0,
+        pension_employee_kobo: 0,
+        pension_employer_kobo: 0,
+        nhf_kobo: 0,
+        rent_relief_kobo: 0,
+        chargeable_income_kobo: Number(result.chargeableIncomeKobo),
+        paye_kobo: Number(result.payeKobo),
+        employee_deductions_kobo: Number(result.payeKobo),
+        net_kobo: Number(result.netKobo),
+        cumulative_chargeable_income_before_kobo: Number(prior?.chargeableIncomeKobo ?? 0n),
+        cumulative_paye_paid_before_kobo: Number(prior?.payePaidAfterKobo ?? 0n),
+        postings: postings.map((posting) => ({ ...posting, amount_kobo: Number(posting.amount_kobo) })),
+      };
+    });
+  } else if (frequency === "bonus") {
+    // Bonus: a discretionary, admin-entered amount per employee, taxed on
+    // top of whatever they've already earned this year via the same
+    // cumulative mechanism as 13th month — same standalone treatment
+    // otherwise (no leave/attendance/overtime/reimbursement/loan/benefit
+    // adjustments; never pensionable, never in the NHF or NSITF base).
+    payslipsPayload = employees.map((employee) => {
+      const prior = priorStateByEmployee.get(employee.id);
+      const amountKobo = bonusAmountByEmployee.get(employee.id)!;
+
+      const result = deriveLumpSumPayslip(
+        {
+          kind: "bonus",
+          amountKobo,
+          cumulativeChargeableIncomeBeforeKobo: prior?.chargeableIncomeKobo ?? 0n,
+          cumulativePayePaidBeforeKobo: prior?.payePaidAfterKobo ?? 0n,
+        },
+        NG_2026_1,
+      );
+
+      allPeriodComponents.push(result.periodComponents);
+      totalGrossKobo += result.grossKobo;
+      totalNetKobo += result.netKobo;
+
+      const postings = [
+        { account_code: "bonus_expense", direction: "debit", amount_kobo: result.grossKobo },
         { account_code: "net_pay_payable", direction: "credit", amount_kobo: result.netKobo },
         { account_code: "paye_payable", direction: "credit", amount_kobo: result.payeKobo },
       ].filter((posting) => posting.amount_kobo > 0n);
@@ -491,8 +557,8 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
 
   // NSITF is computed on the whole run's total payroll base, not per
   // employee — an org-level cost, never an employee deduction. Correctly
-  // zero for a 13th-month run: every component pushed above is tagged
-  // kind "thirteenth_month", never "regular".
+  // zero for a 13th-month or bonus run: every component pushed above is
+  // tagged kind "thirteenth_month"/"bonus", never "regular".
   const nsitf = computeNsitf(allPeriodComponents, NG_2026_1);
   const orgPostings = [
     { account_code: "nsitf_expense", direction: "debit", amount_kobo: nsitf.employerKobo },
