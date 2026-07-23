@@ -6,11 +6,11 @@ import { verifyMfaEnrollment } from "./actions";
 
 export function MfaSetupForm({
   factorId,
-  qrCodeSvg,
+  qrCodeDataUri,
   secret,
 }: {
   factorId: string;
-  qrCodeSvg: string;
+  qrCodeDataUri: string;
   secret: string;
 }) {
   const verifyWithFactor = verifyMfaEnrollment.bind(null, factorId);
@@ -21,7 +21,7 @@ export function MfaSetupForm({
       <div className="flex justify-center rounded-panel border border-border bg-white p-4">
         {/* eslint-disable-next-line @next/next/no-img-element -- data URI SVG from Supabase, not a static asset */}
         <img
-          src={`data:image/svg+xml;utf8,${encodeURIComponent(qrCodeSvg)}`}
+          src={qrCodeDataUri}
           alt="Scan this QR code with your authenticator app"
           className="h-[180px] w-[180px]"
         />

@@ -50,7 +50,7 @@ export default async function MfaSetupPage() {
     >
       <MfaSetupForm
         factorId={enrolled.id}
-        qrCodeSvg={enrolled.totp.qr_code}
+        qrCodeDataUri={enrolled.totp.qr_code}
         secret={enrolled.totp.secret}
       />
     </AuthCard>
