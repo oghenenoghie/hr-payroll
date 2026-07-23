@@ -146,6 +146,23 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
     unpaidLeaveByEmployee.set(leave.employee_id, list);
   }
 
+  // Active benefit enrollments apply every run, automatically, for as long
+  // as they stay active — no claim to approve, no balance to pay down.
+  // Employer cost is a company cost (like NSITF or the pension employer
+  // share); employee cost is a post-tax deduction (like a loan repayment).
+  const { data: activeEnrollments } = await supabase
+    .from("employee_benefit_enrollments")
+    .select("employee_id, benefit_plans(employer_cost_kobo, employee_cost_kobo)")
+    .eq("org_id", membership.org_id)
+    .eq("status", "active");
+
+  const enrollmentsByEmployee = new Map<string, NonNullable<typeof activeEnrollments>>();
+  for (const enrollment of activeEnrollments ?? []) {
+    const list = enrollmentsByEmployee.get(enrollment.employee_id) ?? [];
+    list.push(enrollment);
+    enrollmentsByEmployee.set(enrollment.employee_id, list);
+  }
+
   let totalGrossKobo = 0n;
   let totalNetKobo = 0n;
   const allPeriodComponents: PayComponent[][] = [];
@@ -226,16 +243,29 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
       loanRepaymentsPayload.push({ loan_id: loan.id, employee_id: employee.id, amount_kobo: Number(repaymentKobo) });
     }
 
-    const netKobo = netBeforeLoanKobo - loanDeductionKobo;
-    const employeeDeductionsKobo = result.pensionEmployeeKobo + result.nhfKobo + payeKobo + loanDeductionKobo;
+    // Active benefit enrollments apply every run: employer cost is a
+    // company cost (like the pension employer share), employee cost is a
+    // post-tax deduction (like a loan repayment) — neither touches
+    // chargeable income or PAYE, since a benefit contribution isn't pay.
+    let benefitEmployerCostKobo = 0n;
+    let benefitEmployeeDeductionKobo = 0n;
+    for (const enrollment of enrollmentsByEmployee.get(employee.id) ?? []) {
+      benefitEmployerCostKobo += BigInt(enrollment.benefit_plans?.employer_cost_kobo ?? 0);
+      benefitEmployeeDeductionKobo += BigInt(enrollment.benefit_plans?.employee_cost_kobo ?? 0);
+    }
+
+    const netKobo = netBeforeLoanKobo - loanDeductionKobo - benefitEmployeeDeductionKobo;
+    const employeeDeductionsKobo =
+      result.pensionEmployeeKobo + result.nhfKobo + payeKobo + loanDeductionKobo + benefitEmployeeDeductionKobo;
     totalGrossKobo += grossKobo;
     totalNetKobo += netKobo;
 
-    // Employer costs (pension employer share) are tracked on their own
-    // ledger line — never folded into an employee-facing deduction total.
-    // payroll_expense is reduced by the unpaid-leave amount directly (the
-    // expense was never incurred), which is what keeps this posting set
-    // balanced without a separate contra-account line.
+    // Employer costs (pension employer share, benefits) are tracked on
+    // their own ledger lines — never folded into an employee-facing
+    // deduction total. payroll_expense is reduced by the unpaid-leave
+    // amount directly (the expense was never incurred), which is what
+    // keeps this posting set balanced without a separate contra-account
+    // line.
     const postings = [
       {
         account_code: "payroll_expense",
@@ -244,6 +274,7 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
       },
       { account_code: "expense_reimbursement_expense", direction: "debit", amount_kobo: reimbursementKobo },
       { account_code: "employer_pension_expense", direction: "debit", amount_kobo: result.pensionEmployerKobo },
+      { account_code: "benefits_expense", direction: "debit", amount_kobo: benefitEmployerCostKobo },
       { account_code: "net_pay_payable", direction: "credit", amount_kobo: netKobo },
       { account_code: "paye_payable", direction: "credit", amount_kobo: payeKobo },
       {
@@ -253,6 +284,11 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
       },
       { account_code: "nhf_payable", direction: "credit", amount_kobo: result.nhfKobo },
       { account_code: "staff_loans_receivable", direction: "credit", amount_kobo: loanDeductionKobo },
+      {
+        account_code: "benefits_payable",
+        direction: "credit",
+        amount_kobo: benefitEmployerCostKobo + benefitEmployeeDeductionKobo,
+      },
     ].filter((posting) => posting.amount_kobo > 0n);
 
     return {
@@ -272,6 +308,8 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
       taxable_reimbursement_kobo: Number(taxableReimbursementKobo),
       non_taxable_reimbursement_kobo: Number(nonTaxableReimbursementKobo),
       unpaid_leave_deduction_kobo: Number(unpaidLeaveDeductionKobo),
+      benefit_employer_cost_kobo: Number(benefitEmployerCostKobo),
+      benefit_employee_deduction_kobo: Number(benefitEmployeeDeductionKobo),
       postings: postings.map((posting) => ({ ...posting, amount_kobo: Number(posting.amount_kobo) })),
     };
   });
@@ -311,5 +349,6 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
   revalidatePath("/loans");
   revalidatePath("/expenses");
   revalidatePath("/leave");
+  revalidatePath("/benefits");
   redirect("/payroll");
 }

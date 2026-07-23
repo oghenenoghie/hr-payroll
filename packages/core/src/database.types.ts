@@ -14,6 +14,102 @@ export type Database = {
   }
   public: {
     Tables: {
+      benefit_plans: {
+        Row: {
+          active: boolean
+          category: string
+          created_at: string
+          employee_cost_kobo: number
+          employer_cost_kobo: number
+          id: string
+          name: string
+          org_id: string
+        }
+        Insert: {
+          active?: boolean
+          category: string
+          created_at?: string
+          employee_cost_kobo?: number
+          employer_cost_kobo: number
+          id?: string
+          name: string
+          org_id: string
+        }
+        Update: {
+          active?: boolean
+          category?: string
+          created_at?: string
+          employee_cost_kobo?: number
+          employer_cost_kobo?: number
+          id?: string
+          name?: string
+          org_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "benefit_plans_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_benefit_enrollments: {
+        Row: {
+          benefit_plan_id: string
+          cancelled_at: string | null
+          employee_id: string
+          enrolled_at: string
+          enrolled_by: string
+          id: string
+          org_id: string
+          status: string
+        }
+        Insert: {
+          benefit_plan_id: string
+          cancelled_at?: string | null
+          employee_id: string
+          enrolled_at?: string
+          enrolled_by: string
+          id?: string
+          org_id: string
+          status?: string
+        }
+        Update: {
+          benefit_plan_id?: string
+          cancelled_at?: string | null
+          employee_id?: string
+          enrolled_at?: string
+          enrolled_by?: string
+          id?: string
+          org_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_benefit_enrollments_benefit_plan_id_fkey"
+            columns: ["benefit_plan_id"]
+            isOneToOne: false
+            referencedRelation: "benefit_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_benefit_enrollments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_benefit_enrollments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           annual_leave_balance_days: number
@@ -638,6 +734,8 @@ export type Database = {
       }
       payslips: {
         Row: {
+          benefit_employee_deduction_kobo: number
+          benefit_employer_cost_kobo: number
           chargeable_income_kobo: number
           created_at: string
           cumulative_chargeable_income_before_kobo: number
@@ -660,6 +758,8 @@ export type Database = {
           unpaid_leave_deduction_kobo: number
         }
         Insert: {
+          benefit_employee_deduction_kobo?: number
+          benefit_employer_cost_kobo?: number
           chargeable_income_kobo: number
           created_at?: string
           cumulative_chargeable_income_before_kobo: number
@@ -682,6 +782,8 @@ export type Database = {
           unpaid_leave_deduction_kobo?: number
         }
         Update: {
+          benefit_employee_deduction_kobo?: number
+          benefit_employer_cost_kobo?: number
           chargeable_income_kobo?: number
           created_at?: string
           cumulative_chargeable_income_before_kobo?: number
@@ -751,6 +853,12 @@ export type Database = {
           rc_number: string | null
           states_of_operation: string[]
         }
+        SetofOptions: {
+          from: "*"
+          to: "organizations"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       create_pay_run: {
         Args: { payload: Json }
@@ -766,6 +874,12 @@ export type Database = {
           period_end: string
           period_start: string
           rule_version_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "pay_runs"
+          isOneToOne: true
+          isSetofReturn: false
         }
       }
       link_employee_account: {
@@ -792,6 +906,12 @@ export type Database = {
           transport_kobo: number
           user_id: string | null
         }
+        SetofOptions: {
+          from: "*"
+          to: "employees"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       review_leave_request: {
         Args: { p_approve: boolean; p_leave_request_id: string }
@@ -811,6 +931,12 @@ export type Database = {
           start_date: string
           status: string
         }
+        SetofOptions: {
+          from: "*"
+          to: "leave_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
     }
     Enums: {
@@ -824,7 +950,7 @@ export type Database = {
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+type DefaultSchema = DatabaseWithoutInternals["public"]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends

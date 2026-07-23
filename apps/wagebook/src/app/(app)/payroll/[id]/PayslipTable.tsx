@@ -90,17 +90,22 @@ function DerivationDetail({ slip, ruleVersion }: { slip: PayslipRow; ruleVersion
   const bandResult = computeAnnualPaye(BigInt(slip.chargeable_income_kobo), ruleVersion);
 
   // employee_deductions_kobo is pension(EE) + NHF + PAYE plus any loan
-  // repayment applied on top — back it out here so the derivation still
-  // reconciles to net pay instead of silently going unaccounted for.
+  // repayment and benefit employee contribution applied on top — back the
+  // loan portion out here (benefits has its own stored column) so the
+  // derivation still reconciles to net pay instead of silently going
+  // unaccounted for.
+  const benefitEmployeeDeductionKobo = BigInt(slip.benefit_employee_deduction_kobo);
   const loanRepaymentKobo =
     BigInt(slip.employee_deductions_kobo) -
     BigInt(slip.pension_employee_kobo) -
     BigInt(slip.nhf_kobo) -
-    BigInt(slip.paye_kobo);
+    BigInt(slip.paye_kobo) -
+    benefitEmployeeDeductionKobo;
 
   const taxableReimbursementKobo = BigInt(slip.taxable_reimbursement_kobo);
   const nonTaxableReimbursementKobo = BigInt(slip.non_taxable_reimbursement_kobo);
   const unpaidLeaveDeductionKobo = BigInt(slip.unpaid_leave_deduction_kobo);
+  const benefitEmployerCostKobo = BigInt(slip.benefit_employer_cost_kobo);
 
   return (
     <div className="flex flex-col gap-4 text-[12.5px]">
@@ -171,6 +176,23 @@ function DerivationDetail({ slip, ruleVersion }: { slip: PayslipRow; ruleVersion
             Loan repayment (post-tax)
           </span>
           <Row label="Deducted this period" value={`− ${formatKobo(loanRepaymentKobo)}`} />
+        </div>
+      )}
+
+      {(benefitEmployerCostKobo > 0n || benefitEmployeeDeductionKobo > 0n) && (
+        <div>
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
+            Benefits
+          </span>
+          {benefitEmployeeDeductionKobo > 0n && (
+            <Row label="Employee contribution (post-tax)" value={`− ${formatKobo(benefitEmployeeDeductionKobo)}`} />
+          )}
+          {benefitEmployerCostKobo > 0n && (
+            <p className="mt-1 text-[11px] text-ink-soft">
+              Employer cost this period ({formatKobo(benefitEmployerCostKobo)}) is a company cost, not an employee
+              deduction.
+            </p>
+          )}
         </div>
       )}
     </div>

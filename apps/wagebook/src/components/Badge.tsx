@@ -64,3 +64,13 @@ export function LeaveStatusBadge({ status }: { status: string }) {
   const tone = LEAVE_STATUS_TONE[status as keyof typeof LEAVE_STATUS_TONE] ?? "neutral";
   return <Badge tone={tone}>{status}</Badge>;
 }
+
+const BENEFIT_ENROLLMENT_STATUS_TONE = {
+  active: "good",
+  cancelled: "neutral",
+} as const;
+
+export function BenefitEnrollmentStatusBadge({ status }: { status: string }) {
+  const tone = BENEFIT_ENROLLMENT_STATUS_TONE[status as keyof typeof BENEFIT_ENROLLMENT_STATUS_TONE] ?? "neutral";
+  return <Badge tone={tone}>{status}</Badge>;
+}

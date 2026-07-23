@@ -59,6 +59,13 @@ export default async function MePage() {
     .eq("employee_id", employee.id)
     .order("created_at", { ascending: false });
 
+  const { data: benefitEnrollments } = await supabase
+    .from("employee_benefit_enrollments")
+    .select("*, benefit_plans(name, category, employer_cost_kobo, employee_cost_kobo)")
+    .eq("employee_id", employee.id)
+    .eq("status", "active")
+    .order("enrolled_at", { ascending: false });
+
   return (
     <div className="mx-auto flex w-full max-w-[560px] flex-col gap-5 px-6 py-10">
       <header className="flex flex-col gap-1">
@@ -187,6 +194,35 @@ export default async function MePage() {
         <div className="mt-4 border-t border-border pt-4">
           <LeaveRequestForm />
         </div>
+      </div>
+
+      <div className="rounded-card border border-border bg-surface p-6">
+        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Benefits</span>
+
+        {benefitEnrollments && benefitEnrollments.length > 0 ? (
+          <div className="mt-3 flex flex-col gap-3">
+            {benefitEnrollments.map((enrollment) => (
+              <div
+                key={enrollment.id}
+                className="flex items-center justify-between border-b border-border pb-3 last:border-b-0"
+              >
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[13px] font-bold text-ink">{enrollment.benefit_plans?.name ?? "—"}</span>
+                  <span className="text-[12px] text-ink-soft capitalize">
+                    {enrollment.benefit_plans?.category.replace("_", " ") ?? ""}
+                    {Number(enrollment.benefit_plans?.employee_cost_kobo ?? 0) > 0 &&
+                      ` · ${formatKobo(BigInt(enrollment.benefit_plans!.employee_cost_kobo))}/period from your pay`}
+                  </span>
+                </div>
+                <span className="text-[12px] text-ink-soft">
+                  Employer cost {formatKobo(BigInt(enrollment.benefit_plans?.employer_cost_kobo ?? 0))}/period
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-2 text-[13px] text-ink-soft">Not enrolled in any benefit plans.</p>
+        )}
       </div>
     </div>
   );
