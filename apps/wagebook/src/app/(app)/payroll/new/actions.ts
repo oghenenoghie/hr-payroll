@@ -147,6 +147,24 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
     unpaidLeaveByEmployee.set(leave.employee_id, list);
   }
 
+  // Unprocessed absences from the weekly attendance grid are deducted this
+  // run too — same daily-rate formula as unpaid leave, but a distinct
+  // source (an after-the-fact admin/HR record, not an employee-approved
+  // request), so it's tracked as its own payload array and payslip column.
+  const { data: unprocessedAbsences } = await supabase
+    .from("attendance_records")
+    .select("id, employee_id")
+    .eq("org_id", membership.org_id)
+    .eq("status", "absent")
+    .is("paid_pay_run_id", null);
+
+  const absencesByEmployee = new Map<string, NonNullable<typeof unprocessedAbsences>>();
+  for (const absence of unprocessedAbsences ?? []) {
+    const list = absencesByEmployee.get(absence.employee_id) ?? [];
+    list.push(absence);
+    absencesByEmployee.set(absence.employee_id, list);
+  }
+
   // Active benefit enrollments apply every run, automatically, for as long
   // as they stay active — no claim to approve, no balance to pay down.
   // Employer cost is a company cost (like NSITF or the pension employer
@@ -170,6 +188,7 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
   const loanRepaymentsPayload: { loan_id: string; employee_id: string; amount_kobo: number }[] = [];
   const expenseReimbursementsPayload: { expense_id: string; employee_id: string }[] = [];
   const leaveDeductionsPayload: { leave_request_id: string; employee_id: string }[] = [];
+  const attendanceDeductionsPayload: { attendance_record_id: string; employee_id: string }[] = [];
 
   const payslipsPayload = employees.map((employee) => {
     const prior = priorStateByEmployee.get(employee.id);
@@ -218,14 +237,24 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
       leaveDeductionsPayload.push({ leave_request_id: leave.id, employee_id: employee.id });
     }
 
+    // Unprocessed attendance absences reduce gross the same way — same
+    // formula, distinct source and stored column (see migration comment).
+    let attendanceAbsenceDeductionKobo = 0n;
+    for (const absence of absencesByEmployee.get(employee.id) ?? []) {
+      attendanceAbsenceDeductionKobo += dailyRateKobo;
+      attendanceDeductionsPayload.push({ attendance_record_id: absence.id, employee_id: employee.id });
+    }
+
+    const daysOffDeductionKobo = unpaidLeaveDeductionKobo + attendanceAbsenceDeductionKobo;
+
     const chargeableIncomeKobo = clampNonNegative(
-      result.chargeableIncomeKobo + taxableReimbursementKobo - unpaidLeaveDeductionKobo,
+      result.chargeableIncomeKobo + taxableReimbursementKobo - daysOffDeductionKobo,
     );
     const payeKobo =
-      taxableReimbursementKobo > 0n || unpaidLeaveDeductionKobo > 0n
+      taxableReimbursementKobo > 0n || daysOffDeductionKobo > 0n
         ? computeCumulativePeriodPaye(chargeableIncomeKobo, prior?.payePaidAfterKobo ?? 0n, NG_2026_1)
         : result.payeKobo;
-    const grossKobo = clampNonNegative(result.grossKobo + reimbursementKobo - unpaidLeaveDeductionKobo);
+    const grossKobo = clampNonNegative(result.grossKobo + reimbursementKobo - daysOffDeductionKobo);
     const netBeforeLoanKobo = clampNonNegative(grossKobo - result.pensionEmployeeKobo - result.nhfKobo - payeKobo);
 
     // Apply loan repayments on top — post-tax deductions, never touching
@@ -263,15 +292,15 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
 
     // Employer costs (pension employer share, benefits) are tracked on
     // their own ledger lines — never folded into an employee-facing
-    // deduction total. payroll_expense is reduced by the unpaid-leave
-    // amount directly (the expense was never incurred), which is what
-    // keeps this posting set balanced without a separate contra-account
-    // line.
+    // deduction total. payroll_expense is reduced by the unpaid-leave and
+    // attendance-absence amounts directly (that pay was never incurred),
+    // which is what keeps this posting set balanced without a separate
+    // contra-account line.
     const postings = [
       {
         account_code: "payroll_expense",
         direction: "debit",
-        amount_kobo: clampNonNegative(result.grossKobo - unpaidLeaveDeductionKobo),
+        amount_kobo: clampNonNegative(result.grossKobo - daysOffDeductionKobo),
       },
       { account_code: "expense_reimbursement_expense", direction: "debit", amount_kobo: reimbursementKobo },
       { account_code: "employer_pension_expense", direction: "debit", amount_kobo: result.pensionEmployerKobo },
@@ -311,6 +340,7 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
       unpaid_leave_deduction_kobo: Number(unpaidLeaveDeductionKobo),
       benefit_employer_cost_kobo: Number(benefitEmployerCostKobo),
       benefit_employee_deduction_kobo: Number(benefitEmployeeDeductionKobo),
+      attendance_absence_deduction_kobo: Number(attendanceAbsenceDeductionKobo),
       postings: postings.map((posting) => ({ ...posting, amount_kobo: Number(posting.amount_kobo) })),
     };
   });
@@ -339,6 +369,7 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
       loan_repayments: loanRepaymentsPayload,
       expense_reimbursements: expenseReimbursementsPayload,
       leave_deductions: leaveDeductionsPayload,
+      attendance_deductions: attendanceDeductionsPayload,
     },
   });
 
@@ -360,5 +391,6 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
   revalidatePath("/expenses");
   revalidatePath("/leave");
   revalidatePath("/benefits");
+  revalidatePath("/attendance");
   redirect("/payroll");
 }

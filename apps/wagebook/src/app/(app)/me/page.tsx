@@ -74,6 +74,16 @@ export default async function MePage() {
     .is("read_at", null)
     .order("created_at", { ascending: false });
 
+  const thirtyDaysAgoDate = new Date();
+  thirtyDaysAgoDate.setDate(thirtyDaysAgoDate.getDate() - 30);
+  const thirtyDaysAgo = thirtyDaysAgoDate.toISOString().slice(0, 10);
+  const { data: recentAttendance } = await supabase
+    .from("attendance_records")
+    .select("date, status")
+    .eq("employee_id", employee.id)
+    .gte("date", thirtyDaysAgo)
+    .order("date", { ascending: false });
+
   return (
     <div className="mx-auto flex w-full max-w-[560px] flex-col gap-5 px-6 py-10">
       <header className="flex flex-col gap-1">
@@ -214,6 +224,24 @@ export default async function MePage() {
                 <LeaveStatusBadge status={leave.status} />
               </div>
             ))}
+          </div>
+        )}
+
+        {recentAttendance && recentAttendance.length > 0 && (
+          <div className="mt-4 border-t border-border pt-4">
+            <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
+              Attendance (last 30 days)
+            </span>
+            <div className="mt-2 flex flex-col gap-2">
+              {recentAttendance.map((record) => (
+                <div key={record.date} className="flex items-center justify-between">
+                  <span className="text-[12.5px] text-ink-soft">{record.date}</span>
+                  <span className={`text-[12.5px] font-bold capitalize ${record.status === "absent" ? "text-bad" : "text-warn"}`}>
+                    {record.status}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

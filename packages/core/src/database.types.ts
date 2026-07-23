@@ -14,6 +14,61 @@ export type Database = {
   }
   public: {
     Tables: {
+      attendance_records: {
+        Row: {
+          created_at: string
+          date: string
+          employee_id: string
+          id: string
+          marked_by: string
+          org_id: string
+          paid_pay_run_id: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          employee_id: string
+          id?: string
+          marked_by: string
+          org_id: string
+          paid_pay_run_id?: string | null
+          status: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          employee_id?: string
+          id?: string
+          marked_by?: string
+          org_id?: string
+          paid_pay_run_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_records_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_records_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_records_paid_pay_run_id_fkey"
+            columns: ["paid_pay_run_id"]
+            isOneToOne: false
+            referencedRelation: "pay_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       benefit_plans: {
         Row: {
           active: boolean
@@ -775,6 +830,7 @@ export type Database = {
       }
       payslips: {
         Row: {
+          attendance_absence_deduction_kobo: number
           benefit_employee_deduction_kobo: number
           benefit_employer_cost_kobo: number
           chargeable_income_kobo: number
@@ -799,6 +855,7 @@ export type Database = {
           unpaid_leave_deduction_kobo: number
         }
         Insert: {
+          attendance_absence_deduction_kobo?: number
           benefit_employee_deduction_kobo?: number
           benefit_employer_cost_kobo?: number
           chargeable_income_kobo: number
@@ -823,6 +880,7 @@ export type Database = {
           unpaid_leave_deduction_kobo?: number
         }
         Update: {
+          attendance_absence_deduction_kobo?: number
           benefit_employee_deduction_kobo?: number
           benefit_employer_cost_kobo?: number
           chargeable_income_kobo?: number

@@ -105,14 +105,18 @@ function DerivationDetail({ slip, ruleVersion }: { slip: PayslipRow; ruleVersion
   const taxableReimbursementKobo = BigInt(slip.taxable_reimbursement_kobo);
   const nonTaxableReimbursementKobo = BigInt(slip.non_taxable_reimbursement_kobo);
   const unpaidLeaveDeductionKobo = BigInt(slip.unpaid_leave_deduction_kobo);
+  const attendanceAbsenceDeductionKobo = BigInt(slip.attendance_absence_deduction_kobo);
   const benefitEmployerCostKobo = BigInt(slip.benefit_employer_cost_kobo);
 
   return (
     <div className="flex flex-col gap-4 text-[12.5px]">
-      {(taxableReimbursementKobo > 0n || nonTaxableReimbursementKobo > 0n || unpaidLeaveDeductionKobo > 0n) && (
+      {(taxableReimbursementKobo > 0n ||
+        nonTaxableReimbursementKobo > 0n ||
+        unpaidLeaveDeductionKobo > 0n ||
+        attendanceAbsenceDeductionKobo > 0n) && (
         <div>
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
-            Reimbursements &amp; leave adjustments
+            Reimbursements, leave &amp; attendance adjustments
           </span>
           {taxableReimbursementKobo > 0n && (
             <Row label="Taxable expense reimbursement — added to chargeable income" value={`+ ${formatKobo(taxableReimbursementKobo)}`} />
@@ -122,6 +126,12 @@ function DerivationDetail({ slip, ruleVersion }: { slip: PayslipRow; ruleVersion
           )}
           {unpaidLeaveDeductionKobo > 0n && (
             <Row label="Unpaid leave — reduces gross and chargeable income" value={`− ${formatKobo(unpaidLeaveDeductionKobo)}`} />
+          )}
+          {attendanceAbsenceDeductionKobo > 0n && (
+            <Row
+              label="Unrecorded absence (attendance grid) — reduces gross and chargeable income"
+              value={`− ${formatKobo(attendanceAbsenceDeductionKobo)}`}
+            />
           )}
         </div>
       )}
