@@ -28,6 +28,7 @@ export async function editEmployee(
   }
 
   const stateOfResidence = String(formData.get("state_of_residence") ?? "").trim() || null;
+  const hireDate = String(formData.get("hire_date") ?? "").trim() || null;
   const tin = String(formData.get("tin") ?? "").trim() || null;
   const pfa = String(formData.get("pfa") ?? "").trim() || null;
   const status = String(formData.get("status") ?? "active");
@@ -41,6 +42,7 @@ export async function editEmployee(
     .update({
       full_name: fullName,
       state_of_residence: stateOfResidence,
+      hire_date: hireDate,
       basic_kobo: Number(naira(basicNaira)),
       housing_kobo: Number(naira(housingNaira)),
       transport_kobo: Number(naira(transportNaira)),

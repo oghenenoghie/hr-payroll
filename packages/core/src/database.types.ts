@@ -22,6 +22,7 @@ export type Database = {
           created_at: string
           email: string | null
           full_name: string
+          hire_date: string | null
           housing_kobo: number
           id: string
           linked_at: string | null
@@ -43,6 +44,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           full_name: string
+          hire_date?: string | null
           housing_kobo?: number
           id?: string
           linked_at?: string | null
@@ -64,6 +66,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           full_name?: string
+          hire_date?: string | null
           housing_kobo?: number
           id?: string
           linked_at?: string | null
@@ -156,6 +159,73 @@ export type Database = {
           {
             foreignKeyName: "expenses_paid_pay_run_id_fkey"
             columns: ["paid_pay_run_id"]
+            isOneToOne: false
+            referencedRelation: "pay_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      final_settlements: {
+        Row: {
+          created_at: string
+          employee_id: string
+          gratuity_kobo: number
+          id: string
+          leave_days_paid: number
+          leave_payout_kobo: number
+          loan_clearance_kobo: number
+          net_settlement_kobo: number
+          org_id: string
+          pay_run_id: string
+          processed_by: string
+          service_years: number
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          gratuity_kobo: number
+          id?: string
+          leave_days_paid: number
+          leave_payout_kobo: number
+          loan_clearance_kobo: number
+          net_settlement_kobo: number
+          org_id: string
+          pay_run_id: string
+          processed_by: string
+          service_years: number
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          gratuity_kobo?: number
+          id?: string
+          leave_days_paid?: number
+          leave_payout_kobo?: number
+          loan_clearance_kobo?: number
+          net_settlement_kobo?: number
+          org_id?: string
+          pay_run_id?: string
+          processed_by?: string
+          service_years?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "final_settlements_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "final_settlements_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "final_settlements_pay_run_id_fkey"
+            columns: ["pay_run_id"]
             isOneToOne: false
             referencedRelation: "pay_runs"
             referencedColumns: ["id"]
@@ -707,6 +777,7 @@ export type Database = {
           created_at: string
           email: string | null
           full_name: string
+          hire_date: string | null
           housing_kobo: number
           id: string
           linked_at: string | null

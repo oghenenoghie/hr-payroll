@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { EditEmployeeForm } from "./EditEmployeeForm";
@@ -21,6 +22,20 @@ export default async function EditEmployeePage({ params }: { params: Promise<{ i
       <div className="rounded-card border border-border bg-surface p-6">
         <InviteAccountPanel employeeId={employee.id} email={employee.email} linkedAt={employee.linked_at} />
       </div>
+      {employee.status === "terminated" && (
+        <div className="rounded-card border border-border bg-surface p-6">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Final settlement</span>
+          <p className="mt-2 text-[13px] text-ink-soft">
+            Exit payroll — gratuity, leave payout and loan clearance in one settlement run.
+          </p>
+          <Link
+            href={`/employees/${employee.id}/settle`}
+            className="mt-3 inline-block rounded-button bg-primary px-[22px] py-[11px] text-[13px] font-extrabold text-white"
+          >
+            Process final settlement
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

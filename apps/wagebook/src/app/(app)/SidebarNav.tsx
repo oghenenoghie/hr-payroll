@@ -11,6 +11,7 @@ const ADMIN_NAV_ITEMS = [
   { href: "/loans", label: "Loans & Advances" },
   { href: "/expenses", label: "Expenses" },
   { href: "/leave", label: "Leave & Attendance" },
+  { href: "/settlements", label: "Final Settlement" },
   { href: "/reports", label: "Reports" },
   { href: "/simulation", label: "Payroll Simulation" },
 ];
