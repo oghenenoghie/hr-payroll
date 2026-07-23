@@ -189,6 +189,125 @@ export type Database = {
           },
         ]
       }
+      loan_repayments: {
+        Row: {
+          amount_kobo: number
+          created_at: string
+          employee_id: string
+          id: string
+          loan_id: string
+          org_id: string
+          pay_run_id: string
+        }
+        Insert: {
+          amount_kobo: number
+          created_at?: string
+          employee_id: string
+          id?: string
+          loan_id: string
+          org_id: string
+          pay_run_id: string
+        }
+        Update: {
+          amount_kobo?: number
+          created_at?: string
+          employee_id?: string
+          id?: string
+          loan_id?: string
+          org_id?: string
+          pay_run_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_repayments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_repayments_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_repayments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_repayments_pay_run_id_fkey"
+            columns: ["pay_run_id"]
+            isOneToOne: false
+            referencedRelation: "pay_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loans: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          employee_id: string
+          id: string
+          monthly_repayment_kobo: number
+          org_id: string
+          outstanding_kobo: number
+          principal_kobo: number
+          reason: string | null
+          requested_by: string
+          status: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          employee_id: string
+          id?: string
+          monthly_repayment_kobo: number
+          org_id: string
+          outstanding_kobo: number
+          principal_kobo: number
+          reason?: string | null
+          requested_by: string
+          status?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          employee_id?: string
+          id?: string
+          monthly_repayment_kobo?: number
+          org_id?: string
+          outstanding_kobo?: number
+          principal_kobo?: number
+          reason?: string | null
+          requested_by?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loans_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loans_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_memberships: {
         Row: {
           created_at: string

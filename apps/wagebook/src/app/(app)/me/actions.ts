@@ -1,0 +1,58 @@
+"use server";
+
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import { naira } from "@plutus/compliance";
+import { createClient } from "@/lib/supabase/server";
+
+export type RequestLoanState = { error?: string; success?: boolean } | null;
+
+export async function requestLoan(_prevState: RequestLoanState, formData: FormData): Promise<RequestLoanState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data: employee } = await supabase.from("employees").select("id, org_id").eq("user_id", user.id).maybeSingle();
+
+  if (!employee) {
+    return { error: "Your account isn't linked to an employee record yet." };
+  }
+
+  const principalNaira = Number(formData.get("principal") ?? 0);
+  const monthlyRepaymentNaira = Number(formData.get("monthly_repayment") ?? 0);
+  const reason = String(formData.get("reason") ?? "").trim() || null;
+
+  if (!(principalNaira > 0)) {
+    return { error: "Enter a loan amount greater than zero." };
+  }
+  if (!(monthlyRepaymentNaira > 0)) {
+    return { error: "Enter a monthly repayment amount greater than zero." };
+  }
+  if (monthlyRepaymentNaira > principalNaira) {
+    return { error: "Monthly repayment can't exceed the loan amount." };
+  }
+
+  const principalKobo = naira(principalNaira);
+
+  const { error } = await supabase.from("loans").insert({
+    org_id: employee.org_id,
+    employee_id: employee.id,
+    principal_kobo: Number(principalKobo),
+    monthly_repayment_kobo: Number(naira(monthlyRepaymentNaira)),
+    outstanding_kobo: Number(principalKobo),
+    requested_by: user.id,
+    reason,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/me");
+  return { success: true };
+}

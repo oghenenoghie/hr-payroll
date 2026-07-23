@@ -89,6 +89,15 @@ export function PayslipTable({ payslips, ruleVersionId }: { payslips: PayslipRow
 function DerivationDetail({ slip, ruleVersion }: { slip: PayslipRow; ruleVersion: typeof NG_2026_1 }) {
   const bandResult = computeAnnualPaye(BigInt(slip.chargeable_income_kobo), ruleVersion);
 
+  // employee_deductions_kobo is pension(EE) + NHF + PAYE plus any loan
+  // repayment applied on top — back it out here so the derivation still
+  // reconciles to net pay instead of silently going unaccounted for.
+  const loanRepaymentKobo =
+    BigInt(slip.employee_deductions_kobo) -
+    BigInt(slip.pension_employee_kobo) -
+    BigInt(slip.nhf_kobo) -
+    BigInt(slip.paye_kobo);
+
   return (
     <div className="flex flex-col gap-4 text-[12.5px]">
       <div>
@@ -134,6 +143,15 @@ function DerivationDetail({ slip, ruleVersion }: { slip: PayslipRow; ruleVersion
         />
         <Row label="This period's PAYE" value={formatKobo(BigInt(slip.paye_kobo))} emphasis />
       </div>
+
+      {loanRepaymentKobo > 0n && (
+        <div>
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
+            Loan repayment (post-tax)
+          </span>
+          <Row label="Deducted this period" value={`− ${formatKobo(loanRepaymentKobo)}`} />
+        </div>
+      )}
     </div>
   );
 }

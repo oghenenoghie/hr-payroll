@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatKobo } from "@/lib/format";
-import { TinBadge } from "@/components/Badge";
+import { TinBadge, LoanStatusBadge } from "@/components/Badge";
+import { LoanRequestForm } from "./LoanRequestForm";
 
 export default async function MePage() {
   const supabase = await createClient();
@@ -37,6 +38,12 @@ export default async function MePage() {
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
+
+  const { data: loans } = await supabase
+    .from("loans")
+    .select("*")
+    .eq("employee_id", employee.id)
+    .order("created_at", { ascending: false });
 
   return (
     <div className="mx-auto flex w-full max-w-[560px] flex-col gap-5 px-6 py-10">
@@ -78,6 +85,32 @@ export default async function MePage() {
         ) : (
           <p className="mt-2 text-[13px] text-ink-soft">No payslips yet.</p>
         )}
+      </div>
+
+      <div className="rounded-card border border-border bg-surface p-6">
+        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Loans &amp; advances</span>
+
+        {loans && loans.length > 0 && (
+          <div className="mt-3 flex flex-col gap-3">
+            {loans.map((loan) => (
+              <div key={loan.id} className="flex items-center justify-between border-b border-border pb-3 last:border-b-0">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[13px] font-bold text-ink">{formatKobo(BigInt(loan.principal_kobo))}</span>
+                  <span className="text-[12px] text-ink-soft">
+                    {loan.status === "approved" || loan.status === "completed"
+                      ? `${formatKobo(BigInt(loan.outstanding_kobo))} outstanding · ${formatKobo(BigInt(loan.monthly_repayment_kobo))}/mo`
+                      : (loan.reason ?? "No reason given")}
+                  </span>
+                </div>
+                <LoanStatusBadge status={loan.status} />
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-4 border-t border-border pt-4">
+          <LoanRequestForm />
+        </div>
       </div>
     </div>
   );

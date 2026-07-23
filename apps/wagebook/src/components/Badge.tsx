@@ -28,3 +28,15 @@ export function TinBadge({ tin }: { tin: string | null }) {
 export function EmployeeStatusBadge({ status }: { status: string }) {
   return status === "active" ? <Badge tone="good">Active</Badge> : <Badge tone="neutral">Terminated</Badge>;
 }
+
+const LOAN_STATUS_TONE = {
+  pending: "warn",
+  approved: "good",
+  rejected: "bad",
+  completed: "neutral",
+} as const;
+
+export function LoanStatusBadge({ status }: { status: string }) {
+  const tone = LOAN_STATUS_TONE[status as keyof typeof LOAN_STATUS_TONE] ?? "neutral";
+  return <Badge tone={tone}>{status}</Badge>;
+}
