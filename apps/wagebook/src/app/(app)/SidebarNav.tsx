@@ -24,6 +24,7 @@ const EMPLOYEE_NAV_ITEMS = [{ href: "/me", label: "Overview" }];
 
 const MANAGER_NAV_ITEM = { href: "/team", label: "My Team" };
 const SECURITY_NAV_ITEM = { href: "/security", label: "Security & Access" };
+const INTEGRATIONS_NAV_ITEM = { href: "/integrations", label: "Integrations" };
 
 export function SidebarNav({
   role,
@@ -37,7 +38,7 @@ export function SidebarNav({
   const pathname = usePathname();
   const baseItems = role === "employee" ? EMPLOYEE_NAV_ITEMS : ADMIN_NAV_ITEMS;
   const withManager = isManager ? [...baseItems, MANAGER_NAV_ITEM] : baseItems;
-  const items = role === "admin" ? [...withManager, SECURITY_NAV_ITEM] : withManager;
+  const items = role === "admin" ? [...withManager, INTEGRATIONS_NAV_ITEM, SECURITY_NAV_ITEM] : withManager;
 
   return (
     <nav className="flex flex-col gap-1">

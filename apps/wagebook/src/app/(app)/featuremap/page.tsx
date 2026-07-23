@@ -38,7 +38,7 @@ const MODULES: Module[] = [
   { name: "Notifications", status: "live", description: "Requests and decisions notify the right people; unread counts surface in the sidebar and on /me." },
   { name: "Security", status: "live", description: "Role-based access (admin/payroll manager/HR manager/employee) and mandatory TOTP MFA for admin and payroll manager." },
   { name: "Multi-Company & Global Payroll", status: "roadmap", description: "Nigeria only. Ghana (SSNIT) and Kenya (NSSF/SHIF) rule sets are roadmap, not built." },
-  { name: "Integrations", status: "roadmap", description: "No bank disbursement or accounting-software connections are wired up." },
+  { name: "Integrations", status: "partial", description: "Bank disbursement connections are a real per-org toggle, but explicitly a demo — no bank API calls, no disbursement file generation." },
   { name: "Final Settlement", status: "live", description: "Exit payroll: leave payout, gratuity and full loan clearance in one off-cycle run." },
   { name: "Advanced Features", status: "partial", description: "Payroll Simulation (what-if analysis across the workforce) is live; nothing further built yet." },
 ];

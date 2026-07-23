@@ -383,6 +383,41 @@ export type Database = {
           },
         ]
       }
+      integration_connections: {
+        Row: {
+          connected: boolean
+          id: string
+          org_id: string
+          provider: string
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          connected?: boolean
+          id?: string
+          org_id: string
+          provider: string
+          updated_at?: string
+          updated_by: string
+        }
+        Update: {
+          connected?: boolean
+          id?: string
+          org_id?: string
+          provider?: string
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       journal_entries: {
         Row: {
           created_at: string
