@@ -18,9 +18,12 @@ const ADMIN_NAV_ITEMS = [
 
 const EMPLOYEE_NAV_ITEMS = [{ href: "/me", label: "Overview" }];
 
-export function SidebarNav({ role }: { role?: string }) {
+const MANAGER_NAV_ITEM = { href: "/team", label: "My Team" };
+
+export function SidebarNav({ role, isManager = false }: { role?: string; isManager?: boolean }) {
   const pathname = usePathname();
-  const items = role === "employee" ? EMPLOYEE_NAV_ITEMS : ADMIN_NAV_ITEMS;
+  const baseItems = role === "employee" ? EMPLOYEE_NAV_ITEMS : ADMIN_NAV_ITEMS;
+  const items = isManager ? [...baseItems, MANAGER_NAV_ITEM] : baseItems;
 
   return (
     <nav className="flex flex-col gap-1">

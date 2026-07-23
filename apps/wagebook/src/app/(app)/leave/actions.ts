@@ -17,6 +17,7 @@ export async function approveLeave(leaveId: string) {
   await supabase.rpc("review_leave_request", { p_leave_request_id: leaveId, p_approve: true });
 
   revalidatePath("/leave");
+  revalidatePath("/team");
 }
 
 export async function rejectLeave(leaveId: string) {
@@ -32,4 +33,5 @@ export async function rejectLeave(leaveId: string) {
   await supabase.rpc("review_leave_request", { p_leave_request_id: leaveId, p_approve: false });
 
   revalidatePath("/leave");
+  revalidatePath("/team");
 }

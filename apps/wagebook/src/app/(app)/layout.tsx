@@ -23,6 +23,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const membership = await getMembership(supabase, user.id);
 
+  const { data: myEmployee } = await supabase.from("employees").select("id").eq("user_id", user.id).maybeSingle();
+  const { count: reportCount } = myEmployee
+    ? await supabase
+        .from("employees")
+        .select("id", { count: "exact", head: true })
+        .eq("manager_id", myEmployee.id)
+    : { count: 0 };
+  const isManager = (reportCount ?? 0) > 0;
+
   return (
     <div className="flex h-screen overflow-hidden">
       <aside className="flex w-[240px] shrink-0 flex-col justify-between bg-primary-dark px-4 py-6">
@@ -33,7 +42,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               Technologies
             </span>
           </div>
-          <SidebarNav role={membership?.role} />
+          <SidebarNav role={membership?.role} isManager={isManager} />
         </div>
 
         <div className="flex flex-col gap-3 border-t border-primary px-2 pt-4">
