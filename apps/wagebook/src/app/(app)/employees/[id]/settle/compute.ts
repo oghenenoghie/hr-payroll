@@ -1,4 +1,11 @@
-import { NG_2026_1, clampNonNegative, deriveLumpSumPayslip } from "@plutus/compliance";
+import {
+  NG_2026_1,
+  clampNonNegative,
+  computeCumulativePeriodPaye,
+  computeNhf,
+  computePension,
+  type PayComponent,
+} from "@plutus/compliance";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@plutus/core";
 
@@ -20,6 +27,13 @@ export interface SettlementPreview {
   leaveDaysPaid: number;
   leavePayoutKobo: bigint;
   gratuityKobo: bigint;
+  /** Regular basic/housing/transport for the partial final period between the employee's last regular pay run and their last working day — pensionable and NHF-able, unlike the leave/gratuity lump sum. */
+  finalPeriodDaysWorked: number;
+  finalPeriodGrossKobo: bigint;
+  finalPeriodPensionableKobo: bigint;
+  finalPeriodPensionEmployeeKobo: bigint;
+  finalPeriodPensionEmployerKobo: bigint;
+  finalPeriodNhfKobo: bigint;
   grossSettlementKobo: bigint;
   payeKobo: bigint;
   /** Cumulative year-to-date chargeable income as of (including) this settlement — persisted so a later payslip can carry it forward. */
@@ -47,6 +61,12 @@ export async function computeSettlementPreview(
     | "leaveDaysPaid"
     | "leavePayoutKobo"
     | "gratuityKobo"
+    | "finalPeriodDaysWorked"
+    | "finalPeriodGrossKobo"
+    | "finalPeriodPensionableKobo"
+    | "finalPeriodPensionEmployeeKobo"
+    | "finalPeriodPensionEmployerKobo"
+    | "finalPeriodNhfKobo"
     | "grossSettlementKobo"
     | "payeKobo"
     | "chargeableIncomeKobo"
@@ -70,6 +90,12 @@ export async function computeSettlementPreview(
       leaveDaysPaid: 0,
       leavePayoutKobo: 0n,
       gratuityKobo: 0n,
+      finalPeriodDaysWorked: 0,
+      finalPeriodGrossKobo: 0n,
+      finalPeriodPensionableKobo: 0n,
+      finalPeriodPensionEmployeeKobo: 0n,
+      finalPeriodPensionEmployerKobo: 0n,
+      finalPeriodNhfKobo: 0n,
       grossSettlementKobo: 0n,
       payeKobo: 0n,
       chargeableIncomeKobo: 0n,
@@ -90,6 +116,12 @@ export async function computeSettlementPreview(
       leaveDaysPaid: 0,
       leavePayoutKobo: 0n,
       gratuityKobo: 0n,
+      finalPeriodDaysWorked: 0,
+      finalPeriodGrossKobo: 0n,
+      finalPeriodPensionableKobo: 0n,
+      finalPeriodPensionEmployeeKobo: 0n,
+      finalPeriodPensionEmployerKobo: 0n,
+      finalPeriodNhfKobo: 0n,
       grossSettlementKobo: 0n,
       payeKobo: 0n,
       chargeableIncomeKobo: 0n,
@@ -116,6 +148,12 @@ export async function computeSettlementPreview(
       leaveDaysPaid: 0,
       leavePayoutKobo: 0n,
       gratuityKobo: 0n,
+      finalPeriodDaysWorked: 0,
+      finalPeriodGrossKobo: 0n,
+      finalPeriodPensionableKobo: 0n,
+      finalPeriodPensionEmployeeKobo: 0n,
+      finalPeriodPensionEmployerKobo: 0n,
+      finalPeriodNhfKobo: 0n,
       grossSettlementKobo: 0n,
       payeKobo: 0n,
       chargeableIncomeKobo: 0n,
@@ -140,7 +178,66 @@ export async function computeSettlementPreview(
   const gratuityDays = serviceYears * GRATUITY_DAYS_PER_YEAR_OF_SERVICE;
   const gratuityKobo = dailyRateKobo * BigInt(gratuityDays);
 
-  const grossSettlementKobo = leavePayoutKobo + gratuityKobo;
+  // Final period regular pay: the days between the employee's last regular
+  // pay run and their last working day were otherwise never paid — this
+  // used to be a silent gap (Final Settlement covered only leave payout and
+  // gratuity). Unlike those two, which are non-pensionable lump sums, this
+  // is ordinary earned pay, so it's pensionable and NHF-able like a normal
+  // payslip. Last working day comes from the auto-logged
+  // employee_status_history active→terminated transition (falls back to
+  // today if none exists — e.g. an employee terminated before that
+  // migration shipped — which slightly overpays rather than guessing at an
+  // unrecorded date). Rent relief is deliberately not prorated for this
+  // stub: correctly allocating it would require tracking how much relief
+  // each prior period already consumed this year, which nothing in the
+  // schema does today — a disclosed simplification, not a claimed figure.
+  const { data: employeePayslips } = await supabase
+    .from("payslips")
+    .select("pay_run_id")
+    .eq("employee_id", employeeId);
+  const payRunIds = (employeePayslips ?? []).map((p) => p.pay_run_id);
+
+  const { data: lastRegularPayRun } =
+    payRunIds.length > 0
+      ? await supabase
+          .from("pay_runs")
+          .select("period_end")
+          .in("id", payRunIds)
+          .in("frequency", ["weekly", "biweekly", "monthly"])
+          .order("period_end", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      : { data: null };
+
+  const { data: terminationEvent } = await supabase
+    .from("employee_status_history")
+    .select("changed_at")
+    .eq("employee_id", employeeId)
+    .eq("new_status", "terminated")
+    .order("changed_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const payThroughTime = lastRegularPayRun
+    ? Date.parse(lastRegularPayRun.period_end)
+    : Date.parse(employee.hire_date) - 86_400_000;
+  const lastWorkingTime = terminationEvent ? Date.parse(terminationEvent.changed_at) : Date.now();
+  const finalPeriodDaysWorked = Math.max(0, Math.round((lastWorkingTime - payThroughTime) / 86_400_000));
+
+  const dailyBasicKobo = BigInt(employee.basic_kobo) / 365n;
+  const dailyHousingKobo = BigInt(employee.housing_kobo) / 365n;
+  const dailyTransportKobo = BigInt(employee.transport_kobo) / 365n;
+
+  const finalPeriodComponents: PayComponent[] = [
+    { code: "basic", amountKobo: dailyBasicKobo * BigInt(finalPeriodDaysWorked), kind: "regular" },
+    { code: "housing", amountKobo: dailyHousingKobo * BigInt(finalPeriodDaysWorked), kind: "regular" },
+    { code: "transport", amountKobo: dailyTransportKobo * BigInt(finalPeriodDaysWorked), kind: "regular" },
+  ];
+  const finalPeriodGrossKobo = finalPeriodComponents.reduce((sum, component) => sum + component.amountKobo, 0n);
+  const finalPeriodPension = computePension(finalPeriodComponents, NG_2026_1);
+  const finalPeriodNhfKobo = computeNhf(finalPeriodComponents, NG_2026_1);
+
+  const grossSettlementKobo = finalPeriodGrossKobo + leavePayoutKobo + gratuityKobo;
 
   // Same cumulative carry-forward as a regular pay run — a settlement
   // isn't taxed as if it were the employee's only income of the year.
@@ -157,16 +254,19 @@ export async function computeSettlementPreview(
     ? BigInt(recentPayslip.cumulative_paye_paid_before_kobo) + BigInt(recentPayslip.paye_kobo)
     : 0n;
 
-  const lumpSum = deriveLumpSumPayslip(
-    {
-      kind: "one_off",
-      amountKobo: grossSettlementKobo,
-      cumulativeChargeableIncomeBeforeKobo,
-      cumulativePayePaidBeforeKobo,
-    },
-    NG_2026_1,
+  // Final period pay is taxable pensionable income, leave payout and
+  // gratuity are taxable non-pensionable lump sums — all three are taxed
+  // together in one cumulative-PAYE calculation off the same year-to-date
+  // baseline (never as separate calls, which would each start from the same
+  // "before" figure and miscompute which marginal band the combined total
+  // actually lands in — feature-backlog.md §1's flagged proration/
+  // cumulative-PAYE interaction).
+  const finalPeriodChargeableAdditionKobo = clampNonNegative(
+    finalPeriodGrossKobo - finalPeriodPension.employeeKobo - finalPeriodNhfKobo,
   );
-  const payeKobo = lumpSum.payeKobo;
+  const chargeableIncomeKobo =
+    cumulativeChargeableIncomeBeforeKobo + finalPeriodChargeableAdditionKobo + leavePayoutKobo + gratuityKobo;
+  const payeKobo = computeCumulativePeriodPaye(chargeableIncomeKobo, cumulativePayePaidBeforeKobo, NG_2026_1);
 
   const { data: activeLoans } = await supabase
     .from("loans")
@@ -181,7 +281,9 @@ export async function computeSettlementPreview(
     outstandingKobo: BigInt(loan.outstanding_kobo),
   }));
 
-  const netSettlementKobo = clampNonNegative(grossSettlementKobo - payeKobo - loanClearanceKobo);
+  const netSettlementKobo = clampNonNegative(
+    grossSettlementKobo - finalPeriodPension.employeeKobo - finalPeriodNhfKobo - payeKobo - loanClearanceKobo,
+  );
 
   return {
     ...base,
@@ -190,9 +292,15 @@ export async function computeSettlementPreview(
     leaveDaysPaid,
     leavePayoutKobo,
     gratuityKobo,
+    finalPeriodDaysWorked,
+    finalPeriodGrossKobo,
+    finalPeriodPensionableKobo: finalPeriodPension.pensionableBaseKobo,
+    finalPeriodPensionEmployeeKobo: finalPeriodPension.employeeKobo,
+    finalPeriodPensionEmployerKobo: finalPeriodPension.employerKobo,
+    finalPeriodNhfKobo,
     grossSettlementKobo,
     payeKobo,
-    chargeableIncomeKobo: lumpSum.chargeableIncomeKobo,
+    chargeableIncomeKobo,
     cumulativeChargeableIncomeBeforeKobo,
     cumulativePayePaidBeforeKobo,
     loanClearanceKobo,

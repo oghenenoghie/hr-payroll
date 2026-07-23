@@ -28,10 +28,10 @@ These are places where the current engine spec is **incomplete in ways that prod
 
 Not currently specified anywhere, and it applies to a large share of real pay runs:
 
-- **New hire mid-period** — partial month from start date.
-- **Termination mid-period** — partial month to last working day.
-- **Mid-month salary change** — split period across two rates.
-- **Unpaid leave and absence** — partial-period deduction.
+- **New hire mid-period** — partial month from start date. **Built.**
+- **Termination mid-period** — partial month to last working day. **Built:** Final Settlement now pays prorated regular basic/housing/transport for the days between the employee's last regular pay run and their last working day (sourced from the auto-logged status-change history), pensionable and NHF-able like ordinary pay, combined into one cumulative-PAYE calculation together with leave payout and gratuity — previously a silent gap where a terminated employee was never paid for days worked in their unfinished final period. Rent relief is not re-prorated for that stub period (disclosed simplification).
+- **Mid-month salary change** — split period across two rates. Still not built — needs an effective-dated compensation history model, a larger data-model change than the other three.
+- **Unpaid leave and absence** — partial-period deduction. **Built.**
 
 Proration interacts directly with **cumulative PAYE**: a prorated month changes year-to-date chargeable income, which changes the marginal band the next month falls into. Getting proration right but recomputing cumulatively wrong (or vice versa) produces plausible-looking payslips that are wrong by material amounts. Decide and document the proration basis — calendar days, working days, or a 30-day convention — because the three give different answers and the choice must be consistent across the engine.
 

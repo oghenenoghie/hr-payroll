@@ -43,9 +43,21 @@ export default async function SettleEmployeePage({ params }: { params: Promise<{
             service — a configurable company policy default, not a statutory rate.
           </div>
 
+          <div className="rounded-panel border border-border bg-bg px-4 py-3 text-[12.5px] text-ink-soft">
+            Final period regular pay is prorated by calendar day from the employee&apos;s last regular pay run
+            through their last working day. Rent relief is not re-prorated for this stub period — a disclosed
+            simplification, not a claimed exact figure.
+          </div>
+
           <div className="rounded-card border border-border bg-surface p-6">
             <div className="flex flex-col gap-2 text-[13px]">
               <Row label={`Service (${preview.serviceYears} completed years)`} value="" />
+              {preview.finalPeriodDaysWorked > 0 && (
+                <Row
+                  label={`Final period regular pay — ${preview.finalPeriodDaysWorked} days`}
+                  value={formatKobo(preview.finalPeriodGrossKobo)}
+                />
+              )}
               <Row label={`Leave payout — ${preview.leaveDaysPaid} days`} value={formatKobo(preview.leavePayoutKobo)} />
               <Row
                 label={`Gratuity — ${preview.serviceYears * GRATUITY_DAYS_PER_YEAR_OF_SERVICE} days`}
@@ -55,6 +67,16 @@ export default async function SettleEmployeePage({ params }: { params: Promise<{
                 <span>Gross settlement</span>
                 <span>{formatKobo(preview.grossSettlementKobo)}</span>
               </div>
+              {preview.finalPeriodPensionEmployeeKobo > 0n && (
+                <Row
+                  label="Pension (employee share)"
+                  value={`− ${formatKobo(preview.finalPeriodPensionEmployeeKobo)}`}
+                  negative
+                />
+              )}
+              {preview.finalPeriodNhfKobo > 0n && (
+                <Row label="NHF" value={`− ${formatKobo(preview.finalPeriodNhfKobo)}`} negative />
+              )}
               <Row label="PAYE" value={`− ${formatKobo(preview.payeKobo)}`} negative />
               {preview.loanClearanceKobo > 0n && (
                 <Row

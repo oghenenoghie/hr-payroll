@@ -46,10 +46,22 @@ export async function processFinalSettlement(
   const today = new Date().toISOString().slice(0, 10);
 
   const postings = [
+    { account_code: "payroll_expense", direction: "debit", amount_kobo: Number(preview.finalPeriodGrossKobo) },
     { account_code: "leave_payout_expense", direction: "debit", amount_kobo: Number(preview.leavePayoutKobo) },
     { account_code: "gratuity_expense", direction: "debit", amount_kobo: Number(preview.gratuityKobo) },
+    {
+      account_code: "employer_pension_expense",
+      direction: "debit",
+      amount_kobo: Number(preview.finalPeriodPensionEmployerKobo),
+    },
     { account_code: "net_pay_payable", direction: "credit", amount_kobo: Number(preview.netSettlementKobo) },
     { account_code: "paye_payable", direction: "credit", amount_kobo: Number(preview.payeKobo) },
+    {
+      account_code: "pension_payable",
+      direction: "credit",
+      amount_kobo: Number(preview.finalPeriodPensionEmployeeKobo + preview.finalPeriodPensionEmployerKobo),
+    },
+    { account_code: "nhf_payable", direction: "credit", amount_kobo: Number(preview.finalPeriodNhfKobo) },
     { account_code: "staff_loans_receivable", direction: "credit", amount_kobo: Number(preview.loanClearanceKobo) },
   ].filter((posting) => posting.amount_kobo > 0);
 
@@ -68,14 +80,18 @@ export async function processFinalSettlement(
         {
           employee_id: preview.employeeId,
           gross_kobo: Number(preview.grossSettlementKobo),
-          pensionable_kobo: 0,
-          pension_employee_kobo: 0,
-          pension_employer_kobo: 0,
-          nhf_kobo: 0,
+          pensionable_kobo: Number(preview.finalPeriodPensionableKobo),
+          pension_employee_kobo: Number(preview.finalPeriodPensionEmployeeKobo),
+          pension_employer_kobo: Number(preview.finalPeriodPensionEmployerKobo),
+          nhf_kobo: Number(preview.finalPeriodNhfKobo),
           rent_relief_kobo: 0,
           chargeable_income_kobo: Number(preview.chargeableIncomeKobo),
           paye_kobo: Number(preview.payeKobo),
-          employee_deductions_kobo: Number(preview.payeKobo) + Number(preview.loanClearanceKobo),
+          employee_deductions_kobo:
+            Number(preview.payeKobo) +
+            Number(preview.finalPeriodPensionEmployeeKobo) +
+            Number(preview.finalPeriodNhfKobo) +
+            Number(preview.loanClearanceKobo),
           net_kobo: Number(preview.netSettlementKobo),
           cumulative_chargeable_income_before_kobo: Number(preview.cumulativeChargeableIncomeBeforeKobo),
           cumulative_paye_paid_before_kobo: Number(preview.cumulativePayePaidBeforeKobo),
@@ -102,6 +118,8 @@ export async function processFinalSettlement(
     leave_days_paid: preview.leaveDaysPaid,
     leave_payout_kobo: Number(preview.leavePayoutKobo),
     gratuity_kobo: Number(preview.gratuityKobo),
+    final_period_days_worked: preview.finalPeriodDaysWorked,
+    final_period_gross_kobo: Number(preview.finalPeriodGrossKobo),
     loan_clearance_kobo: Number(preview.loanClearanceKobo),
     net_settlement_kobo: Number(preview.netSettlementKobo),
     processed_by: user.id,

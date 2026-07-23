@@ -439,6 +439,8 @@ export type Database = {
         Row: {
           created_at: string
           employee_id: string
+          final_period_days_worked: number
+          final_period_gross_kobo: number
           gratuity_kobo: number
           id: string
           leave_days_paid: number
@@ -453,6 +455,8 @@ export type Database = {
         Insert: {
           created_at?: string
           employee_id: string
+          final_period_days_worked?: number
+          final_period_gross_kobo?: number
           gratuity_kobo: number
           id?: string
           leave_days_paid: number
@@ -467,6 +471,8 @@ export type Database = {
         Update: {
           created_at?: string
           employee_id?: string
+          final_period_days_worked?: number
+          final_period_gross_kobo?: number
           gratuity_kobo?: number
           id?: string
           leave_days_paid?: number
