@@ -43,5 +43,21 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // A session can go stale relative to MFA state — e.g. a user signed in
+  // before enrolling, then enrolled in another tab, or an admin enrolled
+  // and the app requires step-up on the very next request rather than
+  // waiting for the next fresh sign-in. Check on every request (this reads
+  // the already-decoded JWT's AMR claims, no extra network round trip) and
+  // force the step-up challenge before anything else, public paths
+  // included, since "/" still exposes the org's PAYE calculator.
+  if (user && request.nextUrl.pathname !== "/mfa-challenge") {
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (aal && aal.nextLevel === "aal2" && aal.currentLevel !== aal.nextLevel) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/mfa-challenge";
+      return NextResponse.redirect(url);
+    }
+  }
+
   return supabaseResponse;
 }

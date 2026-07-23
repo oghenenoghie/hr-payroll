@@ -16,5 +16,10 @@ export async function signIn(_prevState: SignInState, formData: FormData): Promi
     return { error: error.message };
   }
 
+  const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (aal && aal.nextLevel === "aal2" && aal.currentLevel !== aal.nextLevel) {
+    redirect("/mfa-challenge");
+  }
+
   redirect("/dashboard");
 }
