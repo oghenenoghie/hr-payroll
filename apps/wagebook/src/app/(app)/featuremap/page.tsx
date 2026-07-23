@@ -32,7 +32,7 @@ const MODULES: Module[] = [
   { name: "Compliance", status: "live", description: "PAYE, pension, NHF, NHIS, NSITF, ITF and WHT schemes with TIN gating before every run." },
   { name: "Employee Self-Service", status: "live", description: "Payslips, leave, loans, expenses, benefits and notifications in one dashboard." },
   { name: "Manager Self-Service", status: "live", description: "Direct-report roster and leave approval for any employee with reports." },
-  { name: "Reporting & Analytics", status: "live", description: "Statutory liability totals and PAYE-by-state breakdowns." },
+  { name: "Reporting & Analytics", status: "live", description: "Statutory liability totals, PAYE-by-state breakdowns, and a per-run payroll register with a ledger-balanced reconciliation check for every pay run, including reversals." },
   { name: "Accounting Integration", status: "partial", description: "Real, fully itemised general-ledger CSV export per pay run, with each employee's department attributed as a cost centre. No live accounting-software API sync (QuickBooks, Xero, Sage) yet." },
   { name: "Workflow & Approvals", status: "live", description: "Leave, loan, expense and benefit-enrollment approval flows across admin/HR/payroll/manager roles." },
   { name: "Notifications", status: "live", description: "Requests and decisions notify the right people; unread counts surface in the sidebar and on /me." },

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { NG_2026_1 } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
@@ -82,6 +83,9 @@ export default async function ReportsPage() {
           Totals posted across every pay run to date. Remittance/filing-status tracking isn&apos;t built yet — these
           are liability totals, not a claim about what has actually been paid to each authority.
         </p>
+        <Link href="/reports/register" className="mt-1 text-[12.5px] font-bold text-primary">
+          View payroll register &amp; reconciliation →
+        </Link>
       </header>
 
       <div className="overflow-x-auto rounded-card border border-border bg-surface">
