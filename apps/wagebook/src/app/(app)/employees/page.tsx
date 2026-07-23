@@ -53,6 +53,7 @@ export default async function EmployeesPage() {
           <thead>
             <tr className="border-b border-border">
               <th className={`${thClass} text-left`}>Name</th>
+              <th className={`${thClass} text-left`}>Department</th>
               <th className={`${thClass} text-left`}>State</th>
               <th className={`${thClass} text-right`}>Basic</th>
               <th className={`${thClass} text-center`}>TIN</th>
@@ -66,6 +67,7 @@ export default async function EmployeesPage() {
               employees.map((employee) => (
                 <tr key={employee.id} className="border-b border-border last:border-b-0">
                   <td className={`${tdClass} font-bold text-ink`}>{employee.full_name}</td>
+                  <td className={`${tdClass} text-ink-soft`}>{employee.department_name ?? "—"}</td>
                   <td className={`${tdClass} text-ink-soft`}>{employee.state_of_residence ?? "—"}</td>
                   <td className={`${tdClass} text-right font-bold text-ink`}>
                     {employee.basic_kobo !== null ? (
@@ -96,7 +98,7 @@ export default async function EmployeesPage() {
               ))
             ) : (
               <tr>
-                <td colSpan={7} className="px-3 py-10 text-center text-[13px] text-ink-soft">
+                <td colSpan={8} className="px-3 py-10 text-center text-[13px] text-ink-soft">
                   No employees yet.
                 </td>
               </tr>

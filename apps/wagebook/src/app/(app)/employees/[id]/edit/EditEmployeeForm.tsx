@@ -8,10 +8,12 @@ import { editEmployee, type EditEmployeeState } from "./actions";
 
 export function EditEmployeeForm({
   employee,
+  departments,
   canEditSalary,
   canControlMasking,
 }: {
   employee: Tables<"employees_masked">;
+  departments: { id: string; name: string }[];
   canEditSalary: boolean;
   canControlMasking: boolean;
 }) {
@@ -31,6 +33,25 @@ export function EditEmployeeForm({
         defaultValue={employee.state_of_residence ?? ""}
       />
       <FormField label="Hire date" name="hire_date" type="date" required={false} defaultValue={employee.hire_date ?? ""} />
+
+      <div className="flex flex-col gap-2">
+        <label className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft" htmlFor="department_id">
+          Department
+        </label>
+        <select
+          id="department_id"
+          name="department_id"
+          defaultValue={employee.department_id ?? ""}
+          className="w-full rounded-control border border-border bg-surface px-[13px] py-[11px] text-[13px] text-ink outline-none focus:border-primary"
+        >
+          <option value="">No department</option>
+          {departments.map((department) => (
+            <option key={department.id} value={department.id}>
+              {department.name}
+            </option>
+          ))}
+        </select>
+      </div>
 
       {canEditSalary ? (
         <>

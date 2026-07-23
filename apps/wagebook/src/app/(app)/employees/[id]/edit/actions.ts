@@ -33,6 +33,7 @@ export async function editEmployee(
   const tin = String(formData.get("tin") ?? "").trim() || null;
   const pfa = String(formData.get("pfa") ?? "").trim() || null;
   const status = String(formData.get("status") ?? "active");
+  const departmentId = String(formData.get("department_id") ?? "").trim() || null;
   const bankName = String(formData.get("bank_name") ?? "").trim() || null;
   const bankAccountNumber = String(formData.get("bank_account_number") ?? "").trim() || null;
   const bankAccountName = String(formData.get("bank_account_name") ?? "").trim() || null;
@@ -69,6 +70,7 @@ export async function editEmployee(
       tin,
       pfa,
       status,
+      department_id: departmentId,
       ...(canEditSalary
         ? {
             basic_kobo: Number(naira(basicNaira)),

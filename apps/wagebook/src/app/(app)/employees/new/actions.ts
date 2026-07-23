@@ -41,6 +41,7 @@ export async function addEmployee(_prevState: AddEmployeeState, formData: FormDa
   const bankName = String(formData.get("bank_name") ?? "").trim() || null;
   const bankAccountNumber = String(formData.get("bank_account_number") ?? "").trim() || null;
   const bankAccountName = String(formData.get("bank_account_name") ?? "").trim() || null;
+  const departmentId = String(formData.get("department_id") ?? "").trim() || null;
   const basicNaira = Number(formData.get("basic") ?? 0);
   const housingNaira = Number(formData.get("housing") ?? 0);
   const transportNaira = Number(formData.get("transport") ?? 0);
@@ -65,6 +66,7 @@ export async function addEmployee(_prevState: AddEmployeeState, formData: FormDa
     bank_name: bankName,
     bank_account_number: bankAccountNumber,
     bank_account_name: bankAccountName,
+    department_id: departmentId,
   });
 
   if (error) {

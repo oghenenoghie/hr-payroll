@@ -52,12 +52,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   const { data: postings } = await supabase
     .from("ledger_postings")
-    .select("account_code, direction, amount_kobo, employees(full_name)")
+    .select("account_code, direction, amount_kobo, employees(full_name, departments(name))")
     .eq("journal_entry_id", journalEntry.id)
     .order("account_code");
 
   const rows = [
-    ["Date", "Journal Memo", "Account Code", "Account Name", "Employee", "Debit (NGN)", "Credit (NGN)"],
+    ["Date", "Journal Memo", "Account Code", "Account Name", "Employee", "Department (Cost Centre)", "Debit (NGN)", "Credit (NGN)"],
     ...(postings ?? []).map((posting) => {
       const amountNaira = toNaira(BigInt(posting.amount_kobo)).toFixed(2);
       return [
@@ -66,6 +66,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         posting.account_code,
         ACCOUNT_LABEL[posting.account_code] ?? posting.account_code,
         posting.employees?.full_name ?? "",
+        posting.employees?.departments?.name ?? "",
         posting.direction === "debit" ? amountNaira : "",
         posting.direction === "credit" ? amountNaira : "",
       ];

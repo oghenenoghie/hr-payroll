@@ -165,6 +165,35 @@ export type Database = {
           },
         ]
       }
+      departments: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          org_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          org_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          org_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "departments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           annual_leave_balance_days: number
@@ -174,6 +203,7 @@ export type Database = {
           bank_name: string | null
           basic_kobo: number
           created_at: string
+          department_id: string | null
           email: string | null
           full_name: string
           hire_date: string | null
@@ -200,6 +230,7 @@ export type Database = {
           bank_name?: string | null
           basic_kobo?: number
           created_at?: string
+          department_id?: string | null
           email?: string | null
           full_name: string
           hire_date?: string | null
@@ -226,6 +257,7 @@ export type Database = {
           bank_name?: string | null
           basic_kobo?: number
           created_at?: string
+          department_id?: string | null
           email?: string | null
           full_name?: string
           hire_date?: string | null
@@ -245,6 +277,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "employees_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "employees_manager_id_fkey"
             columns: ["manager_id"]
@@ -1062,6 +1101,8 @@ export type Database = {
           bank_name: string | null
           basic_kobo: number | null
           created_at: string | null
+          department_id: string | null
+          department_name: string | null
           email: string | null
           full_name: string | null
           hire_date: string | null
@@ -1088,6 +1129,8 @@ export type Database = {
           bank_name?: never
           basic_kobo?: never
           created_at?: string | null
+          department_id?: string | null
+          department_name?: never
           email?: string | null
           full_name?: string | null
           hire_date?: string | null
@@ -1114,6 +1157,8 @@ export type Database = {
           bank_name?: never
           basic_kobo?: never
           created_at?: string | null
+          department_id?: string | null
+          department_name?: never
           email?: string | null
           full_name?: string | null
           hire_date?: string | null
@@ -1133,6 +1178,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "employees_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "employees_manager_id_fkey"
             columns: ["manager_id"]
@@ -1228,6 +1280,7 @@ export type Database = {
           bank_name: string | null
           basic_kobo: number
           created_at: string
+          department_id: string | null
           email: string | null
           full_name: string
           hire_date: string | null

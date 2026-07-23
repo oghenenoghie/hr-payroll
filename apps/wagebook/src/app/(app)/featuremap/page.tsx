@@ -14,7 +14,7 @@ type Module = {
 // product could eventually cover. An inflated feature map is the fastest
 // way to lose credibility with a finance buyer who clicks into things.
 const MODULES: Module[] = [
-  { name: "Employee Management", status: "live", description: "Employee CRUD, TIN/PFA/bank account (NUBAN) capture, self-service account linking via invite." },
+  { name: "Employee Management", status: "live", description: "Employee CRUD, TIN/PFA/bank account (NUBAN) capture, self-service account linking via invite, and department assignment for cost-centre reporting. Branches/locations, job grades and DOB/nationality fields are not built." },
   { name: "Payroll Setup", status: "live", description: "Company setup on sign-up: pay frequency, PFA default, states of operation." },
   { name: "Salary Structure", status: "live", description: "Basic / housing / transport pay components per employee." },
   { name: "Earnings Management", status: "partial", description: "Weekly/biweekly/monthly, 13th Month (one month's basic) and discretionary Bonus (admin-entered per employee) frequencies are all real, each taxed on top of year-to-date. Off-cycle exists via Final Settlement specifically. Arrears/retroactive pay is not built — the correct rule-version treatment is a genuinely open tax question, not yet resolved." },
@@ -33,7 +33,7 @@ const MODULES: Module[] = [
   { name: "Employee Self-Service", status: "live", description: "Payslips, leave, loans, expenses, benefits and notifications in one dashboard." },
   { name: "Manager Self-Service", status: "live", description: "Direct-report roster and leave approval for any employee with reports." },
   { name: "Reporting & Analytics", status: "live", description: "Statutory liability totals and PAYE-by-state breakdowns." },
-  { name: "Accounting Integration", status: "partial", description: "Real, fully itemised general-ledger CSV export per pay run. No live accounting-software API sync (QuickBooks, Xero, Sage) yet." },
+  { name: "Accounting Integration", status: "partial", description: "Real, fully itemised general-ledger CSV export per pay run, with each employee's department attributed as a cost centre. No live accounting-software API sync (QuickBooks, Xero, Sage) yet." },
   { name: "Workflow & Approvals", status: "live", description: "Leave, loan, expense and benefit-enrollment approval flows across admin/HR/payroll/manager roles." },
   { name: "Notifications", status: "live", description: "Requests and decisions notify the right people; unread counts surface in the sidebar and on /me." },
   { name: "Security", status: "live", description: "Role-based access (admin/payroll manager/HR manager/employee), mandatory TOTP MFA for admin and payroll manager, an org-scoped authentication audit log, and per-employee salary masking from HR Manager view (a real database-level mask, not just a hidden UI field)." },

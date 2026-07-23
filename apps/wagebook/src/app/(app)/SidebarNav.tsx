@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const ADMIN_NAV_ITEMS = [
   { href: "/dashboard", label: "Overview" },
   { href: "/employees", label: "Employees" },
+  { href: "/departments", label: "Departments" },
   { href: "/payroll", label: "Payroll Runs" },
   { href: "/compliance", label: "Compliance Engine" },
   { href: "/loans", label: "Loans & Advances" },

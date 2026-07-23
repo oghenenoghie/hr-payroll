@@ -25,6 +25,10 @@ export default async function EditEmployeePage({ params }: { params: Promise<{ i
   const { data: employee } = await supabase.from("employees_masked").select("*").eq("id", id).maybeSingle();
   if (!employee) notFound();
 
+  const { data: departments } = employee.org_id
+    ? await supabase.from("departments").select("id, name").eq("org_id", employee.org_id).order("name")
+    : { data: null };
+
   const canEditSalary = employee.basic_kobo !== null;
   const canControlMasking = membership?.role === "admin" || membership?.role === "payroll_manager";
 
@@ -35,7 +39,12 @@ export default async function EditEmployeePage({ params }: { params: Promise<{ i
         <h1 className="text-[22px] font-extrabold text-ink">{employee.full_name}</h1>
       </header>
       <div className="rounded-card border border-border bg-surface p-6">
-        <EditEmployeeForm employee={employee} canEditSalary={canEditSalary} canControlMasking={canControlMasking} />
+        <EditEmployeeForm
+          employee={employee}
+          departments={departments ?? []}
+          canEditSalary={canEditSalary}
+          canControlMasking={canControlMasking}
+        />
       </div>
       <div className="rounded-card border border-border bg-surface p-6">
         <InviteAccountPanel employeeId={employee.id!} email={employee.email} linkedAt={employee.linked_at} />
