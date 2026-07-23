@@ -255,10 +255,12 @@ export type Database = {
           bank_name: string | null
           basic_kobo: number
           confirmed: boolean
+          contract_end_date: string | null
           created_at: string
           date_of_birth: string | null
           department_id: string | null
           email: string | null
+          employment_type: string
           full_name: string
           hire_date: string | null
           housing_kobo: number
@@ -287,10 +289,12 @@ export type Database = {
           bank_name?: string | null
           basic_kobo?: number
           confirmed?: boolean
+          contract_end_date?: string | null
           created_at?: string
           date_of_birth?: string | null
           department_id?: string | null
           email?: string | null
+          employment_type?: string
           full_name: string
           hire_date?: string | null
           housing_kobo?: number
@@ -319,10 +323,12 @@ export type Database = {
           bank_name?: string | null
           basic_kobo?: number
           confirmed?: boolean
+          contract_end_date?: string | null
           created_at?: string
           date_of_birth?: string | null
           department_id?: string | null
           email?: string | null
+          employment_type?: string
           full_name?: string
           hire_date?: string | null
           housing_kobo?: number
@@ -1271,11 +1277,13 @@ export type Database = {
           bank_name: string | null
           basic_kobo: number | null
           confirmed: boolean | null
+          contract_end_date: string | null
           created_at: string | null
           date_of_birth: string | null
           department_id: string | null
           department_name: string | null
           email: string | null
+          employment_type: string | null
           full_name: string | null
           hire_date: string | null
           housing_kobo: number | null
@@ -1408,10 +1416,12 @@ export type Database = {
           bank_name: string | null
           basic_kobo: number
           confirmed: boolean
+          contract_end_date: string | null
           created_at: string
           date_of_birth: string | null
           department_id: string | null
           email: string | null
+          employment_type: string
           full_name: string
           hire_date: string | null
           housing_kobo: number

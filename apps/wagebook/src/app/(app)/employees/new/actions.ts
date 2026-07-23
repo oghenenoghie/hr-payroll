@@ -37,6 +37,8 @@ export async function addEmployee(_prevState: AddEmployeeState, formData: FormDa
   const stateOfResidence = String(formData.get("state_of_residence") ?? "").trim() || null;
   const hireDate = String(formData.get("hire_date") ?? "").trim() || null;
   const probationEndDate = String(formData.get("probation_end_date") ?? "").trim() || null;
+  const employmentType = String(formData.get("employment_type") ?? "permanent").trim() || "permanent";
+  const contractEndDate = String(formData.get("contract_end_date") ?? "").trim() || null;
   const tin = String(formData.get("tin") ?? "").trim() || null;
   const pfa = String(formData.get("pfa") ?? "").trim() || null;
   const bankName = String(formData.get("bank_name") ?? "").trim() || null;
@@ -63,6 +65,8 @@ export async function addEmployee(_prevState: AddEmployeeState, formData: FormDa
     state_of_residence: stateOfResidence,
     hire_date: hireDate,
     probation_end_date: probationEndDate,
+    employment_type: employmentType,
+    contract_end_date: contractEndDate,
     basic_kobo: Number(naira(basicNaira)),
     housing_kobo: Number(naira(housingNaira)),
     transport_kobo: Number(naira(transportNaira)),

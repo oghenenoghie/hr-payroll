@@ -32,6 +32,8 @@ export async function editEmployee(
   const hireDate = String(formData.get("hire_date") ?? "").trim() || null;
   const probationEndDate = String(formData.get("probation_end_date") ?? "").trim() || null;
   const confirmed = formData.get("confirmed") === "true";
+  const employmentType = String(formData.get("employment_type") ?? "permanent").trim() || "permanent";
+  const contractEndDate = String(formData.get("contract_end_date") ?? "").trim() || null;
   const tin = String(formData.get("tin") ?? "").trim() || null;
   const pfa = String(formData.get("pfa") ?? "").trim() || null;
   const status = String(formData.get("status") ?? "active");
@@ -86,6 +88,8 @@ export async function editEmployee(
       manager_id: managerId,
       date_of_birth: dateOfBirth,
       nationality,
+      employment_type: employmentType,
+      contract_end_date: contractEndDate,
       ...(canEditSalary
         ? {
             basic_kobo: Number(naira(basicNaira)),

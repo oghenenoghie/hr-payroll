@@ -21,3 +21,18 @@ export function getProbationStatus(probationEndDate: string | null, confirmed: b
   if (daysUntilEnd <= 14) return "ends_soon";
   return "on_probation";
 }
+
+export type ContractStatus = "permanent" | "expired" | "ends_soon" | "active" | "none";
+
+/** Same plain-data-function reasoning as getProbationStatus: Date.now()
+ * can't be called inside a component body. Permanent employees and anyone
+ * without a contract_end_date get "none" -- expiry only applies to a
+ * contract/intern employee with an actual end date on file. */
+export function getContractStatus(employmentType: string, contractEndDate: string | null): ContractStatus {
+  if (employmentType === "permanent") return "permanent";
+  if (!contractEndDate) return "none";
+  const daysUntilEnd = Math.round((Date.parse(contractEndDate) - Date.now()) / 86_400_000);
+  if (daysUntilEnd < 0) return "expired";
+  if (daysUntilEnd <= 14) return "ends_soon";
+  return "active";
+}

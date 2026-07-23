@@ -1,4 +1,4 @@
-import type { ProbationStatus } from "@/lib/format";
+import type { ContractStatus, ProbationStatus } from "@/lib/format";
 
 const TONE_CLASSES = {
   good: "bg-good-tint text-good border-good",
@@ -45,6 +45,21 @@ export function ProbationBadge({ status }: { status: ProbationStatus }) {
       return <Badge tone="warn">Ends soon</Badge>;
     case "on_probation":
       return <Badge tone="neutral">On probation</Badge>;
+    case "none":
+      return <span className="text-ink-soft">—</span>;
+  }
+}
+
+export function ContractStatusBadge({ status }: { status: ContractStatus }) {
+  switch (status) {
+    case "permanent":
+      return <Badge tone="neutral">Permanent</Badge>;
+    case "expired":
+      return <Badge tone="bad">Expired</Badge>;
+    case "ends_soon":
+      return <Badge tone="warn">Ends soon</Badge>;
+    case "active":
+      return <Badge tone="good">Active contract</Badge>;
     case "none":
       return <span className="text-ink-soft">—</span>;
   }

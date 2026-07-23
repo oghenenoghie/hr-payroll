@@ -72,6 +72,30 @@ export function EditEmployeeForm({
         </div>
       </div>
       <div className="grid grid-cols-2 gap-4">
+        <div className="flex flex-col gap-2">
+          <label className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft" htmlFor="employment_type">
+            Employment type
+          </label>
+          <select
+            id="employment_type"
+            name="employment_type"
+            defaultValue={employee.employment_type ?? "permanent"}
+            className="w-full rounded-control border border-border bg-surface px-[13px] py-[11px] text-[13px] text-ink outline-none focus:border-primary"
+          >
+            <option value="permanent">Permanent</option>
+            <option value="contract">Contract</option>
+            <option value="intern">Intern</option>
+          </select>
+        </div>
+        <FormField
+          label="Contract end date"
+          name="contract_end_date"
+          type="date"
+          required={false}
+          defaultValue={employee.contract_end_date ?? ""}
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
         <FormField
           label="Date of birth"
           name="date_of_birth"
