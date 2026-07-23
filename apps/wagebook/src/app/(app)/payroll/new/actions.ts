@@ -348,7 +348,8 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
       .from("employee_benefit_enrollments")
       .select("employee_id, benefit_plans(employer_cost_kobo, employee_cost_kobo)")
       .eq("org_id", membership.org_id)
-      .eq("status", "active");
+      .eq("status", "active")
+      .order("enrolled_at", { ascending: true });
 
     const enrollmentsByEmployee = new Map<string, NonNullable<typeof activeEnrollments>>();
     for (const enrollment of activeEnrollments ?? []) {
@@ -483,14 +484,27 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
       // company cost (like the pension employer share), employee cost is a
       // post-tax deduction (like a loan repayment) — neither touches
       // chargeable income or PAYE, since a benefit contribution isn't pay.
+      // Deduction priority is explicit and, unlike loans above, was
+      // previously unenforced here: statutory deductions are never skipped,
+      // loans are already capped against whatever net pay remains, so
+      // benefits are last in line for what loans left behind. A premium
+      // isn't divisible like a loan balance, so an enrollment that can't be
+      // fully covered by the net remaining is skipped in its entirety
+      // (neither side charged this run) rather than partially deducted —
+      // earliest-enrolled first, so a long-standing benefit isn't bumped by
+      // one added later. This is what keeps net pay from ever going
+      // negative, which nothing enforced before this fix.
       let benefitEmployerCostKobo = 0n;
       let benefitEmployeeDeductionKobo = 0n;
+      const netAfterLoansKobo = netBeforeLoanKobo - loanDeductionKobo;
       for (const enrollment of enrollmentsByEmployee.get(employee.id) ?? []) {
+        const employeeCostKobo = BigInt(enrollment.benefit_plans?.employee_cost_kobo ?? 0);
+        if (benefitEmployeeDeductionKobo + employeeCostKobo > netAfterLoansKobo) continue;
         benefitEmployerCostKobo += BigInt(enrollment.benefit_plans?.employer_cost_kobo ?? 0);
-        benefitEmployeeDeductionKobo += BigInt(enrollment.benefit_plans?.employee_cost_kobo ?? 0);
+        benefitEmployeeDeductionKobo += employeeCostKobo;
       }
 
-      const netKobo = netBeforeLoanKobo - loanDeductionKobo - benefitEmployeeDeductionKobo;
+      const netKobo = clampNonNegative(netBeforeLoanKobo - loanDeductionKobo - benefitEmployeeDeductionKobo);
       const employeeDeductionsKobo =
         result.pensionEmployeeKobo + result.nhfKobo + payeKobo + loanDeductionKobo + benefitEmployeeDeductionKobo;
       totalGrossKobo += grossKobo;

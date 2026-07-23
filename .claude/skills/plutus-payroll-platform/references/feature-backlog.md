@@ -68,7 +68,7 @@ Missing from the state model: `draft → preview → validated → approved → 
 - 13th month / bonus interaction with cumulative PAYE (a bonus can push the year into a higher band).
 - Termination payments: gratuity is taxable under the new Act; severance treatment.
 - Overtime and shift premiums entering the PAYE base.
-- Loan deduction ordering against statutory deductions when net pay would go negative — **decide the priority order explicitly**, since statutory deductions cannot be skipped.
+- Loan deduction ordering against statutory deductions when net pay would go negative — **decide the priority order explicitly**, since statutory deductions cannot be skipped. **Closed:** the priority is statutory (never skipped) → loans (already capped against remaining net) → benefits (previously unenforced — a benefit enrollment's employee cost is now skipped in its entirety, earliest-enrolled first, if it can't be fully covered by what loans left behind, rather than partially charged). `payslips.net_kobo >= 0` is now also a database check constraint, not just an application-level invariant.
 
 ## 2. Genuine platform gaps
 
