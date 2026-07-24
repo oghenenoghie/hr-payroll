@@ -126,7 +126,7 @@ Plutus currently covers the tail (final settlement) and part of the middle. Mode
 
 ### Onboarding and offboarding process
 
-Enrollment currently means one form. Real onboarding is a checklist with states: documentation, contract signing, probation tracking, confirmation. Offboarding likewise: notice period, exit checklist, asset return, **access revocation**, clearance, final settlement, experience letter. Access revocation matters disproportionately — an offboarded employee retaining a payroll login is a security incident.
+Enrollment currently means one form. Real onboarding is a checklist with states: documentation, contract signing, probation tracking, confirmation. Offboarding likewise: notice period, exit checklist, asset return, ~~**access revocation**~~ **(built: the app layout gate reads the linked employee's `status` on every request — not a cached session claim — and redirects to `/account-revoked` the instant it's `terminated`, regardless of `org_membership` role. The page re-checks live on load too, so a reinstated employee isn't stuck behind a stale gate. This is the specific login-retention risk closed, not the surrounding checklist)**, clearance, final settlement, experience letter. Notice period, exit checklist, asset return, clearance and experience letter remain unbuilt.
 
 ### Notifications and alerting
 

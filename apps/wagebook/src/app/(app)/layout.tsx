@@ -37,7 +37,21 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     }
   }
 
-  const { data: myEmployee } = await supabase.from("employees").select("id").eq("user_id", user.id).maybeSingle();
+  const { data: myEmployee } = await supabase
+    .from("employees")
+    .select("id, status")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  // Offboarding access revocation: an exited employee's payroll record is
+  // marked terminated, but nothing previously acted on that — they kept a
+  // live self-service login indefinitely. This gate applies regardless of
+  // org_membership role, since a linked account is the thing being
+  // revoked, not just the employee-role nav.
+  if (myEmployee?.status === "terminated") {
+    redirect("/account-revoked");
+  }
+
   const { count: reportCount } = myEmployee
     ? await supabase
         .from("employees")
