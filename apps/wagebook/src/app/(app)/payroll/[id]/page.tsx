@@ -6,6 +6,18 @@ import { ACCOUNT_LABEL, FREQUENCY_LABEL } from "@/lib/accounts";
 import { PayRunStatusBadge } from "@/components/Badge";
 import { PayslipTable } from "./PayslipTable";
 import { ReversalForm } from "./ReversalForm";
+import { VarianceFlags, type VarianceFlag } from "./VarianceFlags";
+
+// Variance flags only make sense for ongoing salary (weekly/biweekly/monthly)
+// — bonus, 13th month and final settlement ("off-cycle") runs are inherently
+// one-off amounts that would always look like an "anomaly" against regular pay.
+const REGULAR_FREQUENCIES = new Set(["weekly", "biweekly", "monthly"]);
+const VARIANCE_THRESHOLD_PERCENT = 25;
+// How many of an employee's most recent prior same-frequency runs to look
+// across for their last payslip — covers an employee who was skipped in the
+// immediately-prior run (e.g. suspended, or newly added mid-cycle) without
+// scanning an org's entire pay-run history.
+const PRIOR_RUNS_WINDOW = 6;
 
 function SummaryTile({ label, value }: { label: string; value: string }) {
   return (
@@ -49,6 +61,61 @@ export default async function PayRunDetailPage({ params }: { params: Promise<{ i
     .eq("pay_run_id", id)
     .maybeSingle();
 
+  let varianceFlags: VarianceFlag[] = [];
+  if (REGULAR_FREQUENCIES.has(payRun.frequency) && payRun.status !== "reversed" && payslips && payslips.length > 0) {
+    const { data: priorRuns } = await supabase
+      .from("pay_runs")
+      .select("id, period_start")
+      .eq("org_id", payRun.org_id)
+      .eq("frequency", payRun.frequency)
+      .neq("status", "reversed")
+      .lt("period_start", payRun.period_start)
+      .order("period_start", { ascending: false })
+      .limit(PRIOR_RUNS_WINDOW);
+
+    const priorRunIds = (priorRuns ?? []).map((run) => run.id);
+    const periodStartByRunId = new Map((priorRuns ?? []).map((run) => [run.id, run.period_start]));
+    const employeeIds = payslips.map((slip) => slip.employee_id);
+
+    const { data: priorPayslips } =
+      priorRunIds.length > 0
+        ? await supabase
+            .from("payslips")
+            .select("employee_id, gross_kobo, pay_run_id")
+            .eq("org_id", payRun.org_id)
+            .in("employee_id", employeeIds)
+            .in("pay_run_id", priorRunIds)
+        : { data: [] };
+
+    // Most recent prior payslip per employee, by that payslip's run's period_start.
+    const latestPriorByEmployee = new Map<string, { gross: bigint; periodStart: string }>();
+    for (const slip of priorPayslips ?? []) {
+      const periodStart = periodStartByRunId.get(slip.pay_run_id);
+      if (!periodStart) continue;
+      const existing = latestPriorByEmployee.get(slip.employee_id);
+      if (!existing || periodStart > existing.periodStart) {
+        latestPriorByEmployee.set(slip.employee_id, { gross: BigInt(slip.gross_kobo), periodStart });
+      }
+    }
+
+    varianceFlags = payslips
+      .map((slip) => {
+        const prior = latestPriorByEmployee.get(slip.employee_id);
+        if (!prior || prior.gross === 0n) return null;
+        const currentGrossKobo = BigInt(slip.gross_kobo);
+        const changePercent = (Number(currentGrossKobo - prior.gross) / Number(prior.gross)) * 100;
+        if (Math.abs(changePercent) < VARIANCE_THRESHOLD_PERCENT) return null;
+        return {
+          employeeId: slip.employee_id,
+          fullName: slip.employees?.full_name ?? "—",
+          priorGrossKobo: prior.gross,
+          currentGrossKobo,
+          changePercent,
+        };
+      })
+      .filter((flag): flag is VarianceFlag => flag !== null);
+  }
+
   const { data: orgPostings } = journalEntry
     ? await supabase
         .from("ledger_postings")
@@ -90,6 +157,8 @@ export default async function PayRunDetailPage({ params }: { params: Promise<{ i
         <SummaryTile label="Employees" value={String(payRun.employee_count)} />
         <SummaryTile label="Rule version" value={payRun.rule_version_id} />
       </div>
+
+      <VarianceFlags flags={varianceFlags} />
 
       {orgPostings && orgPostings.length > 0 && (
         <div className="rounded-card border border-border bg-surface p-6">
