@@ -225,3 +225,44 @@ export async function saveOffboardingChecklist(
   revalidatePath(`/employees/${employeeId}/edit`);
   return null;
 }
+
+export type SaveOnboardingChecklistState = { error?: string } | null;
+
+export async function saveOnboardingChecklist(
+  employeeId: string,
+  _prevState: SaveOnboardingChecklistState,
+  formData: FormData,
+): Promise<SaveOnboardingChecklistState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const membership = await getMembership(supabase, user.id);
+  if (!membership || (membership.role !== "admin" && membership.role !== "hr_manager")) {
+    return { error: "You don't have permission to update the onboarding checklist." };
+  }
+
+  const { error } = await supabase.from("employee_onboarding_checklist").upsert(
+    {
+      org_id: membership.orgId,
+      employee_id: employeeId,
+      documentation_collected: formData.get("documentation_collected") === "true",
+      contract_signed: formData.get("contract_signed") === "true",
+      updated_at: new Date().toISOString(),
+      updated_by: user.id,
+    },
+    { onConflict: "employee_id" },
+  );
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/employees/${employeeId}/edit`);
+  return null;
+}

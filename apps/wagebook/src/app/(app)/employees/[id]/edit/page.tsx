@@ -5,6 +5,7 @@ import { getMembership } from "@/lib/membership";
 import { EditEmployeeForm } from "./EditEmployeeForm";
 import { InviteAccountPanel } from "./InviteAccountPanel";
 import { OffboardingChecklistForm } from "./OffboardingChecklistForm";
+import { OnboardingChecklistForm } from "./OnboardingChecklistForm";
 
 export default async function EditEmployeePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -59,6 +60,13 @@ export default async function EditEmployeePage({ params }: { params: Promise<{ i
     .order("changed_at", { ascending: false });
 
   const isTerminated = employee.status === "terminated";
+  const { data: onboardingChecklist } = !isTerminated
+    ? await supabase
+        .from("employee_onboarding_checklist")
+        .select("documentation_collected, contract_signed")
+        .eq("employee_id", id)
+        .maybeSingle()
+    : { data: null };
   const { data: offboardingChecklist } = isTerminated
     ? await supabase
         .from("employee_offboarding_checklist")
@@ -105,6 +113,14 @@ export default async function EditEmployeePage({ params }: { params: Promise<{ i
           Generate certificate →
         </Link>
       </div>
+      {!isTerminated && (
+        <div className="rounded-card border border-border bg-surface p-6">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Onboarding checklist</span>
+          <div className="mt-3">
+            <OnboardingChecklistForm employeeId={employee.id!} checklist={onboardingChecklist} />
+          </div>
+        </div>
+      )}
       {statusHistory && statusHistory.length > 0 && (
         <div className="rounded-card border border-border bg-surface p-6">
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Status history</span>
