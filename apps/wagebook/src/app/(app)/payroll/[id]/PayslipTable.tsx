@@ -109,6 +109,7 @@ function DerivationDetail({ slip, ruleVersion }: { slip: PayslipRow; ruleVersion
   const overtimePayKobo = BigInt(slip.overtime_pay_kobo);
   const leaveEncashmentKobo = BigInt(slip.leave_encashment_kobo);
   const newHireProrationDeductionKobo = BigInt(slip.new_hire_proration_deduction_kobo);
+  const salaryChangeAdjustmentKobo = BigInt(slip.salary_change_adjustment_kobo);
   const benefitEmployerCostKobo = BigInt(slip.benefit_employer_cost_kobo);
 
   return (
@@ -119,7 +120,8 @@ function DerivationDetail({ slip, ruleVersion }: { slip: PayslipRow; ruleVersion
         attendanceAbsenceDeductionKobo > 0n ||
         overtimePayKobo > 0n ||
         leaveEncashmentKobo > 0n ||
-        newHireProrationDeductionKobo > 0n) && (
+        newHireProrationDeductionKobo > 0n ||
+        salaryChangeAdjustmentKobo !== 0n) && (
         <div>
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
             Reimbursements, leave, attendance &amp; overtime adjustments
@@ -155,6 +157,18 @@ function DerivationDetail({ slip, ruleVersion }: { slip: PayslipRow; ruleVersion
             <Row
               label="New-hire proration — days before hire date this period, reduces gross and chargeable income"
               value={`− ${formatKobo(newHireProrationDeductionKobo)}`}
+            />
+          )}
+          {salaryChangeAdjustmentKobo > 0n && (
+            <Row
+              label="Mid-period salary change (raise) — days before the change were over-credited at the new rate"
+              value={`− ${formatKobo(salaryChangeAdjustmentKobo)}`}
+            />
+          )}
+          {salaryChangeAdjustmentKobo < 0n && (
+            <Row
+              label="Mid-period salary change (pay cut) — days before the change were under-credited at the new rate"
+              value={`+ ${formatKobo(-salaryChangeAdjustmentKobo)}`}
             />
           )}
         </div>

@@ -378,6 +378,35 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
       enrollmentsByEmployee.set(enrollment.employee_id, list);
     }
 
+    // Mid-period salary changes: an employee whose basic/housing/transport
+    // changed inside this period was paid at two different rates across it.
+    // Only the earliest change within the period matters as a two-way split
+    // boundary — days before it were at that row's "old" rate, days from it
+    // onward are at the employee's current rate (which is what this run
+    // already computes everything at), regardless of how many further
+    // changes happened later in the same period. changed_at is a
+    // timestamptz auto-logged by a trigger (see migration), never a
+    // client-chosen effective date.
+    const periodEndExclusive = new Date(Date.parse(periodEnd) + 86_400_000).toISOString().slice(0, 10);
+    const { data: compensationChanges } = await supabase
+      .from("employee_compensation_history")
+      .select("employee_id, old_basic_kobo, old_housing_kobo, old_transport_kobo, changed_at")
+      .eq("org_id", membership.org_id)
+      .gte("changed_at", periodStart)
+      .lt("changed_at", periodEndExclusive)
+      .order("changed_at", { ascending: true });
+
+    const earliestCompChangeByEmployee = new Map<string, { oldAnnualContractualKobo: bigint; changedAt: string }>();
+    for (const change of compensationChanges ?? []) {
+      if (!earliestCompChangeByEmployee.has(change.employee_id)) {
+        earliestCompChangeByEmployee.set(change.employee_id, {
+          oldAnnualContractualKobo:
+            BigInt(change.old_basic_kobo) + BigInt(change.old_housing_kobo) + BigInt(change.old_transport_kobo),
+          changedAt: change.changed_at,
+        });
+      }
+    }
+
     payslipsPayload = employees.map((employee) => {
       const prior = priorStateByEmployee.get(employee.id);
       const annualPayComponents: PayComponent[] = [
@@ -455,7 +484,28 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
         newHireProrationDeductionKobo = dailyRateKobo * BigInt(daysNotEmployed);
       }
 
-      const daysOffDeductionKobo = unpaidLeaveDeductionKobo + attendanceAbsenceDeductionKobo + newHireProrationDeductionKobo;
+      // Mid-period salary change: the days before the change were paid at
+      // the old rate, but derivePeriodPayslip above already computed this
+      // whole period at the employee's current rate. This adjustment is
+      // signed — positive (reduces gross) for a raise, since the pre-change
+      // days were over-credited at the new higher rate; negative (increases
+      // gross) for a pay cut, since those days were under-credited at the
+      // new lower rate. Same clamp-via-min idiom as new-hire proration
+      // above: daysAtOldRate naturally clamps to [0, period length].
+      let salaryChangeAdjustmentKobo = 0n;
+      const compChange = earliestCompChangeByEmployee.get(employee.id);
+      if (compChange) {
+        const changeTime = Date.parse(compChange.changedAt.slice(0, 10));
+        const periodStartTime = Date.parse(periodStart);
+        const periodEndTime = Date.parse(periodEnd);
+        const lastOldRateTime = Math.min(changeTime - 86_400_000, periodEndTime);
+        const daysAtOldRate = Math.max(0, Math.round((lastOldRateTime - periodStartTime) / 86_400_000) + 1);
+        const oldDailyRateKobo = compChange.oldAnnualContractualKobo / 365n;
+        salaryChangeAdjustmentKobo = (dailyRateKobo - oldDailyRateKobo) * BigInt(daysAtOldRate);
+      }
+
+      const daysOffDeductionKobo =
+        unpaidLeaveDeductionKobo + attendanceAbsenceDeductionKobo + newHireProrationDeductionKobo + salaryChangeAdjustmentKobo;
 
       // Approved overtime is earned income: always taxable and added to
       // chargeable income (unlike a reimbursement, there's no non-taxable
@@ -602,6 +652,7 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
         attendance_absence_deduction_kobo: Number(attendanceAbsenceDeductionKobo),
         overtime_pay_kobo: Number(overtimePayKobo),
         new_hire_proration_deduction_kobo: Number(newHireProrationDeductionKobo),
+        salary_change_adjustment_kobo: Number(salaryChangeAdjustmentKobo),
         leave_encashment_kobo: Number(leaveEncashmentKobo),
         postings: postings.map((posting) => ({ ...posting, amount_kobo: Number(posting.amount_kobo) })),
       };

@@ -267,6 +267,70 @@ export type Database = {
           },
         ]
       }
+      employee_compensation_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          employee_id: string
+          id: string
+          new_basic_kobo: number
+          new_housing_kobo: number
+          new_transport_kobo: number
+          old_basic_kobo: number
+          old_housing_kobo: number
+          old_transport_kobo: number
+          org_id: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          employee_id: string
+          id?: string
+          new_basic_kobo: number
+          new_housing_kobo: number
+          new_transport_kobo: number
+          old_basic_kobo: number
+          old_housing_kobo: number
+          old_transport_kobo: number
+          org_id: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          employee_id?: string
+          id?: string
+          new_basic_kobo?: number
+          new_housing_kobo?: number
+          new_transport_kobo?: number
+          old_basic_kobo?: number
+          old_housing_kobo?: number
+          old_transport_kobo?: number
+          org_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_compensation_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_compensation_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_compensation_history_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_documents: {
         Row: {
           document_type: string | null
@@ -1509,6 +1573,7 @@ export type Database = {
           pension_employer_kobo: number
           pensionable_kobo: number
           rent_relief_kobo: number
+          salary_change_adjustment_kobo: number
           taxable_reimbursement_kobo: number
           unpaid_leave_deduction_kobo: number
         }
@@ -1537,6 +1602,7 @@ export type Database = {
           pension_employer_kobo: number
           pensionable_kobo: number
           rent_relief_kobo: number
+          salary_change_adjustment_kobo?: number
           taxable_reimbursement_kobo?: number
           unpaid_leave_deduction_kobo?: number
         }
@@ -1565,6 +1631,7 @@ export type Database = {
           pension_employer_kobo?: number
           pensionable_kobo?: number
           rent_relief_kobo?: number
+          salary_change_adjustment_kobo?: number
           taxable_reimbursement_kobo?: number
           unpaid_leave_deduction_kobo?: number
         }
@@ -1574,6 +1641,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payslips_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
             referencedColumns: ["id"]
           },
           {
