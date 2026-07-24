@@ -7,6 +7,7 @@ const ADMIN_NAV_ITEMS = [
   { href: "/dashboard", label: "Overview" },
   { href: "/employees", label: "Employees" },
   { href: "/departments", label: "Departments" },
+  { href: "/branches", label: "Branches" },
   { href: "/job-grades", label: "Job Grades" },
   { href: "/org-chart", label: "Org Chart" },
   { href: "/payroll", label: "Payroll Runs" },

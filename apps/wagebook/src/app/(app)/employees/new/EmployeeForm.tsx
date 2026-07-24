@@ -11,10 +11,12 @@ type Manager = { id: string; full_name: string };
 
 export function EmployeeForm({
   departments,
+  branches,
   jobGrades,
   managers,
 }: {
   departments: { id: string; name: string }[];
+  branches: { id: string; name: string }[];
   jobGrades: JobGrade[];
   managers: Manager[];
 }) {
@@ -64,6 +66,24 @@ export function EmployeeForm({
           {departments.map((department) => (
             <option key={department.id} value={department.id}>
               {department.name}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="flex flex-col gap-2">
+        <label className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft" htmlFor="branch_id">
+          Branch
+        </label>
+        <select
+          id="branch_id"
+          name="branch_id"
+          defaultValue=""
+          className="w-full rounded-control border border-border bg-surface px-[13px] py-[11px] text-[13px] text-ink outline-none focus:border-primary"
+        >
+          <option value="">No branch</option>
+          {branches.map((branch) => (
+            <option key={branch.id} value={branch.id}>
+              {branch.name}
             </option>
           ))}
         </select>

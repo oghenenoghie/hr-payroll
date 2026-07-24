@@ -45,6 +45,7 @@ export async function addEmployee(_prevState: AddEmployeeState, formData: FormDa
   const bankAccountNumber = String(formData.get("bank_account_number") ?? "").trim() || null;
   const bankAccountName = String(formData.get("bank_account_name") ?? "").trim() || null;
   const departmentId = String(formData.get("department_id") ?? "").trim() || null;
+  const branchId = String(formData.get("branch_id") ?? "").trim() || null;
   const jobGradeId = String(formData.get("job_grade_id") ?? "").trim() || null;
   const managerId = String(formData.get("manager_id") ?? "").trim() || null;
   const dateOfBirth = String(formData.get("date_of_birth") ?? "").trim() || null;
@@ -77,6 +78,7 @@ export async function addEmployee(_prevState: AddEmployeeState, formData: FormDa
     bank_account_number: bankAccountNumber,
     bank_account_name: bankAccountName,
     department_id: departmentId,
+    branch_id: branchId,
     job_grade_id: jobGradeId,
     manager_id: managerId,
     date_of_birth: dateOfBirth,

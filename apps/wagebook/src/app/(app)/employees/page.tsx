@@ -11,7 +11,7 @@ const tdClass = "px-3 py-[10px] text-[13px]";
 export default async function EmployeesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string; department?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; department?: string; branch?: string }>;
 }) {
   const supabase = await createClient();
   const {
@@ -27,11 +27,15 @@ export default async function EmployeesPage({
     redirect("/me");
   }
 
-  const { q, status, department } = await searchParams;
+  const { q, status, department, branch } = await searchParams;
   const searchTerm = q?.trim() ?? "";
 
   const { data: departments } = membership
     ? await supabase.from("departments").select("id, name").eq("org_id", membership.orgId).order("name")
+    : { data: null };
+
+  const { data: branches } = membership
+    ? await supabase.from("branches").select("id, name").eq("org_id", membership.orgId).order("name")
     : { data: null };
 
   // Queries the salary-masked view rather than the raw table — for an
@@ -49,10 +53,13 @@ export default async function EmployeesPage({
   if (department) {
     query = query.eq("department_id", department);
   }
+  if (branch) {
+    query = query.eq("branch_id", branch);
+  }
 
   const { data: employees } = await query;
 
-  const hasActiveFilters = Boolean(searchTerm || status || department);
+  const hasActiveFilters = Boolean(searchTerm || status || department || branch);
 
   return (
     <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 px-6 py-10">
@@ -116,6 +123,24 @@ export default async function EmployeesPage({
             ))}
           </select>
         </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft" htmlFor="branch">
+            Branch
+          </label>
+          <select
+            id="branch"
+            name="branch"
+            defaultValue={branch ?? ""}
+            className="rounded-control border border-border bg-surface px-[13px] py-[9px] text-[13px] text-ink outline-none focus:border-primary"
+          >
+            <option value="">All</option>
+            {(branches ?? []).map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </select>
+        </div>
         <button
           type="submit"
           className="rounded-button border border-border px-[18px] py-[9px] text-[12.5px] font-extrabold text-ink"
@@ -135,6 +160,7 @@ export default async function EmployeesPage({
             <tr className="border-b border-border">
               <th className={`${thClass} text-left`}>Name</th>
               <th className={`${thClass} text-left`}>Department</th>
+              <th className={`${thClass} text-left`}>Branch</th>
               <th className={`${thClass} text-left`}>State</th>
               <th className={`${thClass} text-right`}>Basic</th>
               <th className={`${thClass} text-center`}>TIN</th>
@@ -151,6 +177,7 @@ export default async function EmployeesPage({
                 <tr key={employee.id} className="border-b border-border last:border-b-0">
                   <td className={`${tdClass} font-bold text-ink`}>{employee.full_name}</td>
                   <td className={`${tdClass} text-ink-soft`}>{employee.department_name ?? "—"}</td>
+                  <td className={`${tdClass} text-ink-soft`}>{employee.branch_name ?? "—"}</td>
                   <td className={`${tdClass} text-ink-soft`}>{employee.state_of_residence ?? "—"}</td>
                   <td className={`${tdClass} text-right font-bold text-ink`}>
                     {employee.basic_kobo !== null ? (
@@ -191,7 +218,7 @@ export default async function EmployeesPage({
               ))
             ) : (
               <tr>
-                <td colSpan={10} className="px-3 py-10 text-center text-[13px] text-ink-soft">
+                <td colSpan={11} className="px-3 py-10 text-center text-[13px] text-ink-soft">
                   {hasActiveFilters ? "No employees match these filters." : "No employees yet."}
                 </td>
               </tr>

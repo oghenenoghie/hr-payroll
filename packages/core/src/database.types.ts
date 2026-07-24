@@ -165,6 +165,41 @@ export type Database = {
           },
         ]
       }
+      branches: {
+        Row: {
+          address: string | null
+          created_at: string
+          id: string
+          name: string
+          org_id: string
+          state: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          org_id: string
+          state?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          org_id?: string
+          state?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "branches_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_policies: {
         Row: {
           content: string
@@ -292,6 +327,7 @@ export type Database = {
           bank_account_number: string | null
           bank_name: string | null
           basic_kobo: number
+          branch_id: string | null
           confirmed: boolean
           contract_end_date: string | null
           created_at: string
@@ -326,6 +362,7 @@ export type Database = {
           bank_account_number?: string | null
           bank_name?: string | null
           basic_kobo?: number
+          branch_id?: string | null
           confirmed?: boolean
           contract_end_date?: string | null
           created_at?: string
@@ -360,6 +397,7 @@ export type Database = {
           bank_account_number?: string | null
           bank_name?: string | null
           basic_kobo?: number
+          branch_id?: string | null
           confirmed?: boolean
           contract_end_date?: string | null
           created_at?: string
@@ -389,6 +427,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "employees_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "employees_department_id_fkey"
             columns: ["department_id"]
             isOneToOne: false
@@ -407,6 +452,13 @@ export type Database = {
             columns: ["manager_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
             referencedColumns: ["id"]
           },
           {
@@ -1438,6 +1490,8 @@ export type Database = {
           bank_account_number: string | null
           bank_name: string | null
           basic_kobo: number | null
+          branch_id: string | null
+          branch_name: string | null
           confirmed: boolean | null
           contract_end_date: string | null
           created_at: string | null
@@ -1468,6 +1522,13 @@ export type Database = {
           user_id: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "employees_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "employees_department_id_fkey"
             columns: ["department_id"]
@@ -1577,6 +1638,7 @@ export type Database = {
           bank_account_number: string | null
           bank_name: string | null
           basic_kobo: number
+          branch_id: string | null
           confirmed: boolean
           contract_end_date: string | null
           created_at: string

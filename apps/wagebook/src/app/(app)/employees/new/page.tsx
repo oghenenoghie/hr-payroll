@@ -17,6 +17,9 @@ export default async function NewEmployeePage() {
   const { data: departments } = membership
     ? await supabase.from("departments").select("id, name").eq("org_id", membership.orgId).order("name")
     : { data: null };
+  const { data: branches } = membership
+    ? await supabase.from("branches").select("id, name").eq("org_id", membership.orgId).order("name")
+    : { data: null };
   const { data: jobGrades } = membership
     ? await supabase
         .from("job_grades")
@@ -40,7 +43,12 @@ export default async function NewEmployeePage() {
         <h1 className="text-[22px] font-extrabold text-ink">Add employee</h1>
       </header>
       <div className="rounded-card border border-border bg-surface p-6">
-        <EmployeeForm departments={departments ?? []} jobGrades={jobGrades ?? []} managers={managers ?? []} />
+        <EmployeeForm
+          departments={departments ?? []}
+          branches={branches ?? []}
+          jobGrades={jobGrades ?? []}
+          managers={managers ?? []}
+        />
       </div>
     </div>
   );

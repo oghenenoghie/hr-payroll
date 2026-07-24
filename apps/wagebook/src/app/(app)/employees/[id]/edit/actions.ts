@@ -38,6 +38,7 @@ export async function editEmployee(
   const pfa = String(formData.get("pfa") ?? "").trim() || null;
   const status = String(formData.get("status") ?? "active");
   const departmentId = String(formData.get("department_id") ?? "").trim() || null;
+  const branchId = String(formData.get("branch_id") ?? "").trim() || null;
   const jobGradeId = String(formData.get("job_grade_id") ?? "").trim() || null;
   const managerId = String(formData.get("manager_id") ?? "").trim() || null;
   if (managerId === employeeId) {
@@ -84,6 +85,7 @@ export async function editEmployee(
       pfa,
       status,
       department_id: departmentId,
+      branch_id: branchId,
       job_grade_id: jobGradeId,
       manager_id: managerId,
       date_of_birth: dateOfBirth,

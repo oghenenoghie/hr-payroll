@@ -84,7 +84,7 @@ Plutus is described as an HR *and* payroll platform, but the HR side is currentl
 |---|---|
 | **Bank account details** | Disbursement files are a documented feature, but nothing in the model holds bank, NUBAN or account name. You cannot pay anyone. This is the sharpest hole. |
 | **Departments / cost centres** | Pay-run scoping already offers "single department", and payroll accounting needs cost-centre allocation. Both reference an entity that doesn't exist. |
-| **Branches / locations** | Statutory filing is state-scoped; multi-state employers need locations as records, not free text. |
+| ~~**Branches / locations**~~ | Statutory filing is state-scoped; multi-state employers need locations as records, not free text. **Built:** an org-scoped `branches` catalog (name, state, address), employees optionally assigned to one, with directory search/filter. The `state` field is a work-location record only — it does not drive PAYE routing, which stays keyed off each employee's own `state_of_residence`, per this same table's note that residence/origin/work location are three different things. |
 | **Employment type + dates** | Proration needs date of joining and last working day. Contract vs permanent changes statutory treatment. |
 | **Employee master data** | DOB (pension eligibility), nationality (expatriate treatment), and state of residence vs state of origin vs work location — three different things, and PAYE routes on residence. |
 | **Lifecycle state** | Active / probation / suspended / on unpaid leave / exited determines whether an employee is included in a run at all, and how they're prorated. |

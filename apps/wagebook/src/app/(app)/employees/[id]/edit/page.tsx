@@ -29,6 +29,10 @@ export default async function EditEmployeePage({ params }: { params: Promise<{ i
     ? await supabase.from("departments").select("id, name").eq("org_id", employee.org_id).order("name")
     : { data: null };
 
+  const { data: branches } = employee.org_id
+    ? await supabase.from("branches").select("id, name").eq("org_id", employee.org_id).order("name")
+    : { data: null };
+
   const { data: jobGrades } = employee.org_id
     ? await supabase
         .from("job_grades")
@@ -66,6 +70,7 @@ export default async function EditEmployeePage({ params }: { params: Promise<{ i
         <EditEmployeeForm
           employee={employee}
           departments={departments ?? []}
+          branches={branches ?? []}
           jobGrades={jobGrades ?? []}
           managers={managers ?? []}
           canEditSalary={canEditSalary}
