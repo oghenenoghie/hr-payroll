@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatKobo } from "@/lib/format";
@@ -122,6 +123,9 @@ export default async function MePage() {
         <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Overview</span>
         <h1 className="text-[22px] font-extrabold text-ink">{employee.full_name}</h1>
         <p className="text-[13px] text-ink-soft">Signed in as {user.email}</p>
+        <Link href="/me/certificate" className="mt-1 text-[12.5px] font-bold text-primary">
+          Download employment &amp; salary certificate →
+        </Link>
       </header>
 
       {unreadNotifications && unreadNotifications.length > 0 && (

@@ -80,6 +80,18 @@ export default async function EditEmployeePage({ params }: { params: Promise<{ i
       <div className="rounded-card border border-border bg-surface p-6">
         <InviteAccountPanel employeeId={employee.id!} email={employee.email} linkedAt={employee.linked_at} />
       </div>
+      <div className="rounded-card border border-border bg-surface p-6">
+        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
+          Employment &amp; salary certificate
+        </span>
+        <p className="mt-2 text-[13px] text-ink-soft">
+          A printable document confirming employment and current salary — a common request for loan and visa
+          applications.
+        </p>
+        <Link href={`/employees/${employee.id}/certificate`} className="mt-3 inline-block text-[13px] font-bold text-primary">
+          Generate certificate →
+        </Link>
+      </div>
       {statusHistory && statusHistory.length > 0 && (
         <div className="rounded-card border border-border bg-surface p-6">
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Status history</span>

@@ -138,7 +138,7 @@ Deadline alerting is already a stated product requirement, but there's no notifi
 
 ### Document generation and e-signature
 
-Salary certificates, employment letters, contracts, tax documents. High-frequency HR requests, and templated generation is cheap relative to the goodwill it buys.
+~~Salary certificates~~, employment letters, contracts, tax documents. High-frequency HR requests, and templated generation is cheap relative to the goodwill it buys. **Built: employment & salary certificate** — a printable HTML document (browser print-to-PDF, no PDF library dependency) generated on demand from live payroll data, admin/HR-facing at `/employees/[id]/certificate` and self-service at `/me/certificate`. Respects salary masking for HR Manager viewers of a masked employee; an employee's own certificate always shows their real salary, since masking hides figures from *other* viewers, not from the employee themselves. Employment letters, contracts, tax documents (beyond the existing annual reconciliation CSV) and e-signature remain unbuilt.
 
 ## 3. Deepens the existing moat
 
