@@ -15,7 +15,10 @@ export type NotificationType =
   | "pay_run_created"
   | "overtime_request_submitted"
   | "overtime_approved"
-  | "overtime_rejected";
+  | "overtime_rejected"
+  | "leave_encashment_submitted"
+  | "leave_encashment_approved"
+  | "leave_encashment_rejected";
 
 // Fire-and-forget: a notification is a side effect of an already-authorized
 // action, never the thing being authorized, so a failed insert here should

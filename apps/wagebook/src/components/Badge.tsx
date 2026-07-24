@@ -117,6 +117,18 @@ export function LeaveStatusBadge({ status }: { status: string }) {
   return <Badge tone={tone}>{status}</Badge>;
 }
 
+const LEAVE_ENCASHMENT_STATUS_TONE = {
+  pending: "warn",
+  approved: "good",
+  rejected: "bad",
+  paid: "neutral",
+} as const;
+
+export function LeaveEncashmentStatusBadge({ status }: { status: string }) {
+  const tone = LEAVE_ENCASHMENT_STATUS_TONE[status as keyof typeof LEAVE_ENCASHMENT_STATUS_TONE] ?? "neutral";
+  return <Badge tone={tone}>{status}</Badge>;
+}
+
 const BENEFIT_ENROLLMENT_STATUS_TONE = {
   active: "good",
   cancelled: "neutral",

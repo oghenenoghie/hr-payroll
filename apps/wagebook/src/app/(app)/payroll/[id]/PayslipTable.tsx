@@ -107,6 +107,7 @@ function DerivationDetail({ slip, ruleVersion }: { slip: PayslipRow; ruleVersion
   const unpaidLeaveDeductionKobo = BigInt(slip.unpaid_leave_deduction_kobo);
   const attendanceAbsenceDeductionKobo = BigInt(slip.attendance_absence_deduction_kobo);
   const overtimePayKobo = BigInt(slip.overtime_pay_kobo);
+  const leaveEncashmentKobo = BigInt(slip.leave_encashment_kobo);
   const newHireProrationDeductionKobo = BigInt(slip.new_hire_proration_deduction_kobo);
   const benefitEmployerCostKobo = BigInt(slip.benefit_employer_cost_kobo);
 
@@ -117,6 +118,7 @@ function DerivationDetail({ slip, ruleVersion }: { slip: PayslipRow; ruleVersion
         unpaidLeaveDeductionKobo > 0n ||
         attendanceAbsenceDeductionKobo > 0n ||
         overtimePayKobo > 0n ||
+        leaveEncashmentKobo > 0n ||
         newHireProrationDeductionKobo > 0n) && (
         <div>
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
@@ -141,6 +143,12 @@ function DerivationDetail({ slip, ruleVersion }: { slip: PayslipRow; ruleVersion
             <Row
               label="Approved overtime — added to gross and chargeable income, not pensionable"
               value={`+ ${formatKobo(overtimePayKobo)}`}
+            />
+          )}
+          {leaveEncashmentKobo > 0n && (
+            <Row
+              label="Leave encashment payout — added to gross and chargeable income, not pensionable"
+              value={`+ ${formatKobo(leaveEncashmentKobo)}`}
             />
           )}
           {newHireProrationDeductionKobo > 0n && (

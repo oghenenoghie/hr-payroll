@@ -123,6 +123,7 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
   const leaveDeductionsPayload: { leave_request_id: string; employee_id: string }[] = [];
   const attendanceDeductionsPayload: { attendance_record_id: string; employee_id: string }[] = [];
   const overtimePaymentsPayload: { overtime_request_id: string; employee_id: string }[] = [];
+  const leaveEncashmentsPayload: { leave_encashment_id: string; employee_id: string }[] = [];
 
   interface PayslipPayload {
     [key: string]: Json | undefined;
@@ -147,6 +148,7 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
     attendance_absence_deduction_kobo?: number;
     overtime_pay_kobo?: number;
     new_hire_proration_deduction_kobo?: number;
+    leave_encashment_kobo?: number;
     postings: { account_code: string; direction: string; amount_kobo: number }[];
   }
 
@@ -340,6 +342,24 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
       overtimeByEmployee.set(request.employee_id, list);
     }
 
+    // Approved leave encashment requests are paid out this run too — the
+    // balance was already decremented atomically at approval time (see
+    // review_leave_encashment_request), so this is purely the payout side,
+    // same lifecycle as overtime: stays payable until a pay run marks it
+    // 'paid'.
+    const { data: approvedEncashments } = await supabase
+      .from("leave_encashment_requests")
+      .select("id, employee_id, days_requested")
+      .eq("org_id", membership.org_id)
+      .eq("status", "approved");
+
+    const encashmentsByEmployee = new Map<string, NonNullable<typeof approvedEncashments>>();
+    for (const request of approvedEncashments ?? []) {
+      const list = encashmentsByEmployee.get(request.employee_id) ?? [];
+      list.push(request);
+      encashmentsByEmployee.set(request.employee_id, list);
+    }
+
     // Active benefit enrollments apply every run, automatically, for as long
     // as they stay active — no claim to approve, no balance to pay down.
     // Employer cost is a company cost (like NSITF or the pension employer
@@ -454,14 +474,31 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
         overtimePaymentsPayload.push({ overtime_request_id: request.id, employee_id: employee.id });
       }
 
+      // Approved leave encashment payouts are taxable, like overtime, and
+      // for the same reason not pensionable (pension is basic/housing/
+      // transport only) — same daily-rate convention used everywhere else
+      // in this file. The balance was already atomically decremented at
+      // approval time, so nothing here touches annual_leave_balance_days.
+      let leaveEncashmentKobo = 0n;
+      for (const request of encashmentsByEmployee.get(employee.id) ?? []) {
+        leaveEncashmentKobo += dailyRateKobo * BigInt(request.days_requested);
+        leaveEncashmentsPayload.push({ leave_encashment_id: request.id, employee_id: employee.id });
+      }
+
       const chargeableIncomeKobo = clampNonNegative(
-        result.chargeableIncomeKobo + taxableReimbursementKobo + overtimePayKobo - daysOffDeductionKobo,
+        result.chargeableIncomeKobo +
+          taxableReimbursementKobo +
+          overtimePayKobo +
+          leaveEncashmentKobo -
+          daysOffDeductionKobo,
       );
       const payeKobo =
-        taxableReimbursementKobo > 0n || overtimePayKobo > 0n || daysOffDeductionKobo > 0n
+        taxableReimbursementKobo > 0n || overtimePayKobo > 0n || leaveEncashmentKobo > 0n || daysOffDeductionKobo > 0n
           ? computeCumulativePeriodPaye(chargeableIncomeKobo, prior?.payePaidAfterKobo ?? 0n, NG_2026_1)
           : result.payeKobo;
-      const grossKobo = clampNonNegative(result.grossKobo + reimbursementKobo + overtimePayKobo - daysOffDeductionKobo);
+      const grossKobo = clampNonNegative(
+        result.grossKobo + reimbursementKobo + overtimePayKobo + leaveEncashmentKobo - daysOffDeductionKobo,
+      );
       const netBeforeLoanKobo = clampNonNegative(grossKobo - result.pensionEmployeeKobo - result.nhfKobo - payeKobo);
 
       // Apply loan repayments on top — post-tax deductions, never touching
@@ -524,6 +561,7 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
         },
         { account_code: "expense_reimbursement_expense", direction: "debit", amount_kobo: reimbursementKobo },
         { account_code: "overtime_pay_expense", direction: "debit", amount_kobo: overtimePayKobo },
+        { account_code: "leave_encashment_expense", direction: "debit", amount_kobo: leaveEncashmentKobo },
         { account_code: "employer_pension_expense", direction: "debit", amount_kobo: result.pensionEmployerKobo },
         { account_code: "benefits_expense", direction: "debit", amount_kobo: benefitEmployerCostKobo },
         { account_code: "net_pay_payable", direction: "credit", amount_kobo: netKobo },
@@ -564,6 +602,7 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
         attendance_absence_deduction_kobo: Number(attendanceAbsenceDeductionKobo),
         overtime_pay_kobo: Number(overtimePayKobo),
         new_hire_proration_deduction_kobo: Number(newHireProrationDeductionKobo),
+        leave_encashment_kobo: Number(leaveEncashmentKobo),
         postings: postings.map((posting) => ({ ...posting, amount_kobo: Number(posting.amount_kobo) })),
       };
     });
@@ -597,6 +636,7 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
       leave_deductions: leaveDeductionsPayload,
       attendance_deductions: attendanceDeductionsPayload,
       overtime_payments: overtimePaymentsPayload,
+      leave_encashments: leaveEncashmentsPayload,
     },
   });
 

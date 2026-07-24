@@ -1,11 +1,19 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatKobo } from "@/lib/format";
-import { TinBadge, LoanStatusBadge, ExpenseStatusBadge, LeaveStatusBadge, OvertimeStatusBadge } from "@/components/Badge";
+import {
+  TinBadge,
+  LoanStatusBadge,
+  ExpenseStatusBadge,
+  LeaveStatusBadge,
+  OvertimeStatusBadge,
+  LeaveEncashmentStatusBadge,
+} from "@/components/Badge";
 import { LoanRequestForm } from "./LoanRequestForm";
 import { ExpenseClaimForm } from "./ExpenseClaimForm";
 import { LeaveRequestForm } from "./LeaveRequestForm";
 import { OvertimeRequestForm } from "./OvertimeRequestForm";
+import { LeaveEncashmentForm } from "./LeaveEncashmentForm";
 import { markNotificationRead } from "../notifications/actions";
 
 export default async function MePage() {
@@ -63,6 +71,12 @@ export default async function MePage() {
 
   const { data: leaveRequests } = await supabase
     .from("leave_requests")
+    .select("*")
+    .eq("employee_id", employee.id)
+    .order("created_at", { ascending: false });
+
+  const { data: leaveEncashmentRequests } = await supabase
+    .from("leave_encashment_requests")
     .select("*")
     .eq("employee_id", employee.id)
     .order("created_at", { ascending: false });
@@ -281,6 +295,28 @@ export default async function MePage() {
 
         <div className="mt-4 border-t border-border pt-4">
           <LeaveRequestForm />
+        </div>
+
+        {leaveEncashmentRequests && leaveEncashmentRequests.length > 0 && (
+          <div className="mt-4 border-t border-border pt-4">
+            <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
+              Leave encashment requests
+            </span>
+            <div className="mt-3 flex flex-col gap-3">
+              {leaveEncashmentRequests.map((request) => (
+                <div key={request.id} className="flex items-center justify-between">
+                  <span className="text-[13px] font-bold text-ink">
+                    {request.days_requested} day{request.days_requested === 1 ? "" : "s"}
+                  </span>
+                  <LeaveEncashmentStatusBadge status={request.status} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="mt-4 border-t border-border pt-4">
+          <LeaveEncashmentForm />
         </div>
       </div>
 

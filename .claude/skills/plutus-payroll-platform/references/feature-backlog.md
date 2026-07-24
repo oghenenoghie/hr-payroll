@@ -64,7 +64,7 @@ Missing from the state model: `draft → preview → validated → approved → 
 
 ### Other calculation scenarios needing golden tests
 
-- Leave encashment and its tax treatment.
+- Leave encashment and its tax treatment. **Built:** cashing out unused annual leave for money while still employed (distinct from Final Settlement's termination-only leave payout). Taxable, non-pensionable, same daily-rate convention as unpaid leave/overtime/new-hire proration, combined into the run's single cumulative-PAYE calculation (never a separate call). Approval atomically checks and decrements the employee's current balance in one security-definer function (`review_leave_encashment_request`) — an over-request is rejected and rolled back cleanly, never partially applied.
 - 13th month / bonus interaction with cumulative PAYE (a bonus can push the year into a higher band).
 - Termination payments: gratuity is taxable under the new Act; severance treatment.
 - Overtime and shift premiums entering the PAYE base.

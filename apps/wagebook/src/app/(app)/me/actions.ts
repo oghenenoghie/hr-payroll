@@ -266,3 +266,66 @@ export async function requestLeave(_prevState: RequestLeaveState, formData: Form
   revalidatePath("/me");
   return { success: true };
 }
+
+export type RequestLeaveEncashmentState = { error?: string; success?: boolean } | null;
+
+// Cashing out unused annual leave for money while still employed — distinct
+// from Final Settlement's leave payout, which only fires at termination.
+// This pre-check against the employee's current balance is a UX courtesy
+// only; the real, atomic enforcement happens in review_leave_encashment_request
+// at approval time, since the balance can move between submission and review.
+export async function requestLeaveEncashment(
+  _prevState: RequestLeaveEncashmentState,
+  formData: FormData,
+): Promise<RequestLeaveEncashmentState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data: employee } = await supabase
+    .from("employees")
+    .select("id, org_id, full_name, annual_leave_balance_days")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!employee) {
+    return { error: "Your account isn't linked to an employee record yet." };
+  }
+
+  const daysRequested = Math.round(Number(formData.get("days_requested") ?? 0));
+
+  if (!(daysRequested > 0)) {
+    return { error: "Enter a number of days greater than zero." };
+  }
+  if (daysRequested > Number(employee.annual_leave_balance_days)) {
+    return { error: `You only have ${Number(employee.annual_leave_balance_days)} leave days available.` };
+  }
+
+  const { error: requestError } = await supabase.from("leave_encashment_requests").insert({
+    org_id: employee.org_id,
+    employee_id: employee.id,
+    days_requested: daysRequested,
+    requested_by: user.id,
+  });
+
+  if (requestError) {
+    return { error: requestError.message };
+  }
+
+  const approverIds = await getOrgRoleUserIds(supabase, employee.org_id, ["admin", "payroll_manager"]);
+  await notifyUsers(supabase, {
+    orgId: employee.org_id,
+    recipientUserIds: approverIds,
+    type: "leave_encashment_submitted",
+    message: `${employee.full_name} requested to encash ${daysRequested} leave day${daysRequested === 1 ? "" : "s"}.`,
+    link: "/leave",
+  });
+
+  revalidatePath("/me");
+  return { success: true };
+}

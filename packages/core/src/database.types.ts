@@ -632,6 +632,74 @@ export type Database = {
           },
         ]
       }
+      leave_encashment_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          days_requested: number
+          employee_id: string
+          id: string
+          org_id: string
+          paid_pay_run_id: string | null
+          requested_by: string
+          status: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          days_requested: number
+          employee_id: string
+          id?: string
+          org_id: string
+          paid_pay_run_id?: string | null
+          requested_by: string
+          status?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          days_requested?: number
+          employee_id?: string
+          id?: string
+          org_id?: string
+          paid_pay_run_id?: string | null
+          requested_by?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_encashment_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_encashment_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_encashment_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_encashment_requests_paid_pay_run_id_fkey"
+            columns: ["paid_pay_run_id"]
+            isOneToOne: false
+            referencedRelation: "pay_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leave_requests: {
         Row: {
           approved_at: string | null
@@ -1173,6 +1241,7 @@ export type Database = {
           employee_id: string
           gross_kobo: number
           id: string
+          leave_encashment_kobo: number
           net_kobo: number
           new_hire_proration_deduction_kobo: number
           nhf_kobo: number
@@ -1200,6 +1269,7 @@ export type Database = {
           employee_id: string
           gross_kobo: number
           id?: string
+          leave_encashment_kobo?: number
           net_kobo: number
           new_hire_proration_deduction_kobo?: number
           nhf_kobo: number
@@ -1227,6 +1297,7 @@ export type Database = {
           employee_id?: string
           gross_kobo?: number
           id?: string
+          leave_encashment_kobo?: number
           net_kobo?: number
           new_hire_proration_deduction_kobo?: number
           nhf_kobo?: number
@@ -1463,6 +1534,27 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "pay_run_reversals"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      review_leave_encashment_request: {
+        Args: { p_approve: boolean; p_request_id: string }
+        Returns: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          days_requested: number
+          employee_id: string
+          id: string
+          org_id: string
+          paid_pay_run_id: string | null
+          requested_by: string
+          status: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "leave_encashment_requests"
           isOneToOne: true
           isSetofReturn: false
         }
