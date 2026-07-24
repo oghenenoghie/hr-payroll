@@ -6,6 +6,7 @@ import { EditEmployeeForm } from "./EditEmployeeForm";
 import { InviteAccountPanel } from "./InviteAccountPanel";
 import { OffboardingChecklistForm } from "./OffboardingChecklistForm";
 import { OnboardingChecklistForm } from "./OnboardingChecklistForm";
+import { EmployeeDocumentsPanel } from "./EmployeeDocumentsPanel";
 
 export default async function EditEmployeePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -78,8 +79,27 @@ export default async function EditEmployeePage({ params }: { params: Promise<{ i
     ? await supabase.from("final_settlements").select("id").eq("employee_id", id).maybeSingle()
     : { data: null };
 
+  const { data: documentsRaw } = await supabase
+    .from("employee_documents")
+    .select("id, file_name, document_type, storage_path, uploaded_at")
+    .eq("employee_id", id)
+    .order("uploaded_at", { ascending: false });
+
+  // Signed URLs since the bucket is private — generated per request, not
+  // stored, so a deleted or access-revoked document never leaves a stale
+  // working link lying around.
+  const documents = await Promise.all(
+    (documentsRaw ?? []).map(async (doc) => {
+      const { data: signed } = await supabase.storage
+        .from("employee-documents")
+        .createSignedUrl(doc.storage_path, 60 * 10);
+      return { ...doc, downloadUrl: signed?.signedUrl ?? null };
+    }),
+  );
+
   const canEditSalary = employee.basic_kobo !== null;
   const canControlMasking = membership?.role === "admin" || membership?.role === "payroll_manager";
+  const canManageDocuments = membership?.role === "admin" || membership?.role === "hr_manager";
 
   return (
     <div className="mx-auto flex w-full max-w-[560px] flex-col gap-5 px-6 py-10">
@@ -100,6 +120,12 @@ export default async function EditEmployeePage({ params }: { params: Promise<{ i
       </div>
       <div className="rounded-card border border-border bg-surface p-6">
         <InviteAccountPanel employeeId={employee.id!} email={employee.email} linkedAt={employee.linked_at} />
+      </div>
+      <div className="rounded-card border border-border bg-surface p-6">
+        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Documents</span>
+        <div className="mt-3">
+          <EmployeeDocumentsPanel employeeId={employee.id!} documents={documents} canManage={canManageDocuments} />
+        </div>
       </div>
       <div className="rounded-card border border-border bg-surface p-6">
         <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">

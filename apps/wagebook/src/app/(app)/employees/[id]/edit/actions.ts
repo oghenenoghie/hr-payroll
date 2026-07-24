@@ -266,3 +266,77 @@ export async function saveOnboardingChecklist(
   revalidatePath(`/employees/${employeeId}/edit`);
   return null;
 }
+
+export type UploadEmployeeDocumentState = { error?: string } | null;
+
+// Storage path convention: {org_id}/{employee_id}/{random}-{original filename}
+// — the org_id/employee_id prefix is what the storage.objects RLS policies
+// parse (via storage.foldername) to decide access, so it must be correct
+// for both the upload itself and every later read/delete to work.
+export async function uploadEmployeeDocument(
+  employeeId: string,
+  _prevState: UploadEmployeeDocumentState,
+  formData: FormData,
+): Promise<UploadEmployeeDocumentState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const membership = await getMembership(supabase, user.id);
+  if (!membership || (membership.role !== "admin" && membership.role !== "hr_manager")) {
+    return { error: "You don't have permission to upload employee documents." };
+  }
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: "Choose a file to upload." };
+  }
+
+  const documentType = String(formData.get("document_type") ?? "").trim() || null;
+  const storagePath = `${membership.orgId}/${employeeId}/${crypto.randomUUID()}-${file.name}`;
+
+  const { error: uploadError } = await supabase.storage.from("employee-documents").upload(storagePath, file);
+  if (uploadError) {
+    return { error: uploadError.message };
+  }
+
+  const { error: insertError } = await supabase.from("employee_documents").insert({
+    org_id: membership.orgId,
+    employee_id: employeeId,
+    uploaded_by: user.id,
+    file_name: file.name,
+    storage_path: storagePath,
+    document_type: documentType,
+  });
+
+  if (insertError) {
+    // Metadata insert failed after a real upload succeeded — remove the
+    // orphaned object rather than leaving a file with no listing entry.
+    await supabase.storage.from("employee-documents").remove([storagePath]);
+    return { error: insertError.message };
+  }
+
+  revalidatePath(`/employees/${employeeId}/edit`);
+  return null;
+}
+
+export async function deleteEmployeeDocument(documentId: string, storagePath: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  await supabase.storage.from("employee-documents").remove([storagePath]);
+  await supabase.from("employee_documents").delete().eq("id", documentId);
+
+  revalidatePath("/employees");
+}

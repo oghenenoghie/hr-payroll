@@ -267,6 +267,61 @@ export type Database = {
           },
         ]
       }
+      employee_documents: {
+        Row: {
+          document_type: string | null
+          employee_id: string
+          file_name: string
+          id: string
+          org_id: string
+          storage_path: string
+          uploaded_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          document_type?: string | null
+          employee_id: string
+          file_name: string
+          id?: string
+          org_id: string
+          storage_path: string
+          uploaded_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          document_type?: string | null
+          employee_id?: string
+          file_name?: string
+          id?: string
+          org_id?: string
+          storage_path?: string
+          uploaded_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_documents_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_documents_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_documents_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_offboarding_checklist: {
         Row: {
           assets_returned: boolean

@@ -117,6 +117,21 @@ export default async function MePage() {
     .select("policy_id, acknowledged_at")
     .eq("employee_id", employee.id);
 
+  const { data: myDocumentsRaw } = await supabase
+    .from("employee_documents")
+    .select("id, file_name, document_type, storage_path, uploaded_at")
+    .eq("employee_id", employee.id)
+    .order("uploaded_at", { ascending: false });
+
+  const myDocuments = await Promise.all(
+    (myDocumentsRaw ?? []).map(async (doc) => {
+      const { data: signed } = await supabase.storage
+        .from("employee-documents")
+        .createSignedUrl(doc.storage_path, 60 * 10);
+      return { ...doc, downloadUrl: signed?.signedUrl ?? null };
+    }),
+  );
+
   return (
     <div className="mx-auto flex w-full max-w-[560px] flex-col gap-5 px-6 py-10">
       <header className="flex flex-col gap-1">
@@ -405,6 +420,33 @@ export default async function MePage() {
           </div>
         ) : (
           <p className="mt-2 text-[13px] text-ink-soft">No company policies published yet.</p>
+        )}
+      </div>
+
+      <div className="rounded-card border border-border bg-surface p-6">
+        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Documents</span>
+
+        {myDocuments.length > 0 ? (
+          <div className="mt-3 flex flex-col gap-3">
+            {myDocuments.map((doc) => (
+              <div key={doc.id} className="flex items-center justify-between border-b border-border pb-3 last:border-b-0">
+                <div className="flex flex-col gap-0.5">
+                  {doc.downloadUrl ? (
+                    <a href={doc.downloadUrl} target="_blank" rel="noreferrer" className="text-[13px] font-bold text-primary">
+                      {doc.file_name}
+                    </a>
+                  ) : (
+                    <span className="text-[13px] font-bold text-ink">{doc.file_name}</span>
+                  )}
+                  <span className="text-[12px] text-ink-soft">
+                    {doc.document_type ?? "Uncategorised"} · {new Date(doc.uploaded_at).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-2 text-[13px] text-ink-soft">No documents on file yet.</p>
         )}
       </div>
     </div>
