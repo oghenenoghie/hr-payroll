@@ -559,6 +559,7 @@ export type Database = {
           branch_id: string | null
           confirmed: boolean
           contract_end_date: string | null
+          contract_expiry_notified_at: string | null
           created_at: string
           date_of_birth: string | null
           department_id: string | null
@@ -575,6 +576,7 @@ export type Database = {
           org_id: string
           pfa: string | null
           probation_end_date: string | null
+          probation_expiry_notified_at: string | null
           salary_masked: boolean
           state_of_residence: string | null
           status: string
@@ -594,6 +596,7 @@ export type Database = {
           branch_id?: string | null
           confirmed?: boolean
           contract_end_date?: string | null
+          contract_expiry_notified_at?: string | null
           created_at?: string
           date_of_birth?: string | null
           department_id?: string | null
@@ -610,6 +613,7 @@ export type Database = {
           org_id: string
           pfa?: string | null
           probation_end_date?: string | null
+          probation_expiry_notified_at?: string | null
           salary_masked?: boolean
           state_of_residence?: string | null
           status?: string
@@ -629,6 +633,7 @@ export type Database = {
           branch_id?: string | null
           confirmed?: boolean
           contract_end_date?: string | null
+          contract_expiry_notified_at?: string | null
           created_at?: string
           date_of_birth?: string | null
           department_id?: string | null
@@ -645,6 +650,7 @@ export type Database = {
           org_id?: string
           pfa?: string | null
           probation_end_date?: string | null
+          probation_expiry_notified_at?: string | null
           salary_masked?: boolean
           state_of_residence?: string | null
           status?: string

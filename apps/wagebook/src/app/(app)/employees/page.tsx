@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatKobo, getProbationStatus, getContractStatus } from "@/lib/format";
 import { TinBadge, EmployeeStatusBadge, BankDetailsBadge, ProbationBadge, ContractStatusBadge } from "@/components/Badge";
 import { getMembership } from "@/lib/membership";
+import { notifyLifecycleDeadlines } from "@/lib/lifecycle-alerts";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const tdClass = "px-3 py-[10px] text-[13px]";
@@ -25,6 +26,10 @@ export default async function EmployeesPage({
   const membership = await getMembership(supabase, user.id);
   if (membership?.role === "employee") {
     redirect("/me");
+  }
+
+  if (membership) {
+    await notifyLifecycleDeadlines(supabase, membership.orgId);
   }
 
   const { q, status, department, branch } = await searchParams;
