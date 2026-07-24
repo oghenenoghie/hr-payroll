@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { naira } from "@plutus/compliance";
+import { findNubanBankCode, isValidNuban, naira } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
 
 export type AddEmployeeState = { error?: string } | null;
@@ -57,6 +57,13 @@ export async function addEmployee(_prevState: AddEmployeeState, formData: FormDa
 
   if (bankAccountNumber && !/^\d{10}$/.test(bankAccountNumber)) {
     return { error: "Bank account number (NUBAN) must be exactly 10 digits." };
+  }
+
+  if (bankName && bankAccountNumber) {
+    const bankCode = findNubanBankCode(bankName);
+    if (bankCode && !isValidNuban(bankCode, bankAccountNumber)) {
+      return { error: `That account number doesn't match ${bankName}'s NUBAN check digit — double check for a typo.` };
+    }
   }
 
   const { error } = await supabase.from("employees").insert({

@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { FormError, FormField, SubmitButton } from "@/components/AuthCard";
+import { BankNameField } from "@/components/BankNameField";
 import { formatKobo } from "@/lib/format";
 import { addEmployee } from "./actions";
 
@@ -133,7 +134,7 @@ export function EmployeeForm({
       <FormField label="TIN" name="tin" required={false} />
       <FormField label="PFA" name="pfa" required={false} />
       <div className="grid grid-cols-2 gap-4">
-        <FormField label="Bank name" name="bank_name" required={false} />
+        <BankNameField defaultValue="" />
         <FormField label="Bank account number (NUBAN)" name="bank_account_number" required={false} />
       </div>
       <FormField label="Bank account name" name="bank_account_name" required={false} />

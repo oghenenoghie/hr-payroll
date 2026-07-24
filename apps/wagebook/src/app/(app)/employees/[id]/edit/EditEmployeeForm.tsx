@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { toNaira } from "@plutus/compliance";
 import type { Tables } from "@plutus/core";
 import { FormError, FormField, SubmitButton } from "@/components/AuthCard";
+import { BankNameField } from "@/components/BankNameField";
 import { formatKobo } from "@/lib/format";
 import { editEmployee, type EditEmployeeState } from "./actions";
 
@@ -240,7 +241,7 @@ export function EditEmployeeForm({
       {canEditSalary && (
         <>
           <div className="grid grid-cols-2 gap-4">
-            <FormField label="Bank name" name="bank_name" required={false} defaultValue={employee.bank_name ?? ""} />
+            <BankNameField defaultValue={employee.bank_name ?? ""} />
             <FormField
               label="Bank account number (NUBAN)"
               name="bank_account_number"

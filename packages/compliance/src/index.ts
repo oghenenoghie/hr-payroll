@@ -4,6 +4,7 @@ export * from "./errors";
 export * from "./tin-gate";
 export * from "./demo";
 export * from "./payslip";
+export * from "./nuban";
 export * from "./rule-versions/ng-2026.1";
 
 export * from "./schemes/paye";
