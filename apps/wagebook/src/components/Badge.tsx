@@ -32,7 +32,9 @@ export function BankDetailsBadge({ bankAccountNumber }: { bankAccountNumber: str
 }
 
 export function EmployeeStatusBadge({ status }: { status: string }) {
-  return status === "active" ? <Badge tone="good">Active</Badge> : <Badge tone="neutral">Terminated</Badge>;
+  if (status === "active") return <Badge tone="good">Active</Badge>;
+  if (status === "suspended") return <Badge tone="warn">Suspended</Badge>;
+  return <Badge tone="neutral">Terminated</Badge>;
 }
 
 export function ProbationBadge({ status }: { status: ProbationStatus }) {

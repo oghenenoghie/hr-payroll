@@ -268,6 +268,7 @@ export function EditEmployeeForm({
           className="w-full rounded-control border border-border bg-surface px-[13px] py-[11px] text-[13px] text-ink outline-none focus:border-primary"
         >
           <option value="active">Active</option>
+          <option value="suspended">Suspended</option>
           <option value="terminated">Terminated</option>
         </select>
       </div>

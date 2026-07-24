@@ -59,6 +59,7 @@ function OrgChartNode({ node, depth }: { node: TreeNode; depth: number }) {
         </div>
         <div className="flex items-center gap-2">
           {node.status === "terminated" && <Badge tone="bad">Terminated</Badge>}
+          {node.status === "suspended" && <Badge tone="warn">Suspended</Badge>}
           {node.reports.length > 0 && (
             <span className="text-[12px] text-ink-soft">
               {node.reports.length} direct report{node.reports.length === 1 ? "" : "s"}

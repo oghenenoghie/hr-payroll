@@ -102,6 +102,7 @@ export default async function EmployeesPage({
           >
             <option value="">All</option>
             <option value="active">Active</option>
+            <option value="suspended">Suspended</option>
             <option value="terminated">Terminated</option>
           </select>
         </div>
