@@ -81,7 +81,7 @@ export function SidebarNav({
       {groups.map((group, i) => (
         <div key={group.heading ?? i} className="flex flex-col gap-1">
           {group.heading && (
-            <span className="px-3 pb-1 text-[11px] font-bold uppercase tracking-[0.03em] text-primary-tint">
+            <span className="px-3 pb-1 text-[11px] font-bold uppercase tracking-[0.03em] text-primary-tint/60">
               {group.heading}
             </span>
           )}
