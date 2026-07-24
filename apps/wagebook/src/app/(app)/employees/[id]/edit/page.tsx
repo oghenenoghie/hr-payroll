@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 import { EditEmployeeForm } from "./EditEmployeeForm";
 import { InviteAccountPanel } from "./InviteAccountPanel";
+import { OffboardingChecklistForm } from "./OffboardingChecklistForm";
 
 export default async function EditEmployeePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -56,6 +57,18 @@ export default async function EditEmployeePage({ params }: { params: Promise<{ i
     .select("old_status, new_status, changed_at")
     .eq("employee_id", id)
     .order("changed_at", { ascending: false });
+
+  const isTerminated = employee.status === "terminated";
+  const { data: offboardingChecklist } = isTerminated
+    ? await supabase
+        .from("employee_offboarding_checklist")
+        .select("notice_period_served, assets_returned, clearance_obtained, experience_letter_issued")
+        .eq("employee_id", id)
+        .maybeSingle()
+    : { data: null };
+  const { data: finalSettlement } = isTerminated
+    ? await supabase.from("final_settlements").select("id").eq("employee_id", id).maybeSingle()
+    : { data: null };
 
   const canEditSalary = employee.basic_kobo !== null;
   const canControlMasking = membership?.role === "admin" || membership?.role === "payroll_manager";
@@ -119,6 +132,19 @@ export default async function EditEmployeePage({ params }: { params: Promise<{ i
           >
             Process final settlement
           </Link>
+        </div>
+      )}
+      {isTerminated && (
+        <div className="rounded-card border border-border bg-surface p-6">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Offboarding checklist</span>
+          <div className="mt-3">
+            <OffboardingChecklistForm
+              employeeId={employee.id!}
+              checklist={offboardingChecklist}
+              accessRevoked={isTerminated}
+              settlementProcessed={!!finalSettlement}
+            />
+          </div>
         </div>
       )}
     </div>

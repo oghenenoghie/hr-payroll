@@ -182,3 +182,46 @@ export async function inviteEmployeeAccount(
   revalidatePath(`/employees/${employeeId}/edit`);
   return { success: true };
 }
+
+export type SaveOffboardingChecklistState = { error?: string } | null;
+
+export async function saveOffboardingChecklist(
+  employeeId: string,
+  _prevState: SaveOffboardingChecklistState,
+  formData: FormData,
+): Promise<SaveOffboardingChecklistState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const membership = await getMembership(supabase, user.id);
+  if (!membership || (membership.role !== "admin" && membership.role !== "hr_manager")) {
+    return { error: "You don't have permission to update the offboarding checklist." };
+  }
+
+  const { error } = await supabase.from("employee_offboarding_checklist").upsert(
+    {
+      org_id: membership.orgId,
+      employee_id: employeeId,
+      notice_period_served: formData.get("notice_period_served") === "true",
+      assets_returned: formData.get("assets_returned") === "true",
+      clearance_obtained: formData.get("clearance_obtained") === "true",
+      experience_letter_issued: formData.get("experience_letter_issued") === "true",
+      updated_at: new Date().toISOString(),
+      updated_by: user.id,
+    },
+    { onConflict: "employee_id" },
+  );
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/employees/${employeeId}/edit`);
+  return null;
+}

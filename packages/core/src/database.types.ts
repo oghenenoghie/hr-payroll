@@ -267,6 +267,64 @@ export type Database = {
           },
         ]
       }
+      employee_offboarding_checklist: {
+        Row: {
+          assets_returned: boolean
+          clearance_obtained: boolean
+          employee_id: string
+          experience_letter_issued: boolean
+          id: string
+          notice_period_served: boolean
+          org_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          assets_returned?: boolean
+          clearance_obtained?: boolean
+          employee_id: string
+          experience_letter_issued?: boolean
+          id?: string
+          notice_period_served?: boolean
+          org_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          assets_returned?: boolean
+          clearance_obtained?: boolean
+          employee_id?: string
+          experience_letter_issued?: boolean
+          id?: string
+          notice_period_served?: boolean
+          org_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_offboarding_checklist_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_offboarding_checklist_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_offboarding_checklist_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_status_history: {
         Row: {
           changed_at: string
