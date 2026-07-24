@@ -144,7 +144,7 @@ Deadline alerting is already a stated product requirement, but there's no notifi
 
 Extensions of things Plutus already does, aligned with the compliance-native positioning.
 
-- **Annual tax reconciliation and tax certificates** — year-end reconciliation, employee tax certificates, annual returns. The natural completion of the compliance engine, and a strong renewal hook.
+- ~~**Annual tax reconciliation and tax certificates**~~ — year-end reconciliation, employee tax certificates, annual returns. The natural completion of the compliance engine, and a strong renewal hook. **Built: both halves.** `/reports/annual` aggregates each employee's yearly gross/PAYE/pension/NHF/rent-relief across every non-reversed pay run (with CSV export), and a printable per-employee `AnnualTaxCertificate` — same shape as the employment/salary certificate — is generated from that data on demand, admin/HR-facing at `/employees/[id]/tax-certificate?year=` and self-service at `/me/tax-certificate?year=`. No PDF library, browser print-to-PDF only, no stored/stale copy. Annual returns (the actual NRS filing) and any e-filing integration remain unbuilt.
 - **Government filing portal integrations** — direct submission to state IRS portals, PenCom, FMBN. Deepens the moat considerably; also the hardest integration work.
 - **Payroll variance and anomaly detection** — flag month-over-month anomalies before a run is approved. A natural fit for the "correct by construction" thesis: catching a fat-fingered salary before it's paid is worth more than reporting it after.
 - **Payroll register and reconciliation reports** — standard finance-team expectations.

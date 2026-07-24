@@ -82,9 +82,8 @@ export default async function AnnualTaxReconciliationPage({
           <h1 className="text-[22px] font-extrabold text-ink">Annual tax reconciliation</h1>
           <p className="text-[13px] text-ink-soft">
             Each employee&apos;s total gross pay and statutory deductions for {year}, aggregated across every pay run
-            that year regardless of frequency. Reversed runs are excluded. A printable/downloadable tax certificate
-            document and direct e-filing aren&apos;t built yet — this is the reconciliation data a certificate would
-            be built from.
+            that year regardless of frequency. Reversed runs are excluded. Generate a printable certificate per
+            employee from this data — direct e-filing to NRS/state IRS isn&apos;t built yet.
           </p>
           <Link href="/reports" className="mt-1 text-[12.5px] font-bold text-primary">
             ← Back to Reports
@@ -140,6 +139,7 @@ export default async function AnnualTaxReconciliationPage({
               <th className={`${thClass} text-right`}>Pension (employee)</th>
               <th className={`${thClass} text-right`}>NHF</th>
               <th className={`${thClass} text-right`}>Rent relief claimed</th>
+              <th className={thClass}></th>
             </tr>
           </thead>
           <tbody>
@@ -153,11 +153,16 @@ export default async function AnnualTaxReconciliationPage({
                   <td className={`${tdClass} text-right text-ink-soft`}>{formatKobo(totals.pensionKobo)}</td>
                   <td className={`${tdClass} text-right text-ink-soft`}>{formatKobo(totals.nhfKobo)}</td>
                   <td className={`${tdClass} text-right text-ink-soft`}>{formatKobo(totals.rentReliefKobo)}</td>
+                  <td className={`${tdClass} text-right`}>
+                    <Link href={`/employees/${employeeId}/tax-certificate?year=${year}`} className="font-bold text-primary">
+                      Certificate
+                    </Link>
+                  </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={7} className="px-3 py-10 text-center text-[13px] text-ink-soft">
+                <td colSpan={8} className="px-3 py-10 text-center text-[13px] text-ink-soft">
                   No pay runs in {year}.
                 </td>
               </tr>

@@ -141,6 +141,9 @@ export default async function MePage() {
         <Link href="/me/certificate" className="mt-1 text-[12.5px] font-bold text-primary">
           Download employment &amp; salary certificate →
         </Link>
+        <Link href="/me/tax-certificate" className="text-[12.5px] font-bold text-primary">
+          Download annual tax certificate →
+        </Link>
       </header>
 
       {unreadNotifications && unreadNotifications.length > 0 && (
