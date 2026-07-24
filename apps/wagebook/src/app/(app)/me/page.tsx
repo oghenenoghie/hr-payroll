@@ -14,6 +14,7 @@ import { ExpenseClaimForm } from "./ExpenseClaimForm";
 import { LeaveRequestForm } from "./LeaveRequestForm";
 import { OvertimeRequestForm } from "./OvertimeRequestForm";
 import { LeaveEncashmentForm } from "./LeaveEncashmentForm";
+import { acknowledgePolicy } from "./actions";
 import { markNotificationRead } from "../notifications/actions";
 
 export default async function MePage() {
@@ -104,6 +105,16 @@ export default async function MePage() {
     .eq("employee_id", employee.id)
     .gte("date", thirtyDaysAgo)
     .order("date", { ascending: false });
+
+  const { data: policies } = await supabase
+    .from("company_policies")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  const { data: myAcknowledgements } = await supabase
+    .from("policy_acknowledgements")
+    .select("policy_id, acknowledged_at")
+    .eq("employee_id", employee.id);
 
   return (
     <div className="mx-auto flex w-full max-w-[560px] flex-col gap-5 px-6 py-10">
@@ -346,6 +357,50 @@ export default async function MePage() {
           </div>
         ) : (
           <p className="mt-2 text-[13px] text-ink-soft">Not enrolled in any benefit plans.</p>
+        )}
+      </div>
+
+      <div className="rounded-card border border-border bg-surface p-6">
+        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Company policies</span>
+
+        {policies && policies.length > 0 ? (
+          <div className="mt-3 flex flex-col gap-3">
+            {policies.map((policy) => {
+              const ack = myAcknowledgements?.find((a) => a.policy_id === policy.id);
+              const isCurrent = !!ack && ack.acknowledged_at >= policy.updated_at;
+              const status = isCurrent ? "acknowledged" : ack ? "stale" : "unacknowledged";
+              return (
+                <div
+                  key={policy.id}
+                  className="flex items-center justify-between border-b border-border pb-3 last:border-b-0"
+                >
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[13px] font-bold text-ink">{policy.title}</span>
+                    <span
+                      className={`text-[12px] font-bold ${
+                        status === "acknowledged" ? "text-good" : status === "stale" ? "text-warn" : "text-bad"
+                      }`}
+                    >
+                      {status === "acknowledged"
+                        ? "Acknowledged"
+                        : status === "stale"
+                          ? "Needs re-acknowledgment"
+                          : "Not acknowledged"}
+                    </span>
+                  </div>
+                  {status !== "acknowledged" && (
+                    <form action={acknowledgePolicy.bind(null, policy.id)}>
+                      <button type="submit" className="text-[12px] font-bold text-primary">
+                        Acknowledge
+                      </button>
+                    </form>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="mt-2 text-[13px] text-ink-soft">No company policies published yet.</p>
         )}
       </div>
     </div>

@@ -165,6 +165,44 @@ export type Database = {
           },
         ]
       }
+      company_policies: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string
+          id: string
+          org_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by: string
+          id?: string
+          org_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          org_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_policies_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departments: {
         Row: {
           created_at: string
@@ -1333,6 +1371,59 @@ export type Database = {
             columns: ["pay_run_id"]
             isOneToOne: false
             referencedRelation: "pay_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      policy_acknowledgements: {
+        Row: {
+          acknowledged_at: string
+          employee_id: string
+          id: string
+          org_id: string
+          policy_id: string
+        }
+        Insert: {
+          acknowledged_at?: string
+          employee_id: string
+          id?: string
+          org_id: string
+          policy_id: string
+        }
+        Update: {
+          acknowledged_at?: string
+          employee_id?: string
+          id?: string
+          org_id?: string
+          policy_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_acknowledgements_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_acknowledgements_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_acknowledgements_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_acknowledgements_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "company_policies"
             referencedColumns: ["id"]
           },
         ]

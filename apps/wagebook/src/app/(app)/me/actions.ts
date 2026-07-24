@@ -329,3 +329,30 @@ export async function requestLeaveEncashment(
   revalidatePath("/me");
   return { success: true };
 }
+
+// Upserts on the (policy_id, employee_id) unique constraint — the same
+// call handles a first-time acknowledgement and a re-acknowledgement after
+// a policy edit identically, both just moving acknowledged_at to now().
+export async function acknowledgePolicy(policyId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data: employee } = await supabase.from("employees").select("id, org_id").eq("user_id", user.id).maybeSingle();
+
+  if (!employee) return;
+
+  await supabase
+    .from("policy_acknowledgements")
+    .upsert(
+      { org_id: employee.org_id, policy_id: policyId, employee_id: employee.id, acknowledged_at: new Date().toISOString() },
+      { onConflict: "policy_id,employee_id" },
+    );
+
+  revalidatePath("/me");
+}
