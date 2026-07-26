@@ -21,7 +21,8 @@ export type NotificationType =
   | "leave_encashment_rejected"
   | "policy_published"
   | "contract_expiring"
-  | "probation_ending";
+  | "probation_ending"
+  | "approval_pending_reminder";
 
 // Fire-and-forget: a notification is a side effect of an already-authorized
 // action, never the thing being authorized, so a failed insert here should
