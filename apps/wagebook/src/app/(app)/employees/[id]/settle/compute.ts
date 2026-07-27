@@ -192,10 +192,12 @@ export async function computeSettlementPreview(
   // each prior period already consumed this year, which nothing in the
   // schema does today — a disclosed simplification, not a claimed figure.
   const { data: employeePayslips } = await supabase
-    .from("payslips")
+    .from("posted_payslips")
     .select("pay_run_id")
     .eq("employee_id", employeeId);
-  const payRunIds = (employeePayslips ?? []).map((p) => p.pay_run_id);
+  const payRunIds = (employeePayslips ?? [])
+    .map((p) => p.pay_run_id)
+    .filter((id): id is string => id !== null);
 
   const { data: lastRegularPayRun } =
     payRunIds.length > 0
@@ -242,16 +244,16 @@ export async function computeSettlementPreview(
   // Same cumulative carry-forward as a regular pay run — a settlement
   // isn't taxed as if it were the employee's only income of the year.
   const { data: recentPayslip } = await supabase
-    .from("payslips")
+    .from("posted_payslips")
     .select("chargeable_income_kobo, cumulative_paye_paid_before_kobo, paye_kobo")
     .eq("employee_id", employeeId)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  const cumulativeChargeableIncomeBeforeKobo = recentPayslip ? BigInt(recentPayslip.chargeable_income_kobo) : 0n;
+  const cumulativeChargeableIncomeBeforeKobo = recentPayslip ? BigInt(recentPayslip.chargeable_income_kobo ?? 0) : 0n;
   const cumulativePayePaidBeforeKobo = recentPayslip
-    ? BigInt(recentPayslip.cumulative_paye_paid_before_kobo) + BigInt(recentPayslip.paye_kobo)
+    ? BigInt(recentPayslip.cumulative_paye_paid_before_kobo ?? 0) + BigInt(recentPayslip.paye_kobo ?? 0)
     : 0n;
 
   // Final period pay is taxable pensionable income, leave payout and

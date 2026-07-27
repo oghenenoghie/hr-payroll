@@ -37,7 +37,7 @@ export default async function EmployeeTaxCertificatePage({
   const { data: payRuns } = await supabase
     .from("pay_runs")
     .select("id")
-    .neq("status", "reversed")
+    .eq("status", "posted")
     .gte("period_start", `${year}-01-01`)
     .lte("period_start", `${year}-12-31`);
 

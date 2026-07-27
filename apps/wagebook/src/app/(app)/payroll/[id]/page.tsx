@@ -5,6 +5,7 @@ import { getMembership } from "@/lib/membership";
 import { ACCOUNT_LABEL, FREQUENCY_LABEL } from "@/lib/accounts";
 import { PayRunStatusBadge } from "@/components/Badge";
 import { PayslipTable } from "./PayslipTable";
+import { PayRunDraftActions } from "./PayRunDraftActions";
 import { ReversalForm } from "./ReversalForm";
 import { VarianceFlags, type VarianceFlag } from "./VarianceFlags";
 
@@ -68,7 +69,7 @@ export default async function PayRunDetailPage({ params }: { params: Promise<{ i
       .select("id, period_start")
       .eq("org_id", payRun.org_id)
       .eq("frequency", payRun.frequency)
-      .neq("status", "reversed")
+      .eq("status", "posted")
       .lt("period_start", payRun.period_start)
       .order("period_start", { ascending: false })
       .limit(PRIOR_RUNS_WINDOW);
@@ -141,7 +142,7 @@ export default async function PayRunDetailPage({ params }: { params: Promise<{ i
             {payRun.rule_version_id}
           </p>
         </div>
-        {journalEntry && (
+        {journalEntry && payRun.status !== "draft" && (
           <a
             href={`/payroll/${id}/export`}
             className="whitespace-nowrap rounded-button border border-border px-[18px] py-[10px] text-[12.5px] font-extrabold text-ink"
@@ -150,6 +151,15 @@ export default async function PayRunDetailPage({ params }: { params: Promise<{ i
           </a>
         )}
       </header>
+
+      {payRun.status === "draft" && (membership?.role === "admin" || membership?.role === "payroll_manager") && (
+        <div className="rounded-card border border-warn bg-warn-tint p-6">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-warn">Draft — not yet posted</span>
+          <div className="mt-3">
+            <PayRunDraftActions payRunId={payRun.id} />
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
         <SummaryTile label="Gross" value={formatKobo(BigInt(payRun.gross_kobo))} />

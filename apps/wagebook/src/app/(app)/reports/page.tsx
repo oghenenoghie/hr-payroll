@@ -62,13 +62,15 @@ export default async function ReportsPage() {
     totalsByAccountCode.set(posting.account_code, running + BigInt(posting.amount_kobo));
   }
 
-  const { data: payslips } = await supabase.from("payslips").select("paye_kobo, employees(state_of_residence)");
+  const { data: payslips } = await supabase
+    .from("posted_payslips")
+    .select("paye_kobo, employees(state_of_residence)");
 
   const payeByState = new Map<string, bigint>();
   for (const slip of payslips ?? []) {
     const state = slip.employees?.state_of_residence ?? "Unspecified";
     const running = payeByState.get(state) ?? 0n;
-    payeByState.set(state, running + BigInt(slip.paye_kobo));
+    payeByState.set(state, running + BigInt(slip.paye_kobo ?? 0));
   }
   const stateRows = [...payeByState.entries()]
     .filter(([, amount]) => amount > 0n)

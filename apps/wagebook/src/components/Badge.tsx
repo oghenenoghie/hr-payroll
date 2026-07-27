@@ -68,7 +68,9 @@ export function ContractStatusBadge({ status }: { status: ContractStatus }) {
 }
 
 export function PayRunStatusBadge({ status }: { status: string }) {
-  return status === "reversed" ? <Badge tone="bad">Reversed</Badge> : <Badge tone="good">Posted</Badge>;
+  if (status === "draft") return <Badge tone="warn">Draft</Badge>;
+  if (status === "reversed") return <Badge tone="bad">Reversed</Badge>;
+  return <Badge tone="good">Posted</Badge>;
 }
 
 const LOAN_STATUS_TONE = {

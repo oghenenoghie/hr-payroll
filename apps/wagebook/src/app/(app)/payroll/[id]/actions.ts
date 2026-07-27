@@ -4,6 +4,66 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
+export type ApprovePayRunState = { error?: string } | null;
+
+export async function approvePayRun(
+  payRunId: string,
+  _prevState: ApprovePayRunState,
+  _formData: FormData,
+): Promise<ApprovePayRunState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { error } = await supabase.rpc("approve_pay_run", { p_pay_run_id: payRunId });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/payroll/${payRunId}`);
+  revalidatePath("/payroll");
+  revalidatePath("/reports");
+  revalidatePath("/reports/register");
+  return null;
+}
+
+export type DiscardPayRunDraftState = { error?: string } | null;
+
+export async function discardPayRunDraft(
+  payRunId: string,
+  _prevState: DiscardPayRunDraftState,
+  _formData: FormData,
+): Promise<DiscardPayRunDraftState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { error } = await supabase.rpc("discard_pay_run_draft", { p_pay_run_id: payRunId });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/payroll");
+  revalidatePath("/loans");
+  revalidatePath("/expenses");
+  revalidatePath("/leave");
+  revalidatePath("/attendance");
+  revalidatePath("/overtime");
+  redirect("/payroll");
+}
+
 export type ReversePayRunState = { error?: string } | null;
 
 export async function reversePayRun(

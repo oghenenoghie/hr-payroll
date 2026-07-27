@@ -46,7 +46,7 @@ export default async function MePage() {
   }
 
   const { data: latestPayslip } = await supabase
-    .from("payslips")
+    .from("posted_payslips")
     .select("*, pay_runs(period_start, period_end)")
     .eq("employee_id", employee.id)
     .order("created_at", { ascending: false })
@@ -181,15 +181,15 @@ export default async function MePage() {
               {latestPayslip.pay_runs?.period_start} – {latestPayslip.pay_runs?.period_end}
             </p>
             <div className="flex flex-col gap-2 text-[13px]">
-              <Row label="Gross" amountKobo={latestPayslip.gross_kobo} />
-              <Row label="Pension (employee)" amountKobo={-latestPayslip.pension_employee_kobo} />
-              <Row label="NHF" amountKobo={-latestPayslip.nhf_kobo} />
-              <Row label="Rent relief" amountKobo={latestPayslip.rent_relief_kobo} />
-              <Row label="Chargeable income" amountKobo={latestPayslip.chargeable_income_kobo} />
-              <Row label="PAYE" amountKobo={-latestPayslip.paye_kobo} />
+              <Row label="Gross" amountKobo={latestPayslip.gross_kobo ?? 0} />
+              <Row label="Pension (employee)" amountKobo={-(latestPayslip.pension_employee_kobo ?? 0)} />
+              <Row label="NHF" amountKobo={-(latestPayslip.nhf_kobo ?? 0)} />
+              <Row label="Rent relief" amountKobo={latestPayslip.rent_relief_kobo ?? 0} />
+              <Row label="Chargeable income" amountKobo={latestPayslip.chargeable_income_kobo ?? 0} />
+              <Row label="PAYE" amountKobo={-(latestPayslip.paye_kobo ?? 0)} />
               <div className="mt-1 flex items-center justify-between border-t border-border pt-2 font-extrabold text-ink">
                 <span>Net pay</span>
-                <span>{formatKobo(BigInt(latestPayslip.net_kobo))}</span>
+                <span>{formatKobo(BigInt(latestPayslip.net_kobo ?? 0))}</span>
               </div>
             </div>
           </div>

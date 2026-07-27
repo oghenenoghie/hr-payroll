@@ -32,12 +32,16 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   const { data: payRun } = await supabase
     .from("pay_runs")
-    .select("id, period_start, period_end")
+    .select("id, period_start, period_end, status")
     .eq("id", id)
     .maybeSingle();
 
   if (!payRun) {
     return new NextResponse("Not found", { status: 404 });
+  }
+
+  if (payRun.status === "draft") {
+    return new NextResponse("This pay run hasn't been approved yet", { status: 409 });
   }
 
   const { data: journalEntry } = await supabase

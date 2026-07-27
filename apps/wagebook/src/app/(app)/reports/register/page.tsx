@@ -84,7 +84,7 @@ export default async function PayrollRegisterPage() {
   }
 
   const totals = (payRuns ?? [])
-    .filter((run) => run.status !== "reversed")
+    .filter((run) => run.status === "posted")
     .reduce(
       (acc, run) => {
         const liability = liabilityByRun.get(run.id) ?? { payeKobo: 0n, pensionKobo: 0n, nhfKobo: 0n };
@@ -105,8 +105,8 @@ export default async function PayrollRegisterPage() {
         <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Reports</span>
         <h1 className="text-[22px] font-extrabold text-ink">Payroll register &amp; reconciliation</h1>
         <p className="text-[13px] text-ink-soft">
-          Every pay run with its statutory liability breakdown and a ledger-balanced check — reversed runs are
-          excluded from the totals row but still listed for the audit trail.
+          Every pay run with its statutory liability breakdown and a ledger-balanced check — draft and reversed runs
+          are excluded from the totals row but still listed for the audit trail.
         </p>
         <Link href="/reports" className="mt-1 text-[12.5px] font-bold text-primary">
           ← Back to Reports
@@ -151,8 +151,8 @@ export default async function PayrollRegisterPage() {
                     <td className={`${tdClass} text-right text-ink-soft`}>{formatKobo(liability.pensionKobo)}</td>
                     <td className={`${tdClass} text-right text-ink-soft`}>{formatKobo(liability.nhfKobo)}</td>
                     <td className={`${tdClass} text-center`}>
-                      <Badge tone={run.status === "reversed" ? "bad" : "good"}>
-                        {run.status === "reversed" ? "Reversed" : "Posted"}
+                      <Badge tone={run.status === "reversed" ? "bad" : run.status === "draft" ? "warn" : "good"}>
+                        {run.status === "reversed" ? "Reversed" : run.status === "draft" ? "Draft" : "Posted"}
                       </Badge>
                     </td>
                     <td className={`${tdClass} text-center`}>
@@ -173,7 +173,7 @@ export default async function PayrollRegisterPage() {
             <tfoot>
               <tr className="border-t-2 border-border bg-bg">
                 <td className={`${tdClass} font-extrabold text-ink`} colSpan={3}>
-                  Totals (excluding reversed runs)
+                  Totals (posted runs only)
                 </td>
                 <td className={`${tdClass} text-right font-extrabold text-ink`}>{formatKobo(totals.grossKobo)}</td>
                 <td className={`${tdClass} text-right font-extrabold text-ink`}>{formatKobo(totals.netKobo)}</td>

@@ -1502,6 +1502,8 @@ export type Database = {
       }
       pay_runs: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           created_at: string
           created_by: string | null
           employee_count: number
@@ -1516,6 +1518,8 @@ export type Database = {
           status: string
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           created_by?: string | null
           employee_count?: number
@@ -1530,6 +1534,8 @@ export type Database = {
           status?: string
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           created_by?: string | null
           employee_count?: number
@@ -1811,8 +1817,94 @@ export type Database = {
           },
         ]
       }
+      posted_payslips: {
+        Row: {
+          attendance_absence_deduction_kobo: number | null
+          benefit_employee_deduction_kobo: number | null
+          benefit_employer_cost_kobo: number | null
+          chargeable_income_kobo: number | null
+          created_at: string | null
+          cumulative_chargeable_income_before_kobo: number | null
+          cumulative_paye_paid_before_kobo: number | null
+          employee_deductions_kobo: number | null
+          employee_id: string | null
+          gross_kobo: number | null
+          id: string | null
+          leave_encashment_kobo: number | null
+          net_kobo: number | null
+          new_hire_proration_deduction_kobo: number | null
+          nhf_kobo: number | null
+          non_taxable_reimbursement_kobo: number | null
+          org_id: string | null
+          overtime_pay_kobo: number | null
+          pay_run_id: string | null
+          paye_kobo: number | null
+          pension_employee_kobo: number | null
+          pension_employer_kobo: number | null
+          pensionable_kobo: number | null
+          rent_relief_kobo: number | null
+          salary_change_adjustment_kobo: number | null
+          taxable_reimbursement_kobo: number | null
+          unpaid_leave_deduction_kobo: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payslips_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payslips_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payslips_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payslips_pay_run_id_fkey"
+            columns: ["pay_run_id"]
+            isOneToOne: false
+            referencedRelation: "pay_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      approve_pay_run: {
+        Args: { p_pay_run_id: string }
+        Returns: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string | null
+          employee_count: number
+          frequency: string
+          gross_kobo: number
+          id: string
+          net_kobo: number
+          org_id: string
+          period_end: string
+          period_start: string
+          rule_version_id: string
+          status: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "pay_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_organization: {
         Args: {
           p_company_tin?: string
@@ -1842,6 +1934,8 @@ export type Database = {
       create_pay_run: {
         Args: { payload: Json }
         Returns: {
+          approved_at: string | null
+          approved_by: string | null
           created_at: string
           created_by: string | null
           employee_count: number
@@ -1861,6 +1955,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      discard_pay_run_draft: {
+        Args: { p_pay_run_id: string }
+        Returns: undefined
       }
       get_org_audit_log: {
         Args: { p_limit?: number; p_org_id: string }

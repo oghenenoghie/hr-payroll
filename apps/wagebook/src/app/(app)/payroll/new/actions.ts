@@ -97,8 +97,11 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
   // payslip — never restart cumulative income at zero for an employee
   // who's already had pay runs this year. Shared by every run type,
   // including 13th month: a lump sum is taxed on top of this position too.
+  // Reads posted_payslips, not payslips directly — a still-unapproved
+  // draft's numbers aren't final and could still be discarded, so they
+  // must never seed another run's cumulative position.
   const { data: recentPayslips } = await supabase
-    .from("payslips")
+    .from("posted_payslips")
     .select("employee_id, chargeable_income_kobo, cumulative_paye_paid_before_kobo, paye_kobo, created_at")
     .in(
       "employee_id",
@@ -108,10 +111,13 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
 
   const priorStateByEmployee = new Map<string, { chargeableIncomeKobo: bigint; payePaidAfterKobo: bigint }>();
   for (const slip of recentPayslips ?? []) {
-    if (priorStateByEmployee.has(slip.employee_id)) continue; // already have the most recent one
+    // posted_payslips' columns are nullable in the view's inferred type even
+    // though the underlying payslips table enforces NOT NULL — a real row
+    // never has a null employee_id.
+    if (!slip.employee_id || priorStateByEmployee.has(slip.employee_id)) continue; // already have the most recent one
     priorStateByEmployee.set(slip.employee_id, {
-      chargeableIncomeKobo: BigInt(slip.chargeable_income_kobo),
-      payePaidAfterKobo: BigInt(slip.cumulative_paye_paid_before_kobo) + BigInt(slip.paye_kobo),
+      chargeableIncomeKobo: BigInt(slip.chargeable_income_kobo ?? 0),
+      payePaidAfterKobo: BigInt(slip.cumulative_paye_paid_before_kobo ?? 0) + BigInt(slip.paye_kobo ?? 0),
     });
   }
 
@@ -669,7 +675,14 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
     { account_code: "nsitf_payable", direction: "credit", amount_kobo: nsitf.employerKobo },
   ].filter((posting) => posting.amount_kobo > 0n);
 
-  const { error: rpcError } = await supabase.rpc("create_pay_run", {
+  // Created as a draft, never posted directly — payload.status is the only
+  // thing that changed here versus the pre-draft version of this call.
+  // Every payslip/posting/side-effect below is written exactly as before;
+  // what's new is that the run sits behind a review gate (approve/discard
+  // on the run's own detail page) before it's visible anywhere else —
+  // reports, employee self-service, or next run's cumulative-PAYE
+  // carry-forward (see posted_payslips below).
+  const { data: payRun, error: rpcError } = await supabase.rpc("create_pay_run", {
     payload: {
       org_id: membership.org_id,
       period_start: periodStart,
@@ -680,6 +693,7 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
       gross_kobo: Number(totalGrossKobo),
       net_kobo: Number(totalNetKobo),
       memo: `Payroll ${periodStart} – ${periodEnd}`,
+      status: "draft",
       payslips: payslipsPayload,
       org_postings: orgPostings.map((posting) => ({ ...posting, amount_kobo: Number(posting.amount_kobo) })),
       loan_repayments: loanRepaymentsPayload,
@@ -691,8 +705,8 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
     },
   });
 
-  if (rpcError) {
-    return { error: rpcError.message };
+  if (rpcError || !payRun) {
+    return { error: rpcError?.message ?? "Failed to create the pay run." };
   }
 
   const approverIds = await getOrgRoleUserIds(supabase, membership.org_id, ["admin", "payroll_manager"]);
@@ -700,8 +714,8 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
     orgId: membership.org_id,
     recipientUserIds: approverIds.filter((id) => id !== user.id),
     type: "pay_run_created",
-    message: `Payroll run for ${periodStart} – ${periodEnd} was created.`,
-    link: "/payroll",
+    message: `Payroll run for ${periodStart} – ${periodEnd} is awaiting review before it posts.`,
+    link: `/payroll/${payRun.id}`,
   });
 
   revalidatePath("/payroll");
@@ -711,5 +725,5 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
   revalidatePath("/benefits");
   revalidatePath("/attendance");
   revalidatePath("/overtime");
-  redirect("/payroll");
+  redirect(`/payroll/${payRun.id}`);
 }
