@@ -12,8 +12,10 @@ export function ReversalForm({ payRunId }: { payRunId: string }) {
       <FormError message={state?.error} />
       <p className="text-[13px] text-ink-soft">
         Posts a correcting journal entry that exactly reverses this run&apos;s ledger impact — the original postings
-        and payslips are never edited. This does not restore loan balances or revert expense/leave/attendance/overtime
-        approvals this run consumed, and it does not address amounts already remitted to a tax or pension authority.
+        and payslips are never edited. Loan balances, and expense/leave/attendance/overtime/leave-encashment
+        approvals this run consumed, are restored to a re-payable state. This does not address amounts already
+        remitted to a tax or pension authority, or whether a reversal after a filing deadline requires an amended
+        filing.
       </p>
       <div className="flex flex-col gap-2">
         <label className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft" htmlFor="reason">

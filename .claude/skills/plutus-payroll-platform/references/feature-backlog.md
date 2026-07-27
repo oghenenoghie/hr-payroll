@@ -54,11 +54,12 @@ A separate, undisclosed simplification rides along with this: arrears is treated
 
 The skill establishes payslips and audit events as append-only, but doesn't specify what happens when a finalised run is wrong:
 
-- Reversal of a finalised run — and what that does to **already-remitted** statutory liabilities.
-- Correcting-entry mechanics through `packages/ledger` (never an edit in place).
-- Whether a reversal after a filing deadline requires an amended filing, per scheme.
+- Reversal of a finalised run — and what that does to **already-remitted** statutory liabilities. **Still open.**
+- Correcting-entry mechanics through `packages/ledger` (never an edit in place). **Built:** `reverse_pay_run` posts a correcting journal entry with every original posting re-inserted at flipped direction, against the same accounts and amounts. The original postings and payslips are never edited or deleted — append-only, matching the audit-event philosophy.
+- Whether a reversal after a filing deadline requires an amended filing, per scheme. **Still open.**
+- Restoring the side effects a reversed run consumed — loan outstanding balances, and expense/leave/attendance/overtime/leave-encashment rows it marked paid/consumed. **Built**, closing a gap this section originally disclosed and left open: `reverse_pay_run` now runs the identical restoration logic `discard_pay_run_draft` uses for a draft (loan balance and `completed`→`approved` status put back by the amount in `loan_repayments`; expense/leave/overtime/leave-encashment rows reset to `approved` with `paid_pay_run_id` cleared; attendance records' `paid_pay_run_id` cleared), so a reversed run's consumed resources are picked up correctly by whatever run replaces it. Live-verified via a full round-trip against real demo-org data touching all five side-effect types plus a balanced correcting journal entry.
 
-This is the hardest correctness area in payroll and the most likely to be discovered in production. Specify it before it's needed.
+The two still-open items above — already-remitted statutory liabilities, and amended-filing requirements — remain **the hardest correctness area in payroll and the most likely to be discovered in production.** Specify them before they're needed; they were flagged from the start precisely because side-effect restoration (now built) was always the more tractable half of this section.
 
 ### Payroll locking and finalisation
 
