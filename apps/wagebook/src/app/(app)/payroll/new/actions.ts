@@ -81,6 +81,33 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
     }
   }
 
+  // Arrears is discretionary and per-employee like bonus, but additionally
+  // requires a note recording what period the back-pay relates to and why —
+  // the audit context feature-backlog.md's retroactive-pay gap flagged as
+  // needed, since the tax treatment itself is period-of-receipt (see
+  // deriveLumpSumPayslip's arrears doc comment), not a second calculation
+  // against the period the note describes.
+  const arrearsAmountByEmployee = new Map<string, bigint>();
+  const arrearsNoteByEmployee = new Map<string, string>();
+  if (frequency === "arrears") {
+    for (const employee of activeEmployees) {
+      const raw = formData.get(`arrears_amount_${employee.id}`);
+      if (raw === null) continue;
+      const amountNaira = Number(raw);
+      if (!Number.isFinite(amountNaira) || amountNaira <= 0) continue;
+      const note = String(formData.get(`arrears_note_${employee.id}`) ?? "").trim();
+      if (!note) {
+        return { error: `Enter a note for ${employee.full_name} explaining which period this arrears payment relates to.` };
+      }
+      arrearsAmountByEmployee.set(employee.id, BigInt(Math.round(amountNaira * 100)));
+      arrearsNoteByEmployee.set(employee.id, note);
+    }
+    employees = activeEmployees.filter((employee) => arrearsAmountByEmployee.has(employee.id));
+    if (employees.length === 0) {
+      return { error: "Enter an arrears amount for at least one employee." };
+    }
+  }
+
   // TIN gate: flag before the run, never process a TIN-less employee silently.
   const tinFailures = checkTinGate(employees.map((e) => ({ employeeId: e.id, tin: e.tin })));
   if (tinFailures.length > 0) {
@@ -155,6 +182,7 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
     overtime_pay_kobo?: number;
     new_hire_proration_deduction_kobo?: number;
     leave_encashment_kobo?: number;
+    arrears_note?: string;
     postings: { account_code: string; direction: string; amount_kobo: number }[];
   }
 
@@ -253,6 +281,57 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
         net_kobo: Number(result.netKobo),
         cumulative_chargeable_income_before_kobo: Number(prior?.chargeableIncomeKobo ?? 0n),
         cumulative_paye_paid_before_kobo: Number(prior?.payePaidAfterKobo ?? 0n),
+        postings: postings.map((posting) => ({ ...posting, amount_kobo: Number(posting.amount_kobo) })),
+      };
+    });
+  } else if (frequency === "arrears") {
+    // Arrears: an admin-entered, per-employee back-pay amount with a
+    // required note, taxed on top of whatever the employee has already
+    // earned this year via the same cumulative mechanism as bonus/13th
+    // month — same standalone treatment otherwise (no leave/attendance/
+    // overtime/reimbursement/loan/benefit adjustments; never pensionable,
+    // never in the NHF or NSITF base — see deriveLumpSumPayslip's arrears
+    // doc comment for the disclosed simplification and the rule-version
+    // decision this reflects).
+    payslipsPayload = employees.map((employee) => {
+      const prior = priorStateByEmployee.get(employee.id);
+      const amountKobo = arrearsAmountByEmployee.get(employee.id)!;
+
+      const result = deriveLumpSumPayslip(
+        {
+          kind: "arrears",
+          amountKobo,
+          cumulativeChargeableIncomeBeforeKobo: prior?.chargeableIncomeKobo ?? 0n,
+          cumulativePayePaidBeforeKobo: prior?.payePaidAfterKobo ?? 0n,
+        },
+        NG_2026_1,
+      );
+
+      allPeriodComponents.push(result.periodComponents);
+      totalGrossKobo += result.grossKobo;
+      totalNetKobo += result.netKobo;
+
+      const postings = [
+        { account_code: "arrears_expense", direction: "debit", amount_kobo: result.grossKobo },
+        { account_code: "net_pay_payable", direction: "credit", amount_kobo: result.netKobo },
+        { account_code: "paye_payable", direction: "credit", amount_kobo: result.payeKobo },
+      ].filter((posting) => posting.amount_kobo > 0n);
+
+      return {
+        employee_id: employee.id,
+        gross_kobo: Number(result.grossKobo),
+        pensionable_kobo: 0,
+        pension_employee_kobo: 0,
+        pension_employer_kobo: 0,
+        nhf_kobo: 0,
+        rent_relief_kobo: 0,
+        chargeable_income_kobo: Number(result.chargeableIncomeKobo),
+        paye_kobo: Number(result.payeKobo),
+        employee_deductions_kobo: Number(result.payeKobo),
+        net_kobo: Number(result.netKobo),
+        cumulative_chargeable_income_before_kobo: Number(prior?.chargeableIncomeKobo ?? 0n),
+        cumulative_paye_paid_before_kobo: Number(prior?.payePaidAfterKobo ?? 0n),
+        arrears_note: arrearsNoteByEmployee.get(employee.id)!,
         postings: postings.map((posting) => ({ ...posting, amount_kobo: Number(posting.amount_kobo) })),
       };
     });

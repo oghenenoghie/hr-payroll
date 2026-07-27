@@ -2,9 +2,13 @@ import type { Kobo } from "./money";
 
 export type ComponentCode = "basic" | "housing" | "transport" | (string & {});
 
-/** NSITF's base excludes bonus/overtime/13th-month/one-off pay — tag every
- * component so scheme calculators can select the right base without guessing. */
-export type PayComponentKind = "regular" | "bonus" | "overtime" | "thirteenth_month" | "one_off";
+/** NSITF's base excludes bonus/overtime/13th-month/one-off/arrears pay —
+ * tag every component so scheme calculators can select the right base
+ * without guessing. Arrears is taxed like the other lump sums but is a
+ * distinct kind so it's identifiable on the payslip and in reporting —
+ * see deriveLumpSumPayslip's arrears note for the compliance scope this
+ * carries. */
+export type PayComponentKind = "regular" | "bonus" | "overtime" | "thirteenth_month" | "one_off" | "arrears";
 
 export interface PayComponent {
   code: ComponentCode;

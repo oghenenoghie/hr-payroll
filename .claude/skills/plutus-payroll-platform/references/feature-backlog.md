@@ -41,12 +41,14 @@ Currently the engine only computes gross → net. Gross-up is common in Nigerian
 
 ### Retroactive pay and the rule-version question
 
-**This is a genuinely open question and must not be guessed at.** If arrears are paid in July 2026 for work performed in December 2025 — under the previous Personal Income Tax Act regime — which rule version applies?
+**Built, with the rule-version question resolved by product decision — not yet confirmed against a Nigerian tax professional.** If arrears are paid in July 2026 for work performed in December 2025 — under the previous Personal Income Tax Act regime — which rule version applies?
 
 - Taxed in the **period of receipt** (current rules), or
 - Attributed to the **period earned** (the rules then in force)?
 
-The answer determines whether `RuleVersion` pinning is per-run or per-earning-period, which is a foundational data-model decision that is expensive to reverse. **Resolve with a Nigerian tax professional before building retroactive pay**, and record the answer with its source in the statutory reference.
+This was flagged as needing a Nigerian tax professional's input before building, since the answer determines whether `RuleVersion` pinning is per-run or per-earning-period — a foundational, expensive-to-reverse data-model decision. Asked directly, the product decision was **period of receipt**: arrears is taxed under whichever `RuleVersion` the pay run posts under (`deriveLumpSumPayslip(kind: "arrears")`, same cumulative-PAYE mechanism as bonus/13th month), with no per-earning-period `RuleVersion` pinning added. This is disclosed as a decision made without the recommended professional confirmation, not as a resolved statutory question — flag it if a real cross-regime arrears case (a rate change or band edit mid-year) comes up before that confirmation happens.
+
+A separate, undisclosed simplification rides along with this: arrears is treated exactly like bonus/13th month for pension/NHF purposes — never pensionable, never NHF-deductible — even though a real arrears payment (e.g. a late-processed raise) often represents back-pay for what would have been ordinary pensionable basic/housing/transport. Restating the pensionable/NHF position for the periods the shortfall covers isn't attempted. The one thing this build does carry forward correctly is audit context: `payslips.arrears_note`, required per employee at pay-run creation, records which period the arrears relates to and why — so that information isn't lost even though it isn't used to select a different rule version.
 
 ### Payroll reversal and correction
 

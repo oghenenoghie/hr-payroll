@@ -264,6 +264,52 @@ describe("deriveLumpSumPayslip (bonus / 13th month) — feature-backlog.md §1's
   });
 });
 
+describe("deriveLumpSumPayslip (arrears/retroactive pay, kind 'arrears') — feature-backlog.md §1's rule-version question, resolved as period of receipt", () => {
+  it("is taxed under the RuleVersion passed in (the period paid), on top of year-to-date, not a historical rule version for the period it relates to", () => {
+    const cumulativeChargeableIncomeBeforeKobo = naira(11_500_000);
+    const cumulativePayePaidBeforeKobo = computeAnnualPaye(cumulativeChargeableIncomeBeforeKobo, rv).annualPayeKobo;
+
+    const result = deriveLumpSumPayslip(
+      {
+        kind: "arrears",
+        amountKobo: naira(1_000_000),
+        cumulativeChargeableIncomeBeforeKobo,
+        cumulativePayePaidBeforeKobo,
+      },
+      rv,
+    );
+
+    const expectedPayeKobo =
+      computeAnnualPaye(naira(12_500_000), rv).annualPayeKobo -
+      computeAnnualPaye(naira(11_500_000), rv).annualPayeKobo;
+
+    expect(result.grossKobo).toBe(naira(1_000_000));
+    expect(result.payeKobo).toBe(expectedPayeKobo);
+    expect(result.netKobo).toBe(result.grossKobo - result.payeKobo);
+  });
+
+  it("is neither pensionable nor in the NHF or NSITF base — same disclosed simplification as bonus/13th month", () => {
+    const arrears = deriveLumpSumPayslip(
+      {
+        kind: "arrears",
+        amountKobo: naira(2_000_000),
+        cumulativeChargeableIncomeBeforeKobo: 0n,
+        cumulativePayePaidBeforeKobo: 0n,
+      },
+      rv,
+    );
+
+    const pension = computePension(arrears.periodComponents, rv);
+    const nhfKobo = computeNhf(arrears.periodComponents, rv);
+    const nsitf = computeNsitf([arrears.periodComponents], rv);
+
+    expect(pension.employeeKobo).toBe(0n);
+    expect(pension.employerKobo).toBe(0n);
+    expect(nhfKobo).toBe(0n);
+    expect(nsitf.totalMonthlyPayrollBaseKobo).toBe(0n);
+  });
+});
+
 describe("deriveLumpSumPayslip (final settlement: leave encashment + gratuity, kind 'one_off')", () => {
   it("a combined leave-payout + gratuity settlement that crosses a PAYE band boundary is taxed on top of year-to-date, not in isolation", () => {
     // Same band-boundary scenario as the 13th-month case, but for a

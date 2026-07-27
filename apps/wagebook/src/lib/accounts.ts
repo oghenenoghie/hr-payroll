@@ -10,6 +10,7 @@ export const ACCOUNT_LABEL: Record<string, string> = {
   overtime_pay_expense: "Overtime pay expense",
   thirteenth_month_expense: "13th month expense",
   bonus_expense: "Bonus expense",
+  arrears_expense: "Arrears expense",
   employer_pension_expense: "Employer pension expense",
   benefits_expense: "Benefits expense",
   leave_payout_expense: "Leave payout expense (final settlement)",

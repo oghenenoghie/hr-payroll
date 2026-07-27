@@ -5,7 +5,7 @@ import { useActionState } from "react";
 import { FormError, FormField, SubmitButton } from "@/components/AuthCard";
 import { createPayRun } from "./actions";
 
-type Frequency = "weekly" | "biweekly" | "monthly" | "thirteenth_month" | "bonus";
+type Frequency = "weekly" | "biweekly" | "monthly" | "thirteenth_month" | "bonus" | "arrears";
 
 export function PayRunForm({ employees }: { employees: { id: string; full_name: string }[] }) {
   const [state, formAction] = useActionState(createPayRun, null);
@@ -37,6 +37,7 @@ export function PayRunForm({ employees }: { employees: { id: string; full_name: 
           <option value="monthly">Monthly</option>
           <option value="thirteenth_month">13th Month</option>
           <option value="bonus">Bonus</option>
+          <option value="arrears">Arrears</option>
         </select>
         {frequency === "thirteenth_month" && (
           <p className="text-[11.5px] text-ink-soft">
@@ -48,6 +49,14 @@ export function PayRunForm({ employees }: { employees: { id: string; full_name: 
           <p className="text-[11.5px] text-ink-soft">
             Bonus pays whatever discretionary amount you enter per employee below, taxed on top of what they&apos;ve
             already earned this year. Leave employees you&apos;re not paying at ₦0 — they&apos;re skipped entirely.
+          </p>
+        )}
+        {frequency === "arrears" && (
+          <p className="text-[11.5px] text-ink-soft">
+            Arrears pays a back-pay amount you enter per employee — for a late-processed raise or a correction to a
+            prior run — taxed under today&apos;s rules on top of what they&apos;ve already earned this year, the same
+            way a bonus is. It isn&apos;t pensionable or NHF-deductible. A note explaining which period it relates to
+            is required for every employee you pay.
           </p>
         )}
       </div>
@@ -71,6 +80,41 @@ export function PayRunForm({ employees }: { employees: { id: string; full_name: 
                     step="0.01"
                     placeholder="0.00"
                     className="w-[140px] rounded-control border border-border bg-surface px-[10px] py-[7px] text-right text-[13px] text-ink outline-none focus:border-primary"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {frequency === "arrears" && (
+        <div className="flex flex-col gap-2">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
+            Arrears amount &amp; note per employee (₦)
+          </span>
+          {employees.length === 0 ? (
+            <p className="text-[13px] text-ink-soft">No active employees.</p>
+          ) : (
+            <div className="flex flex-col gap-3 rounded-control border border-border p-3">
+              {employees.map((employee) => (
+                <div key={employee.id} className="flex flex-col gap-1.5 border-b border-border pb-3 last:border-b-0 last:pb-0">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-[13px] text-ink">{employee.full_name}</span>
+                    <input
+                      type="number"
+                      name={`arrears_amount_${employee.id}`}
+                      min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                      className="w-[140px] rounded-control border border-border bg-surface px-[10px] py-[7px] text-right text-[13px] text-ink outline-none focus:border-primary"
+                    />
+                  </div>
+                  <input
+                    type="text"
+                    name={`arrears_note_${employee.id}`}
+                    placeholder="Which period does this relate to, and why? (required if paying this employee)"
+                    className="w-full rounded-control border border-border bg-surface px-[10px] py-[7px] text-[12.5px] text-ink outline-none focus:border-primary"
                   />
                 </div>
               ))}

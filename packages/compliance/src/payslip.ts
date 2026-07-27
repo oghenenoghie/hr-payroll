@@ -96,7 +96,7 @@ export function derivePeriodPayslip(input: PeriodPayslipInput, ruleVersion: Rule
   };
 }
 
-export type LumpSumKind = "bonus" | "thirteenth_month" | "one_off";
+export type LumpSumKind = "bonus" | "thirteenth_month" | "one_off" | "arrears";
 
 export interface LumpSumPayslipInput {
   kind: LumpSumKind;
@@ -117,8 +117,8 @@ export interface LumpSumPayslipResult {
 }
 
 /**
- * Derives a standalone lump-sum payslip — bonus, 13th month, or a final
- * settlement's combined leave-encashment + gratuity payout (kind
+ * Derives a standalone lump-sum payslip — bonus, 13th month, arrears, or a
+ * final settlement's combined leave-encashment + gratuity payout (kind
  * "one_off") — added whole to this period (no proration by frequency,
  * unlike derivePeriodPayslip), taxed via the same cumulative-PAYE
  * mechanism so it correctly pushes the employee's year-to-date position
@@ -127,6 +127,18 @@ export interface LumpSumPayslipResult {
  * both the 13th-month scenario and "termination payments: gratuity is
  * taxable under the new Act").
  *
+ * Arrears ("kind: arrears") is retroactive pay — a shortfall from a prior
+ * period being paid out now (a late-processed raise, a corrected payroll
+ * error). feature-backlog.md §1 flagged an open statutory question here:
+ * whether arrears should be taxed under the rules in force when *earned*
+ * or when *paid*. Resolved (by product decision, not yet confirmed
+ * against a Nigerian tax professional) as period of receipt — arrears is
+ * taxed under whichever RuleVersion is passed in here, same as every
+ * other lump sum, rather than reaching back to a historical rule version
+ * for the period the pay related to. That period/reason is instead
+ * recorded as a free-text note on the payslip (see arrears_note in the
+ * pay-run migration) — audit context, not a second tax calculation.
+ *
  * Deliberately not pensionable and outside the NHF base: the component is
  * tagged with `kind` (never "regular") and coded to match, so
  * computePension (basic/housing/transport only) and computeNhf (basic
@@ -134,7 +146,11 @@ export interface LumpSumPayslipResult {
  * and the same tag excludes it from computeNsitf's base at the caller's
  * org-level aggregation. No rent relief either: relief is already fully
  * allocated across the employee's regular periods this year: applying it
- * again here would double-count it.
+ * again here would double-count it. For arrears this is itself a
+ * disclosed simplification: if the shortfall being repaid was itself
+ * pensionable/NHF-able regular pay (e.g. a retroactive basic-salary
+ * raise), the statutorily precise treatment would restate those prior
+ * periods' pension/NHF too — not attempted here.
  */
 export function deriveLumpSumPayslip(input: LumpSumPayslipInput, ruleVersion: RuleVersion): LumpSumPayslipResult {
   const periodComponents: PayComponent[] = [{ code: input.kind, amountKobo: input.amountKobo, kind: input.kind }];

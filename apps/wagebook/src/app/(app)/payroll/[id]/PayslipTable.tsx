@@ -114,6 +114,12 @@ function DerivationDetail({ slip, ruleVersion }: { slip: PayslipRow; ruleVersion
 
   return (
     <div className="flex flex-col gap-4 text-[12.5px]">
+      {slip.arrears_note && (
+        <div>
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Arrears note</span>
+          <p className="mt-1 text-ink">{slip.arrears_note}</p>
+        </div>
+      )}
       {(taxableReimbursementKobo > 0n ||
         nonTaxableReimbursementKobo > 0n ||
         unpaidLeaveDeductionKobo > 0n ||

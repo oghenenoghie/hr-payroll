@@ -1561,6 +1561,7 @@ export type Database = {
       }
       payslips: {
         Row: {
+          arrears_note: string | null
           attendance_absence_deduction_kobo: number
           benefit_employee_deduction_kobo: number
           benefit_employer_cost_kobo: number
@@ -1590,6 +1591,7 @@ export type Database = {
           unpaid_leave_deduction_kobo: number
         }
         Insert: {
+          arrears_note?: string | null
           attendance_absence_deduction_kobo?: number
           benefit_employee_deduction_kobo?: number
           benefit_employer_cost_kobo?: number
@@ -1619,6 +1621,7 @@ export type Database = {
           unpaid_leave_deduction_kobo?: number
         }
         Update: {
+          arrears_note?: string | null
           attendance_absence_deduction_kobo?: number
           benefit_employee_deduction_kobo?: number
           benefit_employer_cost_kobo?: number
