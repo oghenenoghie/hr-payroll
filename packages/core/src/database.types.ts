@@ -1883,6 +1883,10 @@ export type Database = {
       }
     }
     Functions: {
+      apply_org_wide_raise: {
+        Args: { p_org_id: string; p_raise_percent: number }
+        Returns: number
+      }
       approve_pay_run: {
         Args: { p_pay_run_id: string }
         Returns: {

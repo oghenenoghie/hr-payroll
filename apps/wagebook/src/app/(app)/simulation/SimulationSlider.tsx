@@ -1,9 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
 import { NG_2026_1, computeAnnualPaye, computePension, deriveChargeableIncome, computeNhf } from "@plutus/compliance";
 import type { PayComponent } from "@plutus/compliance";
 import { formatKobo } from "@/lib/format";
+import { FormError, FormNotice } from "@/components/AuthCard";
+import { applyRaise } from "./actions";
 
 interface EmployeeBase {
   id: string;
@@ -52,8 +54,9 @@ function scenarioAt(employees: EmployeeBase[], multiplier: number): ScenarioTota
   return { grossKobo, payeKobo, employerPensionKobo };
 }
 
-export function SimulationSlider({ employees }: { employees: EmployeeBase[] }) {
+export function SimulationSlider({ employees, isAdmin }: { employees: EmployeeBase[]; isAdmin: boolean }) {
   const [raisePercent, setRaisePercent] = useState(0);
+  const [applyState, applyFormAction] = useActionState(applyRaise, null);
 
   const baseline = useMemo(() => scenarioAt(employees, 1), [employees]);
   const projected = useMemo(() => scenarioAt(employees, 1 + raisePercent / 100), [employees, raisePercent]);
@@ -100,6 +103,29 @@ export function SimulationSlider({ employees }: { employees: EmployeeBase[] }) {
           afterKobo={projected.employerPensionKobo}
         />
       </div>
+
+      {isAdmin && (
+        <div className="rounded-card border border-border bg-surface p-6">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Apply this raise</span>
+          <p className="mt-2 text-[13px] text-ink-soft">
+            Scales basic, housing and transport by {raisePercent}% for all {employees.length} active employees shown
+            above — a real change to their contractual pay, logged to each employee&apos;s compensation history and
+            notified to their own account. This is not a pay run: nothing is paid out until you create one.
+          </p>
+          <form action={applyFormAction} className="mt-3 flex flex-col gap-3">
+            <FormError message={applyState?.error} />
+            <FormNotice message={applyState?.success} />
+            <input type="hidden" name="raisePercent" value={raisePercent} />
+            <button
+              type="submit"
+              disabled={raisePercent === 0}
+              className="w-full rounded-button bg-primary px-[22px] py-[11px] text-[13px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Apply {raisePercent}% raise to {employees.length} employees
+            </button>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

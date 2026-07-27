@@ -43,6 +43,7 @@ export default async function SimulationPage() {
           transportKobo: e.transport_kobo,
           annualRentKobo: e.annual_rent_kobo,
         }))}
+        isAdmin={membership?.role === "admin"}
       />
     </div>
   );
