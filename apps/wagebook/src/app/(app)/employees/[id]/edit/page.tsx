@@ -143,7 +143,11 @@ export default async function EditEmployeePage({ params }: { params: Promise<{ i
         <div className="rounded-card border border-border bg-surface p-6">
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Onboarding checklist</span>
           <div className="mt-3">
-            <OnboardingChecklistForm employeeId={employee.id!} checklist={onboardingChecklist} />
+            <OnboardingChecklistForm
+              employeeId={employee.id!}
+              checklist={onboardingChecklist}
+              hasDocuments={documents.length > 0}
+            />
           </div>
         </div>
       )}

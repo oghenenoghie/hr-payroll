@@ -254,11 +254,27 @@ export async function saveOnboardingChecklist(
     return { error: "You don't have permission to update the onboarding checklist." };
   }
 
+  const documentationCollected = formData.get("documentation_collected") === "true";
+
+  // "Documentation collected" means an actual file exists — never a bare
+  // attestation. The database trigger enforces this as a backstop for any
+  // other write path; this check exists just to give a clean error instead
+  // of a raw Postgres exception message.
+  if (documentationCollected) {
+    const { count } = await supabase
+      .from("employee_documents")
+      .select("id", { count: "exact", head: true })
+      .eq("employee_id", employeeId);
+    if (!count) {
+      return { error: "Upload at least one document above before marking documentation as collected." };
+    }
+  }
+
   const { error } = await supabase.from("employee_onboarding_checklist").upsert(
     {
       org_id: membership.orgId,
       employee_id: employeeId,
-      documentation_collected: formData.get("documentation_collected") === "true",
+      documentation_collected: documentationCollected,
       contract_signed: formData.get("contract_signed") === "true",
       updated_at: new Date().toISOString(),
       updated_by: user.id,

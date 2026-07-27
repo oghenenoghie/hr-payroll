@@ -9,7 +9,15 @@ type Checklist = {
   contract_signed: boolean;
 } | null;
 
-export function OnboardingChecklistForm({ employeeId, checklist }: { employeeId: string; checklist: Checklist }) {
+export function OnboardingChecklistForm({
+  employeeId,
+  checklist,
+  hasDocuments,
+}: {
+  employeeId: string;
+  checklist: Checklist;
+  hasDocuments: boolean;
+}) {
   const [state, formAction] = useActionState(
     (prevState: SaveOnboardingChecklistState, formData: FormData) =>
       saveOnboardingChecklist(employeeId, prevState, formData),
@@ -31,18 +39,28 @@ export function OnboardingChecklistForm({ employeeId, checklist }: { employeeId:
       </p>
       <form action={formAction} className="flex flex-col gap-3">
         <FormError message={state?.error} />
-        {items.map((item) => (
-          <label key={item.key} className="flex items-center gap-2 text-[13px] text-ink">
-            <input
-              type="checkbox"
-              name={item.key}
-              value="true"
-              defaultChecked={checklist?.[item.key] ?? false}
-              className="h-4 w-4"
-            />
-            {item.label}
-          </label>
-        ))}
+        {items.map((item) => {
+          const isDocumentation = item.key === "documentation_collected";
+          const disabled = isDocumentation && !hasDocuments && !checklist?.[item.key];
+          return (
+            <div key={item.key} className="flex flex-col gap-1">
+              <label className="flex items-center gap-2 text-[13px] text-ink">
+                <input
+                  type="checkbox"
+                  name={item.key}
+                  value="true"
+                  defaultChecked={checklist?.[item.key] ?? false}
+                  disabled={disabled}
+                  className="h-4 w-4 disabled:cursor-not-allowed disabled:opacity-50"
+                />
+                {item.label}
+              </label>
+              {disabled && (
+                <span className="pl-6 text-[12px] text-ink-soft">Upload a document above first.</span>
+              )}
+            </div>
+          );
+        })}
         <span className="text-[12px] text-ink-soft">{doneCount} of {items.length} steps done</span>
         <SubmitButton>Save checklist</SubmitButton>
       </form>
