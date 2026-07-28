@@ -49,6 +49,7 @@ export default async function SecurityPage() {
         userId: m.user_id,
         role: m.role,
         email: data.user?.email ?? "—",
+        fullName: (data.user?.user_metadata?.full_name as string | undefined) ?? null,
         mfaEnabled: hasVerifiedTotp,
       };
     }),
@@ -63,6 +64,9 @@ export default async function SecurityPage() {
           Two-factor authentication is required for Admin and Payroll Manager — those accounts are gated into
           setup on their next sign-in until they enroll.
         </p>
+        <Link href="/security/new" className="mt-2 w-fit text-[13px] font-bold text-primary">
+          + Add team member
+        </Link>
       </header>
 
       <div className="overflow-x-auto rounded-card border border-border bg-surface">
@@ -77,7 +81,10 @@ export default async function SecurityPage() {
           <tbody>
             {rows.map((row) => (
               <tr key={row.userId} className="border-b border-border last:border-b-0">
-                <td className={`${tdClass} font-bold text-ink`}>{row.email}</td>
+                <td className={tdClass}>
+                  <div className="font-bold text-ink">{row.fullName ?? row.email}</div>
+                  {row.fullName && <div className="text-ink-soft">{row.email}</div>}
+                </td>
                 <td className={`${tdClass} text-ink-soft`}>{ROLE_LABEL[row.role] ?? row.role}</td>
                 <td className={`${tdClass} text-center`}>
                   {row.mfaEnabled ? (

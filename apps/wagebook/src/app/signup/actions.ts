@@ -6,11 +6,20 @@ import { createClient } from "@/lib/supabase/server";
 export type SignUpState = { error?: string } | null;
 
 export async function signUp(_prevState: SignUpState, formData: FormData): Promise<SignUpState> {
+  const fullName = String(formData.get("full_name") ?? "").trim();
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
 
+  if (!fullName) {
+    return { error: "Full name is required." };
+  }
+
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { full_name: fullName } },
+  });
 
   if (error) {
     return { error: error.message };

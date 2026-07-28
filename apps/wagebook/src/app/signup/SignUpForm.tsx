@@ -12,6 +12,7 @@ export function SignUpForm() {
     <>
       <form action={formAction} className="flex flex-col gap-4">
         <FormError message={state?.error} />
+        <FormField label="Full name" name="full_name" type="text" />
         <FormField label="Email" name="email" type="email" />
         <FormField label="Password" name="password" type="password" />
         <SubmitButton>Continue</SubmitButton>
