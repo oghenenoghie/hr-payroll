@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { SectionKey } from "@/lib/nav-sections";
 
 type NavItem = { href: string; label: string };
 type NavGroup = { heading?: string; items: NavItem[] };
 
 const OVERVIEW_ITEM: NavItem = { href: "/dashboard", label: "Overview" };
+const EMPLOYEE_OVERVIEW_ITEM: NavItem = { href: "/me", label: "Overview" };
 
 const WORKFORCE_ITEMS: NavItem[] = [
   { href: "/employees", label: "Employees" },
@@ -47,34 +49,49 @@ const MANAGER_NAV_ITEM: NavItem = { href: "/team", label: "My Team" };
 const SECURITY_NAV_ITEM: NavItem = { href: "/security", label: "Security & Access" };
 const INTEGRATIONS_NAV_ITEM: NavItem = { href: "/integrations", label: "Integrations" };
 
-const EMPLOYEE_NAV_ITEMS: NavItem[] = [{ href: "/me", label: "Overview" }];
-
-function buildAdminGroups(isManager: boolean, isAdmin: boolean): NavGroup[] {
-  const workforce = isManager ? [...WORKFORCE_ITEMS, MANAGER_NAV_ITEM] : WORKFORCE_ITEMS;
-  const company = isAdmin ? [...COMPANY_ITEMS, INTEGRATIONS_NAV_ITEM, SECURITY_NAV_ITEM] : COMPANY_ITEMS;
-
-  return [
-    { items: [OVERVIEW_ITEM] },
-    { heading: "Workforce", items: workforce },
-    { heading: "Payroll", items: PAYROLL_ITEMS },
-    { heading: "Requests", items: REQUESTS_ITEMS },
-    { heading: "Company", items: company },
-    { heading: "Tools", items: TOOLS_ITEMS },
-  ];
-}
-
 export function SidebarNav({
   role,
+  sections,
   isManager = false,
   unreadNotifications = 0,
 }: {
   role?: string;
+  sections: SectionKey[];
   isManager?: boolean;
   unreadNotifications?: number;
 }) {
   const pathname = usePathname();
-  const groups: NavGroup[] =
-    role === "employee" ? [{ items: EMPLOYEE_NAV_ITEMS }] : buildAdminGroups(isManager, role === "admin");
+  const has = (section: SectionKey) => sections.includes(section);
+
+  const groups: NavGroup[] = [{ items: [role === "employee" ? EMPLOYEE_OVERVIEW_ITEM : OVERVIEW_ITEM] }];
+
+  if (has("workforce")) {
+    groups.push({
+      heading: "Workforce",
+      items: isManager ? [...WORKFORCE_ITEMS, MANAGER_NAV_ITEM] : WORKFORCE_ITEMS,
+    });
+  } else if (isManager) {
+    groups.push({ heading: "Team", items: [MANAGER_NAV_ITEM] });
+  }
+
+  if (has("payroll")) {
+    groups.push({ heading: "Payroll", items: PAYROLL_ITEMS });
+  }
+
+  if (has("requests")) {
+    groups.push({ heading: "Requests", items: REQUESTS_ITEMS });
+  }
+
+  if (has("company")) {
+    // Security & Access (and Integrations alongside it) stays tied to the
+    // actual admin role, not the per-user section toggle — granting it to
+    // anyone else would only show a link that redirects them straight back
+    // out, since the page itself checks role, not this nav.
+    const companyItems = role === "admin" ? [...COMPANY_ITEMS, INTEGRATIONS_NAV_ITEM, SECURITY_NAV_ITEM] : COMPANY_ITEMS;
+    groups.push({ heading: "Company", items: companyItems });
+  }
+
+  groups.push({ heading: "Tools", items: TOOLS_ITEMS });
 
   return (
     <nav className="flex flex-col gap-4">

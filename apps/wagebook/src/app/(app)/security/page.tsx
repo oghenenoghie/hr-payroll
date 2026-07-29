@@ -72,6 +72,7 @@ export default async function SecurityPage() {
               <th className={`${thClass} text-left`}>Member</th>
               <th className={`${thClass} text-right`}>Role</th>
               <th className={`${thClass} text-center`}>Two-factor authentication</th>
+              <th className={thClass}></th>
             </tr>
           </thead>
           <tbody>
@@ -92,6 +93,11 @@ export default async function SecurityPage() {
                   ) : (
                     <Badge tone="neutral">Not enabled</Badge>
                   )}
+                </td>
+                <td className={`${tdClass} text-right`}>
+                  <Link href={`/security/${row.userId}`} className="font-bold text-primary">
+                    Access
+                  </Link>
                 </td>
               </tr>
             ))}

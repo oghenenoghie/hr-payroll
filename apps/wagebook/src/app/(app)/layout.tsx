@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
+import { resolveNavSections } from "@/lib/nav-sections";
 import { AppShell } from "./AppShell";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -68,9 +69,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .eq("recipient_user_id", user.id)
     .is("read_at", null);
 
+  const sections = await resolveNavSections(supabase, membership.orgId, user.id, membership.role);
+
   return (
     <AppShell
       role={membership.role}
+      sections={sections}
       isManager={isManager}
       unreadNotifications={unreadNotifications ?? 0}
       orgName={membership.orgName ?? "Your organization"}

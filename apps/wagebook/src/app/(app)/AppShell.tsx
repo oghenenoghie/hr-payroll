@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { usePathname } from "next/navigation";
+import type { SectionKey } from "@/lib/nav-sections";
 import { signOut } from "./dashboard/actions";
 import { SidebarNav } from "./SidebarNav";
 
@@ -14,12 +15,14 @@ const ROLE_LABEL: Record<string, string> = {
 
 export function AppShell({
   role,
+  sections,
   isManager,
   unreadNotifications,
   orgName,
   children,
 }: {
   role?: string;
+  sections: SectionKey[];
   isManager: boolean;
   unreadNotifications: number;
   orgName: string;
@@ -94,7 +97,7 @@ export function AppShell({
               </svg>
             </button>
           </div>
-          <SidebarNav role={role} isManager={isManager} unreadNotifications={unreadNotifications} />
+          <SidebarNav role={role} sections={sections} isManager={isManager} unreadNotifications={unreadNotifications} />
         </div>
 
         <div className="flex flex-col gap-3 border-t border-primary px-2 pt-4">
