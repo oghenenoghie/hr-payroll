@@ -216,9 +216,14 @@ export default async function EmployeesPage({
                     />
                   </td>
                   <td className={`${tdClass} text-right`}>
-                    <Link href={`/employees/${employee.id}/edit`} className="font-bold text-primary">
-                      Edit
-                    </Link>
+                    <div className="flex justify-end gap-3">
+                      <Link href={`/employees/${employee.id}`} className="font-bold text-primary">
+                        View
+                      </Link>
+                      <Link href={`/employees/${employee.id}/edit`} className="font-bold text-primary">
+                        Edit
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))
