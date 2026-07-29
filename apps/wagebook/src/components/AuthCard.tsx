@@ -25,12 +25,20 @@ export function FormField({
   type = "text",
   required = true,
   defaultValue,
+  value,
+  onChange,
 }: {
   label: string;
   name: string;
   type?: string;
   required?: boolean;
   defaultValue?: string;
+  // Pass value+onChange (instead of defaultValue) on a form where a failed
+  // submission needs to preserve what was typed — React resets uncontrolled
+  // fields once a form action settles, success or not, so an uncontrolled
+  // field on a long form silently throws away everything on one bad field.
+  value?: string;
+  onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -42,7 +50,7 @@ export function FormField({
         name={name}
         type={type}
         required={required}
-        defaultValue={defaultValue}
+        {...(onChange ? { value: value ?? "", onChange } : { defaultValue })}
         className="w-full rounded-control border border-border bg-surface px-[13px] py-[11px] text-[13px] text-ink outline-none focus:border-primary"
       />
     </div>
