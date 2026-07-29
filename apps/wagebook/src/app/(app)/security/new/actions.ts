@@ -139,14 +139,20 @@ export async function createTeamMember(
       p_user_id: created.user.id,
     });
     if (linkError) {
-      return { error: `Account created, but linking it to the employee record failed: ${linkError.message}` };
+      // Roll back the auth user rather than leaving it orphaned — otherwise
+      // every retry hits "email already registered" at createUser above,
+      // with the employee record still showing as unlinked and no way to
+      // fix it short of deleting the stray account by hand in Supabase.
+      await admin.auth.admin.deleteUser(created.user.id);
+      return { error: `Couldn't link this account to the employee record: ${linkError.message}` };
     }
   } else {
     const { error: membershipError } = await supabase
       .from("org_memberships")
       .insert({ org_id: membership.orgId, user_id: created.user.id, role });
     if (membershipError) {
-      return { error: `Account created, but granting access failed: ${membershipError.message}` };
+      await admin.auth.admin.deleteUser(created.user.id);
+      return { error: `Couldn't grant access: ${membershipError.message}` };
     }
   }
 
