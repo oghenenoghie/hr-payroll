@@ -1813,6 +1813,38 @@ export type Database = {
           },
         ]
       }
+      user_nav_overrides: {
+        Row: {
+          org_id: string
+          user_id: string
+          section_key: string
+          enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          org_id: string
+          user_id: string
+          section_key: string
+          enabled: boolean
+          updated_at?: string
+        }
+        Update: {
+          org_id?: string
+          user_id?: string
+          section_key?: string
+          enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_nav_overrides_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       employees_masked: {
