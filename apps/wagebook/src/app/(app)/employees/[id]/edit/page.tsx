@@ -2,8 +2,8 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
+import { Badge } from "@/components/Badge";
 import { EditEmployeeForm } from "./EditEmployeeForm";
-import { InviteAccountPanel } from "./InviteAccountPanel";
 import { OffboardingChecklistForm } from "./OffboardingChecklistForm";
 import { OnboardingChecklistForm } from "./OnboardingChecklistForm";
 import { EmployeeDocumentsPanel } from "./EmployeeDocumentsPanel";
@@ -119,7 +119,22 @@ export default async function EditEmployeePage({ params }: { params: Promise<{ i
         />
       </div>
       <div className="rounded-card border border-border bg-surface p-6">
-        <InviteAccountPanel employeeId={employee.id!} email={employee.email} linkedAt={employee.linked_at} />
+        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Employee account</span>
+        {employee.linked_at ? (
+          <div className="mt-3 flex items-center gap-2">
+            <Badge tone="good">Linked</Badge>
+            <span className="text-[12.5px] text-ink-soft">
+              {employee.email} · since {new Date(employee.linked_at).toLocaleDateString("en-NG")}
+            </span>
+          </div>
+        ) : (
+          <p className="mt-3 text-[13px] text-ink-soft">
+            No login yet.{" "}
+            <Link href="/security/new" className="font-bold text-primary">
+              Create one from Security &amp; Access →
+            </Link>
+          </p>
+        )}
       </div>
       <div className="rounded-card border border-border bg-surface p-6">
         <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Documents</span>
