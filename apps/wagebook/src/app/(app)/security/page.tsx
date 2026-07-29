@@ -4,13 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getMembership } from "@/lib/membership";
 import { Badge } from "@/components/Badge";
-
-const ROLE_LABEL: Record<string, string> = {
-  admin: "Admin",
-  payroll_manager: "Payroll Manager",
-  hr_manager: "HR Manager",
-  employee: "Employee",
-};
+import { MemberRoleForm } from "./MemberRoleForm";
 
 const MFA_REQUIRED_ROLES = new Set(["admin", "payroll_manager"]);
 
@@ -74,7 +68,7 @@ export default async function SecurityPage() {
           <thead>
             <tr className="border-b border-border">
               <th className={`${thClass} text-left`}>Member</th>
-              <th className={`${thClass} text-left`}>Role</th>
+              <th className={`${thClass} text-right`}>Role</th>
               <th className={`${thClass} text-center`}>Two-factor authentication</th>
             </tr>
           </thead>
@@ -85,7 +79,9 @@ export default async function SecurityPage() {
                   <div className="font-bold text-ink">{row.fullName ?? row.email}</div>
                   {row.fullName && <div className="text-ink-soft">{row.email}</div>}
                 </td>
-                <td className={`${tdClass} text-ink-soft`}>{ROLE_LABEL[row.role] ?? row.role}</td>
+                <td className={tdClass}>
+                  <MemberRoleForm userId={row.userId} currentRole={row.role} />
+                </td>
                 <td className={`${tdClass} text-center`}>
                   {row.mfaEnabled ? (
                     <Badge tone="good">Enabled</Badge>

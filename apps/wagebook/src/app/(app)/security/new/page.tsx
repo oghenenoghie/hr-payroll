@@ -18,6 +18,13 @@ export default async function NewTeamMemberPage() {
     redirect("/dashboard");
   }
 
+  const { data: unlinkedEmployees } = await supabase
+    .from("employees")
+    .select("id, full_name, email")
+    .eq("org_id", membership.orgId)
+    .is("user_id", null)
+    .order("full_name");
+
   return (
     <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 px-6 py-10">
       <header className="flex flex-col gap-1">
@@ -29,7 +36,7 @@ export default async function NewTeamMemberPage() {
         </p>
       </header>
 
-      <NewMemberForm />
+      <NewMemberForm unlinkedEmployees={unlinkedEmployees ?? []} />
     </div>
   );
 }
