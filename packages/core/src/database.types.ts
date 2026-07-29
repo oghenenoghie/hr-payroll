@@ -564,6 +564,7 @@ export type Database = {
           date_of_birth: string | null
           department_id: string | null
           email: string | null
+          employee_id: string | null
           employment_type: string
           full_name: string
           hire_date: string | null
@@ -601,6 +602,7 @@ export type Database = {
           date_of_birth?: string | null
           department_id?: string | null
           email?: string | null
+          employee_id?: string | null
           employment_type?: string
           full_name: string
           hire_date?: string | null
@@ -638,6 +640,7 @@ export type Database = {
           date_of_birth?: string | null
           department_id?: string | null
           email?: string | null
+          employee_id?: string | null
           employment_type?: string
           full_name?: string
           hire_date?: string | null
@@ -1343,6 +1346,13 @@ export type Database = {
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "org_memberships_role_fkey"
+            columns: ["role"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["key"]
+          },
         ]
       }
       organizations: {
@@ -1734,6 +1744,75 @@ export type Database = {
           },
         ]
       }
+      roles: {
+        Row: {
+          key: string
+          label: string
+          mfa_required: boolean
+          sort_order: number
+        }
+        Insert: {
+          key: string
+          label: string
+          mfa_required?: boolean
+          sort_order: number
+        }
+        Update: {
+          key?: string
+          label?: string
+          mfa_required?: boolean
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      permissions: {
+        Row: {
+          key: string
+          label: string
+          module: string
+        }
+        Insert: {
+          key: string
+          label: string
+          module: string
+        }
+        Update: {
+          key?: string
+          label?: string
+          module?: string
+        }
+        Relationships: []
+      }
+      role_permissions: {
+        Row: {
+          permission_key: string
+          role_key: string
+        }
+        Insert: {
+          permission_key: string
+          role_key: string
+        }
+        Update: {
+          permission_key?: string
+          role_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_role_key_fkey"
+            columns: ["role_key"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "role_permissions_permission_key_fkey"
+            columns: ["permission_key"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
     }
     Views: {
       employees_masked: {
@@ -1753,6 +1832,7 @@ export type Database = {
           department_id: string | null
           department_name: string | null
           email: string | null
+          employee_id: string | null
           employment_type: string | null
           full_name: string | null
           hire_date: string | null
@@ -1995,6 +2075,7 @@ export type Database = {
           date_of_birth: string | null
           department_id: string | null
           email: string | null
+          employee_id: string | null
           employment_type: string
           full_name: string
           hire_date: string | null

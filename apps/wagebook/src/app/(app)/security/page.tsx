@@ -4,15 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getMembership } from "@/lib/membership";
 import { Badge } from "@/components/Badge";
-
-const ROLE_LABEL: Record<string, string> = {
-  admin: "Admin",
-  payroll_manager: "Payroll Manager",
-  hr_manager: "HR Manager",
-  employee: "Employee",
-};
-
-const MFA_REQUIRED_ROLES = new Set(["admin", "payroll_manager"]);
+import { MemberRoleForm } from "./MemberRoleForm";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const tdClass = "px-3 py-[10px] text-[13px]";
@@ -32,6 +24,10 @@ export default async function SecurityPage() {
     redirect("/dashboard");
   }
 
+  const { data: roles } = await supabase.from("roles").select("key, label, mfa_required").order("sort_order");
+  const mfaRequiredRoles = new Set((roles ?? []).filter((r) => r.mfa_required).map((r) => r.key));
+  const mfaRequiredLabels = (roles ?? []).filter((r) => r.mfa_required).map((r) => r.label);
+
   const { data: memberships } = await supabase
     .from("org_memberships")
     .select("user_id, role, created_at")
@@ -49,6 +45,7 @@ export default async function SecurityPage() {
         userId: m.user_id,
         role: m.role,
         email: data.user?.email ?? "—",
+        fullName: (data.user?.user_metadata?.full_name as string | undefined) ?? null,
         mfaEnabled: hasVerifiedTotp,
       };
     }),
@@ -60,9 +57,12 @@ export default async function SecurityPage() {
         <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Security &amp; Access</span>
         <h1 className="text-[22px] font-extrabold text-ink">Role-based access and MFA, at a glance</h1>
         <p className="text-[13px] text-ink-soft">
-          Two-factor authentication is required for Admin and Payroll Manager — those accounts are gated into
-          setup on their next sign-in until they enroll.
+          Two-factor authentication is required for {mfaRequiredLabels.join(" and ")} — those accounts are gated
+          into setup on their next sign-in until they enroll.
         </p>
+        <Link href="/security/new" className="mt-2 w-fit text-[13px] font-bold text-primary">
+          + Add team member
+        </Link>
       </header>
 
       <div className="overflow-x-auto rounded-card border border-border bg-surface">
@@ -70,19 +70,24 @@ export default async function SecurityPage() {
           <thead>
             <tr className="border-b border-border">
               <th className={`${thClass} text-left`}>Member</th>
-              <th className={`${thClass} text-left`}>Role</th>
+              <th className={`${thClass} text-right`}>Role</th>
               <th className={`${thClass} text-center`}>Two-factor authentication</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => (
               <tr key={row.userId} className="border-b border-border last:border-b-0">
-                <td className={`${tdClass} font-bold text-ink`}>{row.email}</td>
-                <td className={`${tdClass} text-ink-soft`}>{ROLE_LABEL[row.role] ?? row.role}</td>
+                <td className={tdClass}>
+                  <div className="font-bold text-ink">{row.fullName ?? row.email}</div>
+                  {row.fullName && <div className="text-ink-soft">{row.email}</div>}
+                </td>
+                <td className={tdClass}>
+                  <MemberRoleForm userId={row.userId} currentRole={row.role} roles={roles ?? []} />
+                </td>
                 <td className={`${tdClass} text-center`}>
                   {row.mfaEnabled ? (
                     <Badge tone="good">Enabled</Badge>
-                  ) : MFA_REQUIRED_ROLES.has(row.role) ? (
+                  ) : mfaRequiredRoles.has(row.role) ? (
                     <Badge tone="bad">Required — not set up</Badge>
                   ) : (
                     <Badge tone="neutral">Not enabled</Badge>
