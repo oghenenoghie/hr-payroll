@@ -25,6 +25,8 @@ export default async function NewTeamMemberPage() {
     .is("user_id", null)
     .order("full_name");
 
+  const { data: roles } = await supabase.from("roles").select("key, label").order("sort_order");
+
   return (
     <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 px-6 py-10">
       <header className="flex flex-col gap-1">
@@ -36,7 +38,7 @@ export default async function NewTeamMemberPage() {
         </p>
       </header>
 
-      <NewMemberForm unlinkedEmployees={unlinkedEmployees ?? []} />
+      <NewMemberForm unlinkedEmployees={unlinkedEmployees ?? []} roles={roles ?? []} />
     </div>
   );
 }

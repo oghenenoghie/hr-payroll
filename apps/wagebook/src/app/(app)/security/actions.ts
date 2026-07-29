@@ -7,8 +7,6 @@ import { getMembership } from "@/lib/membership";
 
 export type UpdateRoleState = { error?: string } | null;
 
-const ASSIGNABLE_ROLES = new Set(["admin", "payroll_manager", "hr_manager", "employee"]);
-
 export async function updateMemberRole(
   targetUserId: string,
   _prevState: UpdateRoleState,
@@ -29,8 +27,8 @@ export async function updateMemberRole(
   }
 
   const newRole = String(formData.get("role") ?? "");
-  if (!ASSIGNABLE_ROLES.has(newRole)) {
-    return { error: "Choose a valid role." };
+  if (!newRole) {
+    return { error: "Choose a role." };
   }
 
   const { data: target } = await supabase
@@ -64,7 +62,9 @@ export async function updateMemberRole(
     .eq("user_id", targetUserId);
 
   if (error) {
-    return { error: error.message };
+    // 23503: foreign key violation — newRole isn't a key in `roles`, the
+    // database's own guarantee now that org_memberships.role -> roles.key.
+    return { error: error.code === "23503" ? "Choose a valid role." : error.message };
   }
 
   revalidatePath("/security");

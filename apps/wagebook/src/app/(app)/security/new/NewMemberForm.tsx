@@ -7,18 +7,18 @@ import { FormError, FormField, SubmitButton } from "@/components/AuthCard";
 import { createTeamMember, type CreateTeamMemberState } from "./actions";
 
 type UnlinkedEmployee = { id: string; full_name: string; email: string | null };
+type Role = { key: string; label: string };
 
-const ROLE_OPTIONS = [
-  { value: "employee", label: "Staff (Employee)" },
-  { value: "payroll_manager", label: "Payroll Manager" },
-  { value: "hr_manager", label: "HR Manager" },
-  { value: "admin", label: "Admin" },
-];
-
-export function NewMemberForm({ unlinkedEmployees }: { unlinkedEmployees: UnlinkedEmployee[] }) {
+export function NewMemberForm({
+  unlinkedEmployees,
+  roles,
+}: {
+  unlinkedEmployees: UnlinkedEmployee[];
+  roles: Role[];
+}) {
   const [state, formAction] = useActionState<CreateTeamMemberState, FormData>(createTeamMember, null);
   const [copied, setCopied] = useState(false);
-  const [role, setRole] = useState("employee");
+  const [role, setRole] = useState(roles.find((r) => r.key === "employee")?.key ?? roles[0]?.key ?? "employee");
   const [employeeId, setEmployeeId] = useState(unlinkedEmployees[0]?.id ?? "");
 
   if (state && "success" in state) {
@@ -67,9 +67,9 @@ export function NewMemberForm({ unlinkedEmployees }: { unlinkedEmployees: Unlink
           onChange={(event) => setRole(event.target.value)}
           className="w-full rounded-control border border-border bg-surface px-[13px] py-[11px] text-[13px] text-ink outline-none focus:border-primary"
         >
-          {ROLE_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
+          {roles.map((option) => (
+            <option key={option.key} value={option.key}>
+              {option.key === "employee" ? "Staff (Employee)" : option.label}
             </option>
           ))}
         </select>

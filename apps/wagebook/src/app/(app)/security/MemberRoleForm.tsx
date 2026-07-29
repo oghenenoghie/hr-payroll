@@ -3,14 +3,17 @@
 import { useActionState } from "react";
 import { updateMemberRole, type UpdateRoleState } from "./actions";
 
-const ROLE_OPTIONS = [
-  { value: "admin", label: "Admin" },
-  { value: "payroll_manager", label: "Payroll Manager" },
-  { value: "hr_manager", label: "HR Manager" },
-  { value: "employee", label: "Employee" },
-];
+type Role = { key: string; label: string };
 
-export function MemberRoleForm({ userId, currentRole }: { userId: string; currentRole: string }) {
+export function MemberRoleForm({
+  userId,
+  currentRole,
+  roles,
+}: {
+  userId: string;
+  currentRole: string;
+  roles: Role[];
+}) {
   const [state, formAction] = useActionState<UpdateRoleState, FormData>(
     (prevState, formData) => updateMemberRole(userId, prevState, formData),
     null,
@@ -24,9 +27,9 @@ export function MemberRoleForm({ userId, currentRole }: { userId: string; curren
         defaultValue={currentRole}
         className="rounded-control border border-border bg-surface px-2 py-1 text-[12.5px] text-ink outline-none focus:border-primary"
       >
-        {ROLE_OPTIONS.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
+        {roles.map((role) => (
+          <option key={role.key} value={role.key}>
+            {role.label}
           </option>
         ))}
       </select>

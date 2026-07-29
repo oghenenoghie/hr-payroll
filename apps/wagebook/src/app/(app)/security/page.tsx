@@ -6,8 +6,6 @@ import { getMembership } from "@/lib/membership";
 import { Badge } from "@/components/Badge";
 import { MemberRoleForm } from "./MemberRoleForm";
 
-const MFA_REQUIRED_ROLES = new Set(["admin", "payroll_manager"]);
-
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const tdClass = "px-3 py-[10px] text-[13px]";
 
@@ -25,6 +23,10 @@ export default async function SecurityPage() {
   if (membership?.role !== "admin") {
     redirect("/dashboard");
   }
+
+  const { data: roles } = await supabase.from("roles").select("key, label, mfa_required").order("sort_order");
+  const mfaRequiredRoles = new Set((roles ?? []).filter((r) => r.mfa_required).map((r) => r.key));
+  const mfaRequiredLabels = (roles ?? []).filter((r) => r.mfa_required).map((r) => r.label);
 
   const { data: memberships } = await supabase
     .from("org_memberships")
@@ -55,8 +57,8 @@ export default async function SecurityPage() {
         <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Security &amp; Access</span>
         <h1 className="text-[22px] font-extrabold text-ink">Role-based access and MFA, at a glance</h1>
         <p className="text-[13px] text-ink-soft">
-          Two-factor authentication is required for Admin and Payroll Manager — those accounts are gated into
-          setup on their next sign-in until they enroll.
+          Two-factor authentication is required for {mfaRequiredLabels.join(" and ")} — those accounts are gated
+          into setup on their next sign-in until they enroll.
         </p>
         <Link href="/security/new" className="mt-2 w-fit text-[13px] font-bold text-primary">
           + Add team member
@@ -80,12 +82,12 @@ export default async function SecurityPage() {
                   {row.fullName && <div className="text-ink-soft">{row.email}</div>}
                 </td>
                 <td className={tdClass}>
-                  <MemberRoleForm userId={row.userId} currentRole={row.role} />
+                  <MemberRoleForm userId={row.userId} currentRole={row.role} roles={roles ?? []} />
                 </td>
                 <td className={`${tdClass} text-center`}>
                   {row.mfaEnabled ? (
                     <Badge tone="good">Enabled</Badge>
-                  ) : MFA_REQUIRED_ROLES.has(row.role) ? (
+                  ) : mfaRequiredRoles.has(row.role) ? (
                     <Badge tone="bad">Required — not set up</Badge>
                   ) : (
                     <Badge tone="neutral">Not enabled</Badge>

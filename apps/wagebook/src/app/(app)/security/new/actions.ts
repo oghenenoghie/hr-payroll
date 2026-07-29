@@ -11,8 +11,6 @@ export type CreateTeamMemberState =
   | { success: true; fullName: string; email: string; password: string }
   | null;
 
-const ASSIGNABLE_ROLES = new Set(["admin", "payroll_manager", "hr_manager", "employee"]);
-
 // Generated fresh per account — never derived from anything guessable
 // (email, name, timestamp) — and shown to the admin exactly once, since
 // this flow's whole point is the admin hand-delivers it out of band
@@ -40,7 +38,8 @@ export async function createTeamMember(
   }
 
   const role = String(formData.get("role") ?? "");
-  if (!ASSIGNABLE_ROLES.has(role)) {
+  const { data: roleRow } = await supabase.from("roles").select("key").eq("key", role).maybeSingle();
+  if (!roleRow) {
     return { error: "Choose a valid role." };
   }
 

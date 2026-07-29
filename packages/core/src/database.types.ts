@@ -1343,6 +1343,13 @@ export type Database = {
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "org_memberships_role_fkey"
+            columns: ["role"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["key"]
+          },
         ]
       }
       organizations: {
@@ -1731,6 +1738,75 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "company_policies"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      roles: {
+        Row: {
+          key: string
+          label: string
+          mfa_required: boolean
+          sort_order: number
+        }
+        Insert: {
+          key: string
+          label: string
+          mfa_required?: boolean
+          sort_order: number
+        }
+        Update: {
+          key?: string
+          label?: string
+          mfa_required?: boolean
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      permissions: {
+        Row: {
+          key: string
+          label: string
+          module: string
+        }
+        Insert: {
+          key: string
+          label: string
+          module: string
+        }
+        Update: {
+          key?: string
+          label?: string
+          module?: string
+        }
+        Relationships: []
+      }
+      role_permissions: {
+        Row: {
+          permission_key: string
+          role_key: string
+        }
+        Insert: {
+          permission_key: string
+          role_key: string
+        }
+        Update: {
+          permission_key?: string
+          role_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_role_key_fkey"
+            columns: ["role_key"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "role_permissions_permission_key_fkey"
+            columns: ["permission_key"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["key"]
           },
         ]
       }
