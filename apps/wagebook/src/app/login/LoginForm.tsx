@@ -21,7 +21,7 @@ export function LoginForm({ message }: { message?: string }) {
       <form action={formAction} className="flex flex-col gap-4">
         <FormNotice message={message} />
         <FormError message={state?.error ?? googleState?.error} />
-        <FormField label="Email" name="email" type="email" />
+        <FormField label="Email or Employee ID" name="identifier" type="text" />
         <FormField label="Password" name="password" type="password" />
         <SubmitButton>Sign in</SubmitButton>
       </form>

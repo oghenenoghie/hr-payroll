@@ -1,6 +1,6 @@
 "use server";
 
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -8,7 +8,7 @@ import { getMembership } from "@/lib/membership";
 
 export type CreateTeamMemberState =
   | { error: string }
-  | { success: true; fullName: string; email: string; password: string }
+  | { success: true; fullName: string; loginIdentifier: string; password: string }
   | null;
 
 // Generated fresh per account — never derived from anything guessable
@@ -17,6 +17,14 @@ export type CreateTeamMemberState =
 // instead of the user setting their own via an emailed link.
 function generatePassword(): string {
   return randomBytes(18).toString("base64url");
+}
+
+// Supabase Auth is keyed on email internally even for an Employee-ID-only
+// account — this is never shown anywhere and never sent mail. `.internal`
+// is reserved by RFC 8375 for exactly this: non-routable, guaranteed not
+// to collide with a real domain someone might register.
+function syntheticAuthEmail(): string {
+  return `${randomUUID()}@employee-login.internal`;
 }
 
 export async function createTeamMember(
@@ -48,7 +56,11 @@ export async function createTeamMember(
   // employees.user_id — there's no such record for admin/payroll
   // manager/HR manager, so those stay freeform.
   let fullName: string;
-  let email: string;
+  let authEmail: string;
+  // What the admin hands the person to type into the login field — a real
+  // email, or an Employee ID when there's no email at all. Never the
+  // synthetic auth email, which is purely an internal Supabase Auth key.
+  let loginIdentifier: string;
   let employeeId: string | null = null;
 
   if (role === "employee") {
@@ -59,7 +71,7 @@ export async function createTeamMember(
 
     const { data: employee, error: employeeError } = await supabase
       .from("employees")
-      .select("id, full_name, email, user_id")
+      .select("id, full_name, email, employee_id, user_id")
       .eq("id", employeeId)
       .eq("org_id", membership.orgId)
       .maybeSingle();
@@ -72,24 +84,38 @@ export async function createTeamMember(
     }
 
     fullName = employee.full_name;
+
     const submittedEmail = String(formData.get("email") ?? "").trim();
-    email = employee.email ?? submittedEmail;
-    if (!email) {
-      return { error: "Enter an email address for this employee." };
+    const email = employee.email ?? (submittedEmail || null);
+    const submittedStaffId = String(formData.get("staff_employee_id") ?? "").trim();
+    const staffId = employee.employee_id ?? (submittedStaffId || null);
+
+    if (!email && !staffId) {
+      return { error: "Enter an email or an Employee ID for this employee." };
     }
-    if (!employee.email) {
-      const { error: emailError } = await supabase.from("employees").update({ email }).eq("id", employeeId);
-      if (emailError) {
-        return { error: emailError.message };
+
+    const employeeUpdate: { email?: string; employee_id?: string } = {};
+    if (email && !employee.email) employeeUpdate.email = email;
+    if (staffId && !employee.employee_id) employeeUpdate.employee_id = staffId;
+    if (Object.keys(employeeUpdate).length > 0) {
+      const { error: updateError } = await supabase.from("employees").update(employeeUpdate).eq("id", employeeId);
+      if (updateError) {
+        return {
+          error: updateError.code === "23505" ? "That Employee ID is already in use." : updateError.message,
+        };
       }
     }
+
+    authEmail = email ?? syntheticAuthEmail();
+    loginIdentifier = email ?? staffId!;
   } else {
     fullName = String(formData.get("full_name") ?? "").trim();
-    email = String(formData.get("email") ?? "").trim();
+    authEmail = String(formData.get("email") ?? "").trim();
+    loginIdentifier = authEmail;
     if (!fullName) {
       return { error: "Full name is required." };
     }
-    if (!email) {
+    if (!authEmail) {
       return { error: "Email is required." };
     }
   }
@@ -97,7 +123,7 @@ export async function createTeamMember(
   const password = generatePassword();
   const admin = createAdminClient();
   const { data: created, error: createError } = await admin.auth.admin.createUser({
-    email,
+    email: authEmail,
     password,
     email_confirm: true,
     user_metadata: { full_name: fullName },
@@ -124,5 +150,5 @@ export async function createTeamMember(
     }
   }
 
-  return { success: true, fullName, email, password };
+  return { success: true, fullName, loginIdentifier, password };
 }

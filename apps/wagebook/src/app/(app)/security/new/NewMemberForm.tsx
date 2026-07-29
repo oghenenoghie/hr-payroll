@@ -6,7 +6,7 @@ import Link from "next/link";
 import { FormError, FormField, SubmitButton } from "@/components/AuthCard";
 import { createTeamMember, type CreateTeamMemberState } from "./actions";
 
-type UnlinkedEmployee = { id: string; full_name: string; email: string | null };
+type UnlinkedEmployee = { id: string; full_name: string; email: string | null; employee_id: string | null };
 type Role = { key: string; label: string };
 
 export function NewMemberForm({
@@ -22,7 +22,7 @@ export function NewMemberForm({
   const [employeeId, setEmployeeId] = useState(unlinkedEmployees[0]?.id ?? "");
 
   if (state && "success" in state) {
-    const credentials = `Email: ${state.email}\nPassword: ${state.password}`;
+    const credentials = `Sign in with: ${state.loginIdentifier}\nPassword: ${state.password}`;
 
     return (
       <div className="flex flex-col gap-4">
@@ -31,7 +31,7 @@ export function NewMemberForm({
           be shown again.
         </div>
         <div className="flex flex-col gap-2 rounded-control border border-border bg-surface p-4 font-mono text-[13px] text-ink">
-          <span>Email: {state.email}</span>
+          <span>Sign in with: {state.loginIdentifier}</span>
           <span>Password: {state.password}</span>
         </div>
         <button
@@ -104,7 +104,16 @@ export function NewMemberForm({
                 ))}
               </select>
             </div>
-            {selectedEmployee && !selectedEmployee.email && <FormField label="Email" name="email" type="email" />}
+            {selectedEmployee && !selectedEmployee.email && !selectedEmployee.employee_id && (
+              <p className="text-[12px] text-ink-soft">
+                This employee has no email or Employee ID on file yet — enter at least one so they have a way to
+                sign in.
+              </p>
+            )}
+            {selectedEmployee && !selectedEmployee.email && <FormField label="Email" name="email" type="email" required={false} />}
+            {selectedEmployee && !selectedEmployee.employee_id && (
+              <FormField label="Employee ID" name="staff_employee_id" type="text" required={false} />
+            )}
           </>
         )
       ) : (

@@ -20,7 +20,7 @@ export default async function NewTeamMemberPage() {
 
   const { data: unlinkedEmployees } = await supabase
     .from("employees")
-    .select("id, full_name, email")
+    .select("id, full_name, email, employee_id")
     .eq("org_id", membership.orgId)
     .is("user_id", null)
     .order("full_name");

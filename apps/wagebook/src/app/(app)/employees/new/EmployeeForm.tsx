@@ -27,7 +27,10 @@ export function EmployeeForm({
     <form action={formAction} className="flex flex-col gap-4">
       <FormError message={state?.error} />
       <FormField label="Full name" name="full_name" />
-      <FormField label="Email" name="email" type="email" required={false} />
+      <div className="grid grid-cols-2 gap-4">
+        <FormField label="Email" name="email" type="email" required={false} />
+        <FormField label="Employee ID" name="employee_id" required={false} />
+      </div>
       <FormField label="State of residence" name="state_of_residence" required={false} />
       <FormField label="Hire date" name="hire_date" type="date" required={false} />
       <FormField label="Probation end date" name="probation_end_date" type="date" required={false} />

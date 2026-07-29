@@ -564,6 +564,7 @@ export type Database = {
           date_of_birth: string | null
           department_id: string | null
           email: string | null
+          employee_id: string | null
           employment_type: string
           full_name: string
           hire_date: string | null
@@ -601,6 +602,7 @@ export type Database = {
           date_of_birth?: string | null
           department_id?: string | null
           email?: string | null
+          employee_id?: string | null
           employment_type?: string
           full_name: string
           hire_date?: string | null
@@ -638,6 +640,7 @@ export type Database = {
           date_of_birth?: string | null
           department_id?: string | null
           email?: string | null
+          employee_id?: string | null
           employment_type?: string
           full_name?: string
           hire_date?: string | null
@@ -1829,6 +1832,7 @@ export type Database = {
           department_id: string | null
           department_name: string | null
           email: string | null
+          employee_id: string | null
           employment_type: string | null
           full_name: string | null
           hire_date: string | null
@@ -2071,6 +2075,7 @@ export type Database = {
           date_of_birth: string | null
           department_id: string | null
           email: string | null
+          employee_id: string | null
           employment_type: string
           full_name: string
           hire_date: string | null
