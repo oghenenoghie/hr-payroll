@@ -15,12 +15,23 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const membership = await getMembership(supabase, user.id);
 
+  // No org yet: either this is the platform operator's first, manually
+  // provisioned login (no self-service /signup exists anymore — every
+  // other account comes from an existing admin, so this is the one
+  // legitimate way to reach org creation), or a Google sign-in that
+  // doesn't match any invited account. Onboarding only creates an org for
+  // the already-authenticated user in front of it — it never creates a
+  // new login the way /signup used to.
+  if (!membership) {
+    redirect("/onboarding");
+  }
+
   // MFA is a stated product requirement for whichever roles `roles.mfa_required`
   // marks that way (Admin and Payroll Manager today) — a data change, not a
   // code change, if that set needs to grow. Gate every (app) route here
   // rather than a single entry-point page, since any of them could be the
   // first page a session lands on (deep link, bookmark, browser restore).
-  if (membership?.mfaRequired) {
+  if (membership.mfaRequired) {
     const { data: factorsData } = await supabase.auth.mfa.listFactors();
     const hasVerifiedTotp = (factorsData?.all ?? []).some(
       (factor) => factor.factor_type === "totp" && factor.status === "verified",
@@ -61,10 +72,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <AppShell
-      role={membership?.role}
+      role={membership.role}
       isManager={isManager}
       unreadNotifications={unreadNotifications ?? 0}
-      orgName={membership?.orgName ?? "Your organization"}
+      orgName={membership.orgName ?? "Your organization"}
     >
       {children}
     </AppShell>

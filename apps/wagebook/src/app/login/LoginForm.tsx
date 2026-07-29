@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState } from "react";
-import Link from "next/link";
 import {
   AuthDivider,
   FormError,
@@ -29,12 +28,6 @@ export function LoginForm({ message }: { message?: string }) {
       <form action={googleFormAction}>
         <GoogleButton>Continue with Google</GoogleButton>
       </form>
-      <p className="mt-5 text-[12.5px] text-ink-soft">
-        New to Plutus?{" "}
-        <Link href="/signup" className="font-bold text-primary">
-          Set up your company
-        </Link>
-      </p>
     </>
   );
 }
