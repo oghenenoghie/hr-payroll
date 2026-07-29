@@ -15,13 +15,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const membership = await getMembership(supabase, user.id);
 
-  // No org yet: either this is the platform operator's first, manually
-  // provisioned login (no self-service /signup exists anymore — every
-  // other account comes from an existing admin, so this is the one
-  // legitimate way to reach org creation), or a Google sign-in that
-  // doesn't match any invited account. Onboarding only creates an org for
-  // the already-authenticated user in front of it — it never creates a
-  // new login the way /signup used to.
+  // No org yet: the platform operator's first, manually provisioned login
+  // — every other account is created by an existing admin (see
+  // Security & Access), so this is the one legitimate way to reach org
+  // creation. Onboarding only creates an org for the already-authenticated
+  // user in front of it — it never creates a new login itself.
   if (!membership) {
     redirect("/onboarding");
   }
