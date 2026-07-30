@@ -26,7 +26,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   }
 
   const membership = await getMembership(supabase, user.id);
-  if (!membership || (membership.role !== "admin" && membership.role !== "payroll_manager")) {
+  if (!membership || !["admin", "payroll_manager", "accountant"].includes(membership.role)) {
     return new NextResponse("Forbidden", { status: 403 });
   }
 

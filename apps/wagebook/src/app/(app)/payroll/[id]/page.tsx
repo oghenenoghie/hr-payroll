@@ -152,7 +152,8 @@ export default async function PayRunDetailPage({ params }: { params: Promise<{ i
         )}
       </header>
 
-      {payRun.status === "draft" && (membership?.role === "admin" || membership?.role === "payroll_manager") && (
+      {payRun.status === "draft" &&
+        (membership?.role === "admin" || membership?.role === "payroll_manager" || membership?.role === "accountant") && (
         <div className="rounded-card border border-warn bg-warn-tint p-6">
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-warn">Draft — not yet posted</span>
           <div className="mt-3">

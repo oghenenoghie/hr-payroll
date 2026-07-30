@@ -6,9 +6,12 @@ import { signOut } from "./dashboard/actions";
 import { SidebarNav } from "./SidebarNav";
 
 const ROLE_LABEL: Record<string, string> = {
-  admin: "Admin",
+  admin: "Super Admin",
   payroll_manager: "Payroll Manager",
   hr_manager: "HR Manager",
+  accountant: "Accountant",
+  department_manager: "Department Manager",
+  auditor: "Auditor",
   employee: "Employee",
 };
 

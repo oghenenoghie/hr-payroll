@@ -72,7 +72,8 @@ export async function editEmployee(
   // this is the actual enforcement), and never controls the mask flag
   // itself, since letting HR unmask their own view would defeat it.
   const membership = await getMembership(supabase, user.id);
-  const isAdminOrPayroll = membership?.role === "admin" || membership?.role === "payroll_manager";
+  const isAdminOrPayroll =
+    membership?.role === "admin" || membership?.role === "payroll_manager" || membership?.role === "accountant";
   const { data: currentEmployee } = await supabase
     .from("employees")
     .select("salary_masked")

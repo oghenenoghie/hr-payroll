@@ -49,9 +49,25 @@ const INTEGRATIONS_NAV_ITEM: NavItem = { href: "/integrations", label: "Integrat
 
 const EMPLOYEE_NAV_ITEMS: NavItem[] = [{ href: "/me", label: "Overview" }];
 
-function buildAdminGroups(isManager: boolean, isAdmin: boolean): NavGroup[] {
+// Department Manager is scoped to their own department (enforced in RLS,
+// not just here) — Employees is dept-filtered by the database, Leave &
+// Attendance only shows what review_leave_request()'s department-manager
+// branch actually lets them act on. No Payroll, Company or Tools —
+// there's nothing behind those pages they have access to.
+const DEPARTMENT_MANAGER_NAV_ITEMS: NavItem[] = [
+  { href: "/dashboard", label: "Overview" },
+  { href: "/employees", label: "Employees" },
+  { href: "/org-chart", label: "Org Chart" },
+  { href: "/leave", label: "Leave & Attendance" },
+];
+
+function buildAdminGroups(isManager: boolean, isAdmin: boolean, isAuditor: boolean): NavGroup[] {
   const workforce = isManager ? [...WORKFORCE_ITEMS, MANAGER_NAV_ITEM] : WORKFORCE_ITEMS;
-  const company = isAdmin ? [...COMPANY_ITEMS, INTEGRATIONS_NAV_ITEM, SECURITY_NAV_ITEM] : COMPANY_ITEMS;
+  const company = isAdmin
+    ? [...COMPANY_ITEMS, INTEGRATIONS_NAV_ITEM, SECURITY_NAV_ITEM]
+    : isAuditor
+      ? [...COMPANY_ITEMS, SECURITY_NAV_ITEM]
+      : COMPANY_ITEMS;
 
   return [
     { items: [OVERVIEW_ITEM] },
@@ -74,7 +90,11 @@ export function SidebarNav({
 }) {
   const pathname = usePathname();
   const groups: NavGroup[] =
-    role === "employee" ? [{ items: EMPLOYEE_NAV_ITEMS }] : buildAdminGroups(isManager, role === "admin");
+    role === "employee"
+      ? [{ items: EMPLOYEE_NAV_ITEMS }]
+      : role === "department_manager"
+        ? [{ items: DEPARTMENT_MANAGER_NAV_ITEMS }]
+        : buildAdminGroups(isManager, role === "admin", role === "auditor");
 
   return (
     <nav className="flex flex-col gap-4">

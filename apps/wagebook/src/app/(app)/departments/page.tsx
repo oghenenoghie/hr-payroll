@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 import { DepartmentForm } from "./DepartmentForm";
+import { DepartmentManagerSelect } from "./DepartmentManagerSelect";
 import { deleteDepartment } from "./actions";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
@@ -24,7 +25,7 @@ export default async function DepartmentsPage() {
 
   const { data: departments } = await supabase.from("departments").select("*").order("name");
 
-  const { data: employees } = await supabase.from("employees").select("department_id");
+  const { data: employees } = await supabase.from("employees").select("id, full_name, department_id").order("full_name");
 
   const employeeCountByDepartment = new Map<string, number>();
   for (const employee of employees ?? []) {
@@ -34,6 +35,9 @@ export default async function DepartmentsPage() {
       (employeeCountByDepartment.get(employee.department_id) ?? 0) + 1,
     );
   }
+
+  const employeeNameById = new Map((employees ?? []).map((e) => [e.id, e.full_name]));
+  const isAdmin = membership?.role === "admin";
 
   return (
     <div className="mx-auto flex w-full max-w-[720px] flex-col gap-5 px-6 py-10">
@@ -52,6 +56,7 @@ export default async function DepartmentsPage() {
             <tr className="border-b border-border">
               <th className={`${thClass} text-left`}>Department</th>
               <th className={`${thClass} text-center`}>Employees</th>
+              <th className={`${thClass} text-left`}>Manager</th>
               <th className={thClass}></th>
             </tr>
           </thead>
@@ -62,6 +67,19 @@ export default async function DepartmentsPage() {
                   <td className={`${tdClass} font-bold text-ink`}>{department.name}</td>
                   <td className={`${tdClass} text-center text-ink-soft`}>
                     {employeeCountByDepartment.get(department.id) ?? 0}
+                  </td>
+                  <td className={tdClass}>
+                    {isAdmin ? (
+                      <DepartmentManagerSelect
+                        departmentId={department.id}
+                        currentManagerId={department.manager_id}
+                        employees={employees ?? []}
+                      />
+                    ) : (
+                      <span className="text-ink-soft">
+                        {department.manager_id ? (employeeNameById.get(department.manager_id) ?? "—") : "—"}
+                      </span>
+                    )}
                   </td>
                   <td className={`${tdClass} text-right`}>
                     <form action={deleteDepartment.bind(null, department.id)}>
@@ -74,7 +92,7 @@ export default async function DepartmentsPage() {
               ))
             ) : (
               <tr>
-                <td colSpan={3} className="px-3 py-10 text-center text-[13px] text-ink-soft">
+                <td colSpan={4} className="px-3 py-10 text-center text-[13px] text-ink-soft">
                   No departments yet.
                 </td>
               </tr>
