@@ -21,12 +21,12 @@ const TYPE_LABEL: Record<string, string> = {
   expense: "Expenses",
 };
 
-const JOURNAL_ENTRY_LIMIT = 100;
+const PAGE_SIZE = 25;
 
 export default async function GeneralLedgerPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string }>;
+  searchParams: Promise<{ from?: string; to?: string; page?: string }>;
 }) {
   const supabase = await createClient();
   const {
@@ -45,16 +45,23 @@ export default async function GeneralLedgerPage({
     redirect("/dashboard");
   }
 
-  const { from, to } = await searchParams;
+  const { from, to, page: pageParam } = await searchParams;
 
   const { data: accounts } = await supabase.from("chart_of_accounts").select("code, name, type");
   const accountByCode = new Map((accounts ?? []).map((account) => [account.code, account]));
 
+  // Unbounded by row count (only by the date range, if any) — the trial
+  // balance below must reflect every posting in range to be correct, so
+  // it can never be built from a capped "most recent N" slice. What used
+  // to be a hard 100-entry cap on this same query silently made the trial
+  // balance wrong for any range with more than 100 entries; the fix is to
+  // always fetch the full range and paginate only the on-screen list of
+  // individual entries further down, which costs nothing extra since the
+  // full set is already in memory for the trial balance anyway.
   let journalEntriesQuery = supabase
     .from("journal_entries")
     .select("id, memo, entry_date")
-    .order("entry_date", { ascending: false })
-    .limit(JOURNAL_ENTRY_LIMIT);
+    .order("entry_date", { ascending: false });
   if (from) journalEntriesQuery = journalEntriesQuery.gte("entry_date", from);
   if (to) journalEntriesQuery = journalEntriesQuery.lte("entry_date", to);
 
@@ -99,6 +106,23 @@ export default async function GeneralLedgerPage({
   }
 
   const journalEntryById = new Map((journalEntries ?? []).map((entry) => [entry.id, entry]));
+
+  // Pagination is applied only to the on-screen list of individual entries
+  // below — the trial balance and CSV exports above still reflect the
+  // full range, computed from the same already-fetched data at no extra
+  // query cost.
+  const totalEntries = journalEntries?.length ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalEntries / PAGE_SIZE));
+  const currentPage = Math.min(Math.max(1, Number(pageParam) || 1), totalPages);
+  const pagedEntries = (journalEntries ?? []).slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  function pageHref(page: number): string {
+    const params = new URLSearchParams();
+    if (from) params.set("from", from);
+    if (to) params.set("to", to);
+    params.set("page", String(page));
+    return `/general-ledger?${params.toString()}`;
+  }
 
   const trialBalanceCsv = toCsv(
     ["Account", "Debit (NGN)", "Credit (NGN)"],
@@ -240,15 +264,15 @@ export default async function GeneralLedgerPage({
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
-            Journal entries {journalEntryIds.length === JOURNAL_ENTRY_LIMIT && `(most recent ${JOURNAL_ENTRY_LIMIT})`}
+            Journal entries {totalEntries > 0 && `(${totalEntries} total)`}
           </span>
           {journalEntries && journalEntries.length > 0 && (
             <ExportCsvButton csv={journalEntriesCsv} filename="journal-entries.csv" />
           )}
         </div>
         <div className="flex flex-col gap-3">
-          {journalEntries && journalEntries.length > 0 ? (
-            journalEntries.map((entry) => (
+          {pagedEntries.length > 0 ? (
+            pagedEntries.map((entry) => (
               <div key={entry.id} className="overflow-x-auto rounded-card border border-border bg-surface">
                 <div className="flex items-center justify-between border-b border-border px-3 py-[10px]">
                   <span className="text-[13px] font-bold text-ink">{entry.memo}</span>
@@ -277,6 +301,30 @@ export default async function GeneralLedgerPage({
             </div>
           )}
         </div>
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between pt-1">
+            <span className="text-[12px] text-ink-soft">
+              Page {currentPage} of {totalPages}
+            </span>
+            <div className="flex gap-3">
+              {currentPage > 1 ? (
+                <Link href={pageHref(currentPage - 1)} className="text-[12.5px] font-bold text-primary">
+                  ← Previous
+                </Link>
+              ) : (
+                <span className="text-[12.5px] font-bold text-ink-soft">← Previous</span>
+              )}
+              {currentPage < totalPages ? (
+                <Link href={pageHref(currentPage + 1)} className="text-[12.5px] font-bold text-primary">
+                  Next →
+                </Link>
+              ) : (
+                <span className="text-[12.5px] font-bold text-ink-soft">Next →</span>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

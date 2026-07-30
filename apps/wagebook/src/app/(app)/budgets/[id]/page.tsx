@@ -39,22 +39,23 @@ export default async function BudgetDetailPage({ params }: { params: Promise<{ i
   if (!budgetRow) notFound();
   const budget = budgetRow;
 
-  const { data: accounts } = await supabase.from("chart_of_accounts").select("code, name, type");
+  // Independent of each other — accounts and budget lines don't depend on
+  // journal_entries, and journal_entries only needs the budget's own dates
+  // (already known) — so all three run concurrently.
+  const [{ data: accounts }, { data: lines }, { data: journalEntries }] = await Promise.all([
+    supabase.from("chart_of_accounts").select("code, name, type"),
+    supabase.from("budget_lines").select("*").eq("budget_id", id),
+    // Same signed-sum logic as Profit & Loss: revenue is credit-normal,
+    // expense debit-normal — actuals here are pulled live, never stored.
+    supabase.from("journal_entries").select("id").gte("entry_date", budget.period_start).lte("entry_date", budget.period_end),
+  ]);
   const accountByCode = new Map((accounts ?? []).map((account) => [account.code, account]));
   const accountLabel = (code: string) => accountByCode.get(code)?.name ?? ACCOUNT_LABEL[code] ?? code;
   const revenueExpenseAccounts = (accounts ?? []).filter((a) => a.type === "revenue" || a.type === "expense");
 
-  const { data: lines } = await supabase.from("budget_lines").select("*").eq("budget_id", id);
   const budgetLines = lines ?? [];
   const budgetedCodes = new Set(budgetLines.map((l) => l.account_code));
 
-  // Same signed-sum logic as Profit & Loss: revenue is credit-normal,
-  // expense debit-normal — actuals here are pulled live, never stored.
-  const { data: journalEntries } = await supabase
-    .from("journal_entries")
-    .select("id")
-    .gte("entry_date", budget.period_start)
-    .lte("entry_date", budget.period_end);
   const journalEntryIds = (journalEntries ?? []).map((entry) => entry.id);
 
   const { data: postings } =

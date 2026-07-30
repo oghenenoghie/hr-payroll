@@ -26,15 +26,16 @@ export default async function SecurityPage() {
     redirect("/dashboard");
   }
 
-  const { data: roles } = await supabase.from("roles").select("key, label, mfa_required").order("sort_order");
+  const [{ data: roles }, { data: memberships }] = await Promise.all([
+    supabase.from("roles").select("key, label, mfa_required").order("sort_order"),
+    supabase
+      .from("org_memberships")
+      .select("user_id, role, created_at")
+      .eq("org_id", membership.orgId)
+      .order("created_at", { ascending: true }),
+  ]);
   const mfaRequiredRoles = new Set((roles ?? []).filter((r) => r.mfa_required).map((r) => r.key));
   const mfaRequiredLabels = (roles ?? []).filter((r) => r.mfa_required).map((r) => r.label);
-
-  const { data: memberships } = await supabase
-    .from("org_memberships")
-    .select("user_id, role, created_at")
-    .eq("org_id", membership.orgId)
-    .order("created_at", { ascending: true });
 
   const admin = createAdminClient();
   const rows = await Promise.all(

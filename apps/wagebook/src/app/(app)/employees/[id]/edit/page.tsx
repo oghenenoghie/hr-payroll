@@ -28,62 +28,73 @@ export default async function EditEmployeePage({ params }: { params: Promise<{ i
   const { data: employee } = await supabase.from("employees_masked").select("*").eq("id", id).maybeSingle();
   if (!employee) notFound();
 
-  const { data: departments } = employee.org_id
-    ? await supabase.from("departments").select("id, name").eq("org_id", employee.org_id).order("name")
-    : { data: null };
-
-  const { data: branches } = employee.org_id
-    ? await supabase.from("branches").select("id, name").eq("org_id", employee.org_id).order("name")
-    : { data: null };
-
-  const { data: jobGrades } = employee.org_id
-    ? await supabase
-        .from("job_grades")
-        .select("id, name, min_annual_kobo, max_annual_kobo")
-        .eq("org_id", employee.org_id)
-        .order("min_annual_kobo")
-    : { data: null };
-
-  const { data: managers } = employee.org_id
-    ? await supabase
-        .from("employees")
-        .select("id, full_name")
-        .eq("org_id", employee.org_id)
-        .eq("status", "active")
-        .neq("id", id)
-        .order("full_name")
-    : { data: null };
-
-  const { data: statusHistory } = await supabase
-    .from("employee_status_history")
-    .select("old_status, new_status, changed_at")
-    .eq("employee_id", id)
-    .order("changed_at", { ascending: false });
-
   const isTerminated = employee.status === "terminated";
-  const { data: onboardingChecklist } = !isTerminated
-    ? await supabase
-        .from("employee_onboarding_checklist")
-        .select("documentation_collected, contract_signed")
-        .eq("employee_id", id)
-        .maybeSingle()
-    : { data: null };
-  const { data: offboardingChecklist } = isTerminated
-    ? await supabase
-        .from("employee_offboarding_checklist")
-        .select("notice_period_served, assets_returned, clearance_obtained, experience_letter_issued")
-        .eq("employee_id", id)
-        .maybeSingle()
-    : { data: null };
-  const { data: finalSettlement } = isTerminated
-    ? await supabase.from("final_settlements").select("id").eq("employee_id", id).maybeSingle()
-    : { data: null };
 
-  const { data: documentsRaw } = await supabase
-    .from("employee_documents")
-    .select("id, file_name, document_type, storage_path, uploaded_at")
-    .eq("employee_id", id)
-    .order("uploaded_at", { ascending: false });
+  // None of these depends on another's result — org-scoped lookups only
+  // need employee.org_id (already known), the rest only need id/isTerminated
+  // (already known) — so they run as one batch instead of up to 9
+  // sequential round-trips.
+  const [
+    { data: departments },
+    { data: branches },
+    { data: jobGrades },
+    { data: managers },
+    { data: statusHistory },
+    { data: onboardingChecklist },
+    { data: offboardingChecklist },
+    { data: finalSettlement },
+    { data: documentsRaw },
+  ] = await Promise.all([
+    employee.org_id
+      ? supabase.from("departments").select("id, name").eq("org_id", employee.org_id).order("name")
+      : Promise.resolve({ data: null }),
+    employee.org_id
+      ? supabase.from("branches").select("id, name").eq("org_id", employee.org_id).order("name")
+      : Promise.resolve({ data: null }),
+    employee.org_id
+      ? supabase
+          .from("job_grades")
+          .select("id, name, min_annual_kobo, max_annual_kobo")
+          .eq("org_id", employee.org_id)
+          .order("min_annual_kobo")
+      : Promise.resolve({ data: null }),
+    employee.org_id
+      ? supabase
+          .from("employees")
+          .select("id, full_name")
+          .eq("org_id", employee.org_id)
+          .eq("status", "active")
+          .neq("id", id)
+          .order("full_name")
+      : Promise.resolve({ data: null }),
+    supabase
+      .from("employee_status_history")
+      .select("old_status, new_status, changed_at")
+      .eq("employee_id", id)
+      .order("changed_at", { ascending: false }),
+    !isTerminated
+      ? supabase
+          .from("employee_onboarding_checklist")
+          .select("documentation_collected, contract_signed")
+          .eq("employee_id", id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    isTerminated
+      ? supabase
+          .from("employee_offboarding_checklist")
+          .select("notice_period_served, assets_returned, clearance_obtained, experience_letter_issued")
+          .eq("employee_id", id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    isTerminated
+      ? supabase.from("final_settlements").select("id").eq("employee_id", id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    supabase
+      .from("employee_documents")
+      .select("id, file_name, document_type, storage_path, uploaded_at")
+      .eq("employee_id", id)
+      .order("uploaded_at", { ascending: false }),
+  ]);
 
   // Signed URLs since the bucket is private — generated per request, not
   // stored, so a deleted or access-revoked document never leaves a stale

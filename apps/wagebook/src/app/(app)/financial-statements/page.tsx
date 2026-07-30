@@ -12,10 +12,14 @@ import { PrintButton } from "@/components/PrintButton";
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const tdClass = "px-3 py-[10px] text-[13px]";
 
+function currentYearStart(): string {
+  return `${new Date().getUTCFullYear()}-01-01`;
+}
+
 export default async function ProfitAndLossPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string }>;
+  searchParams: Promise<{ from?: string; to?: string; all?: string }>;
 }) {
   const supabase = await createClient();
   const {
@@ -34,15 +38,21 @@ export default async function ProfitAndLossPage({
     redirect("/dashboard");
   }
 
-  const { from, to } = await searchParams;
+  const { from: fromParam, to, all } = await searchParams;
+  const showAllTime = all === "1";
+  // Defaults to the current year to date rather than an unbounded scan of
+  // every posting ever made — a P&L with no range was silently pulling
+  // the entire ledger on every visit. "All time" is still one explicit
+  // click away, not removed, just no longer the silent default.
+  const from = !showAllTime && !fromParam && !to ? currentYearStart() : fromParam;
 
   const { data: accounts } = await supabase.from("chart_of_accounts").select("code, name, type");
   const accountByCode = new Map((accounts ?? []).map((account) => [account.code, account]));
   const accountLabel = (code: string) => accountByCode.get(code)?.name ?? ACCOUNT_LABEL[code] ?? code;
 
   let journalEntriesQuery = supabase.from("journal_entries").select("id");
-  if (from) journalEntriesQuery = journalEntriesQuery.gte("entry_date", from);
-  if (to) journalEntriesQuery = journalEntriesQuery.lte("entry_date", to);
+  if (!showAllTime && from) journalEntriesQuery = journalEntriesQuery.gte("entry_date", from);
+  if (!showAllTime && to) journalEntriesQuery = journalEntriesQuery.lte("entry_date", to);
 
   const { data: journalEntries } = await journalEntriesQuery;
   const journalEntryIds = (journalEntries ?? []).map((entry) => entry.id);
@@ -101,7 +111,14 @@ export default async function ProfitAndLossPage({
         <h1 className="text-[22px] font-extrabold text-ink">Profit &amp; Loss</h1>
         <p className="text-[13px] text-ink-soft">
           Revenue and expense for the period, derived directly from the general ledger — nothing here is entered by
-          hand. Leave the dates blank for all time.
+          hand. Defaults to the current year to date;{" "}
+          {showAllTime ? (
+            "showing every posting ever made."
+          ) : (
+            <Link href="/financial-statements?all=1" className="font-bold text-primary print:hidden">
+              view all time →
+            </Link>
+          )}
         </p>
         <Link href="/financial-statements/balance-sheet" className="mt-1 text-[12.5px] font-bold text-primary print:hidden">
           View Balance Sheet →
@@ -139,7 +156,7 @@ export default async function ProfitAndLossPage({
         <button type="submit" className="rounded-button border border-border px-[18px] py-[9px] text-[12.5px] font-extrabold text-ink">
           Filter
         </button>
-        {(from || to) && (
+        {(fromParam || to || showAllTime) && (
           <Link href="/financial-statements" className="px-2 py-[9px] text-[12.5px] font-bold text-primary">
             Clear filters
           </Link>

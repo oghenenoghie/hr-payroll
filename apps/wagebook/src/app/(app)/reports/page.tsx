@@ -53,21 +53,20 @@ export default async function ReportsPage() {
     redirect("/me");
   }
 
-  const { data: postings } = await supabase
-    .from("ledger_postings")
-    .select("account_code, amount_kobo")
-    .eq("direction", "credit")
-    .in("account_code", Object.values(SCHEME_ACCOUNT_CODES));
+  const [{ data: postings }, { data: payslips }] = await Promise.all([
+    supabase
+      .from("ledger_postings")
+      .select("account_code, amount_kobo")
+      .eq("direction", "credit")
+      .in("account_code", Object.values(SCHEME_ACCOUNT_CODES)),
+    supabase.from("posted_payslips").select("paye_kobo, employees(state_of_residence)"),
+  ]);
 
   const totalsByAccountCode = new Map<string, bigint>();
   for (const posting of postings ?? []) {
     const running = totalsByAccountCode.get(posting.account_code) ?? 0n;
     totalsByAccountCode.set(posting.account_code, running + BigInt(posting.amount_kobo));
   }
-
-  const { data: payslips } = await supabase
-    .from("posted_payslips")
-    .select("paye_kobo, employees(state_of_residence)");
 
   const payeByState = new Map<string, bigint>();
   for (const slip of payslips ?? []) {

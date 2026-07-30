@@ -2718,7 +2718,7 @@ export type Database = {
         Returns: undefined
       }
       get_org_audit_log: {
-        Args: { p_limit?: number; p_org_id: string }
+        Args: { p_before?: string; p_limit?: number; p_org_id: string }
         Returns: {
           action: string
           actor_id: string
@@ -2727,6 +2727,16 @@ export type Database = {
           created_at: string
           ip_address: string
           log_type: string
+        }[]
+      }
+      get_payroll_register_totals: {
+        Args: { p_org_id: string }
+        Returns: {
+          gross_kobo: number
+          net_kobo: number
+          nhf_kobo: number
+          paye_kobo: number
+          pension_kobo: number
         }[]
       }
       link_employee_account: {
