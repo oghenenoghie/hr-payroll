@@ -2,23 +2,28 @@
 
 import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
+import { createPortal } from "react-dom";
 import type { SectionKey } from "@/lib/nav-sections";
 
 // Must be a descendant of the Link it reports on — useLinkStatus only
-// reflects pending state for the nearest enclosing <Link>. Reserves its
-// own space (rather than popping in) so a fast, already-prefetched
-// navigation never causes a layout shift; only shows once navigation has
-// actually taken a moment, for a route that's dynamic and has no
-// loading.tsx of its own to fall back on.
-function NavLinkSpinner() {
+// reflects pending state for the nearest enclosing <Link>. Portals to
+// document.body rather than relying on `position: fixed` in place, since
+// the mobile drawer slides using a transform, and a transformed ancestor
+// would otherwise turn "fixed" into "positioned relative to the drawer"
+// instead of the viewport. Only shows once navigation has actually taken
+// a moment — an already-prefetched route skips the pending state
+// entirely, so a fast click never flashes it.
+function NavLinkOverlay() {
   const { pending } = useLinkStatus();
-  return (
-    <span
+  if (!pending) return null;
+  return createPortal(
+    <div
       aria-hidden
-      className={`ml-2 inline-block h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent transition-opacity duration-150 ${
-        pending ? "opacity-70" : "opacity-0"
-      }`}
-    />
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-bg/70 backdrop-blur-[1px]"
+    >
+      <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+    </div>,
+    document.body,
   );
 }
 
@@ -141,15 +146,13 @@ export function SidebarNav({
                   active ? "bg-primary text-white" : "text-primary-tint hover:bg-primary"
                 }`}
               >
-                <span className="flex items-center">
-                  {item.label}
-                  <NavLinkSpinner />
-                </span>
+                <span>{item.label}</span>
                 {item.href === "/notifications" && unreadNotifications > 0 && (
                   <span className="rounded-badge bg-white px-[7px] py-[1px] text-[11px] font-extrabold text-primary-dark">
                     {unreadNotifications}
                   </span>
                 )}
+                <NavLinkOverlay />
               </Link>
             );
           })}
