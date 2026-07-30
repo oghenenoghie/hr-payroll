@@ -3,7 +3,12 @@ import { naira } from "../src/money";
 import { NG_2026_1 } from "../src/rule-versions/ng-2026.1";
 import { computeAnnualPaye } from "../src/schemes/paye";
 import { computeNsitf } from "../src/schemes/nsitf";
-import { derivePeriodPayslip, deriveLumpSumPayslip } from "../src/payslip";
+import {
+  derivePeriodPayslip,
+  deriveLumpSumPayslip,
+  deriveGrossedUpLumpSumPayslip,
+  solveLumpSumGrossForNetKobo,
+} from "../src/payslip";
 import { computePension } from "../src/schemes/pension";
 import { computeNhf } from "../src/schemes/nhf";
 import type { PayComponent } from "../src/types";
@@ -404,5 +409,116 @@ describe("deriveLumpSumPayslip (final settlement: leave encashment + gratuity, k
 
     expect(result.netKobo).toBeLessThan(result.grossKobo);
     expect(result.netKobo).toBeGreaterThanOrEqual(0n);
+  });
+});
+
+describe("solveLumpSumGrossForNetKobo / deriveGrossedUpLumpSumPayslip — net-to-gross, feature-backlog.md §1", () => {
+  it("solves within one kobo of the target net when the whole lump sum sits inside a single band", () => {
+    // Cumulative position and target both comfortably inside the
+    // ₦800,000-₦3,000,000 band (15%), nowhere near a boundary.
+    const cumulativeChargeableIncomeBeforeKobo = naira(1_000_000);
+    const cumulativePayePaidBeforeKobo = computeAnnualPaye(cumulativeChargeableIncomeBeforeKobo, rv).annualPayeKobo;
+    const targetNetKobo = naira(500_000);
+
+    const { grossKobo, iterations } = solveLumpSumGrossForNetKobo(
+      targetNetKobo,
+      cumulativeChargeableIncomeBeforeKobo,
+      cumulativePayePaidBeforeKobo,
+      rv,
+    );
+
+    const check = deriveLumpSumPayslip(
+      { kind: "bonus", amountKobo: grossKobo, cumulativeChargeableIncomeBeforeKobo, cumulativePayePaidBeforeKobo },
+      rv,
+    );
+
+    expect(check.netKobo).toBeGreaterThanOrEqual(targetNetKobo);
+    expect(check.netKobo - targetNetKobo).toBeLessThan(naira(1));
+    expect(grossKobo).toBeGreaterThan(targetNetKobo); // employer bears real tax, gross > net
+    expect(iterations).toBeGreaterThan(0);
+    expect(iterations).toBeLessThan(128);
+  });
+
+  it("a target net that straddles the 18%->21% boundary at ₦12,000,000 solves to a higher gross than a flat-18% estimate would predict", () => {
+    // Cumulative position sits ₦500,000 below the boundary. A target net
+    // large enough that the *gross* crosses it must cost more than
+    // naively grossing up at the pre-boundary 18% rate the whole way,
+    // because part of the gross lands in the pricier 21% band.
+    const cumulativeChargeableIncomeBeforeKobo = naira(11_500_000);
+    const cumulativePayePaidBeforeKobo = computeAnnualPaye(cumulativeChargeableIncomeBeforeKobo, rv).annualPayeKobo;
+    const targetNetKobo = naira(900_000);
+
+    const { grossKobo } = solveLumpSumGrossForNetKobo(
+      targetNetKobo,
+      cumulativeChargeableIncomeBeforeKobo,
+      cumulativePayePaidBeforeKobo,
+      rv,
+    );
+
+    const flatRateGrossUpEstimate = naira(900_000 / (1 - 0.18)); // naive: whole lump sum at the pre-boundary rate
+
+    expect(grossKobo).toBeGreaterThan(flatRateGrossUpEstimate);
+
+    // And the solved gross really does land the chargeable income across
+    // the boundary — otherwise this test wouldn't actually be exercising
+    // a band crossing.
+    expect(cumulativeChargeableIncomeBeforeKobo + grossKobo).toBeGreaterThan(naira(12_000_000));
+  });
+
+  it("deriveGrossedUpLumpSumPayslip's payslip is internally consistent: netKobo = grossKobo - payeKobo, and carries the same non-pensionable/non-NHF exclusions as a flat lump sum", () => {
+    const cumulativeChargeableIncomeBeforeKobo = naira(2_000_000);
+    const cumulativePayePaidBeforeKobo = computeAnnualPaye(cumulativeChargeableIncomeBeforeKobo, rv).annualPayeKobo;
+
+    const result = deriveGrossedUpLumpSumPayslip(
+      {
+        kind: "arrears",
+        targetNetKobo: naira(1_000_000),
+        cumulativeChargeableIncomeBeforeKobo,
+        cumulativePayePaidBeforeKobo,
+      },
+      rv,
+    );
+
+    expect(result.netKobo).toBe(result.grossKobo - result.payeKobo);
+    expect(result.netKobo).toBeGreaterThanOrEqual(naira(1_000_000));
+
+    const pension = computePension(result.periodComponents, rv);
+    const nhfKobo = computeNhf(result.periodComponents, rv);
+    expect(pension.employeeKobo).toBe(0n);
+    expect(nhfKobo).toBe(0n);
+  });
+
+  it("a zero or negative target net solves to zero gross without iterating", () => {
+    const zero = solveLumpSumGrossForNetKobo(0n, 0n, 0n, rv);
+    const negative = solveLumpSumGrossForNetKobo(-naira(100), 0n, 0n, rv);
+
+    expect(zero.grossKobo).toBe(0n);
+    expect(zero.iterations).toBe(0);
+    expect(negative.grossKobo).toBe(0n);
+    expect(negative.iterations).toBe(0);
+  });
+
+  it("round-trips correctly even from deep in the top 25% band", () => {
+    const cumulativeChargeableIncomeBeforeKobo = naira(60_000_000);
+    const cumulativePayePaidBeforeKobo = computeAnnualPaye(cumulativeChargeableIncomeBeforeKobo, rv).annualPayeKobo;
+    const targetNetKobo = naira(5_000_000);
+
+    const { grossKobo } = solveLumpSumGrossForNetKobo(
+      targetNetKobo,
+      cumulativeChargeableIncomeBeforeKobo,
+      cumulativePayePaidBeforeKobo,
+      rv,
+    );
+
+    const check = deriveLumpSumPayslip(
+      { kind: "bonus", amountKobo: grossKobo, cumulativeChargeableIncomeBeforeKobo, cumulativePayePaidBeforeKobo },
+      rv,
+    );
+
+    expect(check.netKobo).toBeGreaterThanOrEqual(targetNetKobo);
+    expect(check.netKobo - targetNetKobo).toBeLessThan(naira(1));
+    // At the 25% top marginal rate, grossing up ₦5,000,000 net costs
+    // noticeably more than a fifth extra — roughly gross ≈ net / 0.75.
+    expect(grossKobo).toBeGreaterThan(naira(5_000_000 / 0.75) - naira(1));
   });
 });

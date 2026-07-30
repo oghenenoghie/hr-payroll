@@ -161,3 +161,104 @@ export function deriveLumpSumPayslip(input: LumpSumPayslipInput, ruleVersion: Ru
 
   return { grossKobo, chargeableIncomeKobo, payeKobo, netKobo, periodComponents };
 }
+
+const GROSS_UP_MAX_ITERATIONS = 128;
+
+/**
+ * Solves for the lump-sum gross that nets to targetNetKobo after cumulative
+ * PAYE, given the employee's existing year-to-date position — net-to-gross
+ * (feature-backlog.md §1: "common in Nigerian senior and expatriate
+ * contracts where the employer bears the tax," requiring "an iterative
+ * solve... with an explicit tolerance and iteration cap").
+ *
+ * Net-of-PAYE is monotonically non-decreasing in gross: every PAYE band's
+ * marginal rate is below 100% (the top band here is 25%), so each extra
+ * kobo of gross always yields at least some extra kobo of net, and
+ * rounding (applyRate rounds to nearest) can only ever round a
+ * non-decreasing input up or down consistently — never make a larger
+ * gross produce a smaller net. That guarantees bisection converges to the
+ * *exact* minimal gross whose net is >= target, in a bounded number of
+ * iterations, with no false convergence. Scoped to lump sums only (not an
+ * employee's regular annual package — see deriveGrossedUpLumpSumPayslip).
+ */
+export function solveLumpSumGrossForNetKobo(
+  targetNetKobo: Kobo,
+  cumulativeChargeableIncomeBeforeKobo: Kobo,
+  cumulativePayePaidBeforeKobo: Kobo,
+  ruleVersion: RuleVersion,
+): { grossKobo: Kobo; iterations: number } {
+  if (targetNetKobo <= 0n) {
+    return { grossKobo: 0n, iterations: 0 };
+  }
+
+  const netForGross = (candidateGrossKobo: Kobo): Kobo => {
+    const chargeableIncomeKobo = cumulativeChargeableIncomeBeforeKobo + candidateGrossKobo;
+    const payeKobo = computeCumulativePeriodPaye(chargeableIncomeKobo, cumulativePayePaidBeforeKobo, ruleVersion);
+    return clampNonNegative(candidateGrossKobo - payeKobo);
+  };
+
+  let iterations = 0;
+
+  // Net can never exceed gross (payeKobo is never negative), so gross =
+  // targetNet is always a valid starting ceiling; double until it's
+  // actually sufficient (bounded by the iteration cap, never unbounded).
+  let low = targetNetKobo;
+  let high = targetNetKobo;
+  while (netForGross(high) < targetNetKobo && iterations < GROSS_UP_MAX_ITERATIONS) {
+    high *= 2n;
+    iterations++;
+  }
+
+  while (high - low > 1n && iterations < GROSS_UP_MAX_ITERATIONS) {
+    const mid = low + (high - low) / 2n;
+    if (netForGross(mid) >= targetNetKobo) {
+      high = mid;
+    } else {
+      low = mid;
+    }
+    iterations++;
+  }
+
+  return { grossKobo: high, iterations };
+}
+
+export interface GrossedUpLumpSumInput {
+  kind: LumpSumKind;
+  /** The amount the employee should actually receive — the employer bears the PAYE on top of this. */
+  targetNetKobo: Kobo;
+  cumulativeChargeableIncomeBeforeKobo: Kobo;
+  cumulativePayePaidBeforeKobo: Kobo;
+}
+
+/**
+ * Gross-up variant of deriveLumpSumPayslip: solves for the gross that
+ * produces the requested net via solveLumpSumGrossForNetKobo, then derives
+ * the payslip normally from that solved gross — so the result carries the
+ * exact same shape, and the exact same non-pensionable/non-NHF/non-NSITF
+ * treatment, as every other lump sum. Because the solve finds the minimal
+ * gross whose net is *at least* the target, netKobo on the result may land
+ * a few kobo above targetNetKobo (kobo-granularity rounding), never below.
+ */
+export function deriveGrossedUpLumpSumPayslip(
+  input: GrossedUpLumpSumInput,
+  ruleVersion: RuleVersion,
+): LumpSumPayslipResult & { iterations: number } {
+  const { grossKobo, iterations } = solveLumpSumGrossForNetKobo(
+    input.targetNetKobo,
+    input.cumulativeChargeableIncomeBeforeKobo,
+    input.cumulativePayePaidBeforeKobo,
+    ruleVersion,
+  );
+
+  const result = deriveLumpSumPayslip(
+    {
+      kind: input.kind,
+      amountKobo: grossKobo,
+      cumulativeChargeableIncomeBeforeKobo: input.cumulativeChargeableIncomeBeforeKobo,
+      cumulativePayePaidBeforeKobo: input.cumulativePayePaidBeforeKobo,
+    },
+    ruleVersion,
+  );
+
+  return { ...result, iterations };
+}
