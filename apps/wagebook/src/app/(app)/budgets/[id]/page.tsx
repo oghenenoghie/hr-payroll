@@ -1,9 +1,13 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { toNaira } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 import { formatKobo } from "@/lib/format";
 import { ACCOUNT_LABEL } from "@/lib/accounts";
+import { toCsv } from "@/lib/csv";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { PrintButton } from "@/components/PrintButton";
 import { BudgetLineForm } from "./BudgetLineForm";
 import { deleteBudgetLine, deleteBudget } from "./actions";
 
@@ -110,15 +114,43 @@ export default async function BudgetDetailPage({ params }: { params: Promise<{ i
     });
   }
 
+  const csv = toCsv(
+    ["Section", "Account", "Budgeted (NGN)", "Actual (NGN)", "Variance (NGN)", "% of budget"],
+    [
+      ...revenueLines.map((line) => {
+        const budgeted = BigInt(line.amount_kobo);
+        const actual = actualByCode.get(line.account_code) ?? 0n;
+        const pct = budgeted > 0n ? Number((actual * 100n) / budgeted) : 0;
+        return ["Revenue", accountLabel(line.account_code), toNaira(budgeted).toFixed(2), toNaira(actual).toFixed(2), toNaira(actual - budgeted).toFixed(2), `${pct}%`];
+      }),
+      ["Revenue", "Total revenue", toNaira(totalBudgetedRevenue).toFixed(2), toNaira(totalActualRevenue).toFixed(2), "", ""],
+      ...expenseLines.map((line) => {
+        const budgeted = BigInt(line.amount_kobo);
+        const actual = actualByCode.get(line.account_code) ?? 0n;
+        const pct = budgeted > 0n ? Number((actual * 100n) / budgeted) : 0;
+        return ["Expense", accountLabel(line.account_code), toNaira(budgeted).toFixed(2), toNaira(actual).toFixed(2), toNaira(actual - budgeted).toFixed(2), `${pct}%`];
+      }),
+      ["Expense", "Total expenses", toNaira(totalBudgetedExpense).toFixed(2), toNaira(totalActualExpense).toFixed(2), "", ""],
+      ["Net", "Net (budgeted)", toNaira(totalBudgetedRevenue - totalBudgetedExpense).toFixed(2), "", "", ""],
+      ["Net", "Net (actual)", "", toNaira(totalActualRevenue - totalActualExpense).toFixed(2), "", ""],
+    ],
+  );
+
   return (
-    <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 px-6 py-10">
+    <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 px-6 py-10 print:px-0 print:py-0">
       <header className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
-          <Link href="/budgets" className="text-primary">
-            Budgets
-          </Link>{" "}
-          / {budget.name}
-        </span>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
+            <Link href="/budgets" className="text-primary print:hidden">
+              Budgets
+            </Link>
+            <span className="hidden print:inline">Budgets</span> / {budget.name}
+          </span>
+          <div className="flex items-center gap-2 print:hidden">
+            <ExportCsvButton csv={csv} filename={`budget-${budget.name}.csv`} />
+            <PrintButton>Print / Save as PDF</PrintButton>
+          </div>
+        </div>
         <h1 className="text-[22px] font-extrabold text-ink">{budget.name}</h1>
         <p className="text-[13px] text-ink-soft">
           {budget.period_start} – {budget.period_end}. Actuals pulled live from the general ledger for this range.
@@ -218,7 +250,7 @@ export default async function BudgetDetailPage({ params }: { params: Promise<{ i
       )}
 
       {canManage && (
-        <>
+        <div className="flex flex-col gap-5 print:hidden">
           <div className="rounded-card border border-border bg-surface p-6">
             <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
               Add or update a budget line
@@ -233,7 +265,7 @@ export default async function BudgetDetailPage({ params }: { params: Promise<{ i
               Delete this budget
             </button>
           </form>
-        </>
+        </div>
       )}
     </div>
   );

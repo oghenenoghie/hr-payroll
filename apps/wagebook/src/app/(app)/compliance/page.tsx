@@ -4,6 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 import { formatKobo, formatPercent } from "@/lib/format";
 import { Badge } from "@/components/Badge";
+import { toCsv } from "@/lib/csv";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { PrintButton } from "@/components/PrintButton";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const tdClass = "px-3 py-[10px] text-[13px]";
@@ -114,10 +117,20 @@ export default async function CompliancePage() {
 
   const missingTin = (employees ?? []).filter((e) => !e.tin);
 
+  const missingTinCsv = toCsv(
+    ["Employee", "State of Residence"],
+    missingTin.map((e) => [e.full_name, e.state_of_residence ?? ""]),
+  );
+
   return (
-    <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 px-6 py-10">
+    <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 px-6 py-10 print:px-0 print:py-0">
       <header className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Compliance Engine</span>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Compliance Engine</span>
+          <span className="print:hidden">
+            <PrintButton>Print / Save as PDF</PrintButton>
+          </span>
+        </div>
         <h1 className="text-[22px] font-extrabold text-ink">
           PAYE, pension, NHF, NHIS, NSITF, ITF &amp; WHT — versioned and current
         </h1>
@@ -193,11 +206,18 @@ export default async function CompliancePage() {
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
             TIN registration gate
           </span>
-          {missingTin.length > 0 ? (
-            <Badge tone="bad">{missingTin.length} missing TIN</Badge>
-          ) : (
-            <Badge tone="good">All active employees registered</Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {missingTin.length > 0 && (
+              <span className="print:hidden">
+                <ExportCsvButton csv={missingTinCsv} filename="missing-tin.csv" />
+              </span>
+            )}
+            {missingTin.length > 0 ? (
+              <Badge tone="bad">{missingTin.length} missing TIN</Badge>
+            ) : (
+              <Badge tone="good">All active employees registered</Badge>
+            )}
+          </div>
         </div>
         <p className="text-[12.5px] text-ink-soft">
           Every active employee must hold a valid TIN before payroll can run. This list is what blocks the next run

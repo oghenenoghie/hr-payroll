@@ -1,8 +1,11 @@
 import { redirect } from "next/navigation";
+import { toNaira } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 import { formatKobo } from "@/lib/format";
 import { ExpenseStatusBadge } from "@/components/Badge";
+import { toCsv } from "@/lib/csv";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { approveExpense, rejectExpense } from "./actions";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
@@ -31,10 +34,24 @@ export default async function ExpensesPage() {
   const pending = (expenses ?? []).filter((e) => e.status === "pending");
   const rest = (expenses ?? []).filter((e) => e.status !== "pending");
 
+  const csv = toCsv(
+    ["Employee", "Amount (NGN)", "Description", "Tax Treatment", "Status"],
+    (expenses ?? []).map((expense) => [
+      expense.employees?.full_name ?? "—",
+      toNaira(BigInt(expense.amount_kobo)).toFixed(2),
+      expense.description,
+      expense.taxable === null ? "" : expense.taxable ? "Taxable" : "Non-taxable",
+      expense.status,
+    ]),
+  );
+
   return (
     <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 px-6 py-10">
       <header className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Expense Reimbursement</span>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Expense Reimbursement</span>
+          {expenses && expenses.length > 0 && <ExportCsvButton csv={csv} filename="expense-claims.csv" />}
+        </div>
         <h1 className="text-[22px] font-extrabold text-ink">Claims, approvals and taxable/non-taxable handling</h1>
         <p className="text-[13px] text-ink-soft">
           Approving a claim decides its tax treatment — taxable claims are added to chargeable income and re-taxed

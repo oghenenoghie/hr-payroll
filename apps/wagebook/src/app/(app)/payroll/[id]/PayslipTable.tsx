@@ -7,7 +7,7 @@ import { formatKobo, formatPercent } from "@/lib/format";
 
 type PayslipRow = Tables<"payslips"> & { employees: { full_name: string } | null };
 
-const RULE_VERSIONS: Record<string, typeof NG_2026_1> = {
+export const RULE_VERSIONS: Record<string, typeof NG_2026_1> = {
   [NG_2026_1.id]: NG_2026_1,
 };
 
@@ -55,13 +55,18 @@ export function PayslipTable({ payslips, ruleVersionId }: { payslips: PayslipRow
                   <td className={`${tdClass} text-right text-ink-soft`}>{formatKobo(BigInt(slip.paye_kobo))}</td>
                   <td className={`${tdClass} text-right font-bold text-ink`}>{formatKobo(BigInt(slip.net_kobo))}</td>
                   <td className={`${tdClass} text-right`}>
-                    <button
-                      type="button"
-                      onClick={() => setExpandedId(expanded ? null : slip.id)}
-                      className="text-[12px] font-bold text-primary"
-                    >
-                      {expanded ? "hide" : "· how?"}
-                    </button>
+                    <div className="flex items-center justify-end gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setExpandedId(expanded ? null : slip.id)}
+                        className="text-[12px] font-bold text-primary"
+                      >
+                        {expanded ? "hide" : "· how?"}
+                      </button>
+                      <a href={`/payroll/${slip.pay_run_id}/payslips/${slip.id}`} className="text-[12px] font-bold text-primary">
+                        Print
+                      </a>
+                    </div>
                   </td>
                 </tr>
                 {expanded && (
@@ -86,7 +91,7 @@ export function PayslipTable({ payslips, ruleVersionId }: { payslips: PayslipRow
   );
 }
 
-function DerivationDetail({ slip, ruleVersion }: { slip: PayslipRow; ruleVersion: typeof NG_2026_1 }) {
+export function DerivationDetail({ slip, ruleVersion }: { slip: Tables<"payslips">; ruleVersion: typeof NG_2026_1 }) {
   const bandResult = computeAnnualPaye(BigInt(slip.chargeable_income_kobo), ruleVersion);
 
   // employee_deductions_kobo is pension(EE) + NHF + PAYE plus any loan
@@ -253,7 +258,7 @@ function DerivationDetail({ slip, ruleVersion }: { slip: PayslipRow; ruleVersion
   );
 }
 
-function Row({ label, value, emphasis = false }: { label: string; value: string; emphasis?: boolean }) {
+export function Row({ label, value, emphasis = false }: { label: string; value: string; emphasis?: boolean }) {
   return (
     <div className="flex items-baseline justify-between border-b border-border py-[6px] last:border-b-0">
       <span className={emphasis ? "font-bold text-ink" : "text-ink-soft"}>{label}</span>

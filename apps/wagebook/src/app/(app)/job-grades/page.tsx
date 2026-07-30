@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
+import { toNaira } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
 import { formatKobo } from "@/lib/format";
 import { getMembership } from "@/lib/membership";
+import { toCsv } from "@/lib/csv";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { JobGradeForm } from "./JobGradeForm";
 import { deleteJobGrade } from "./actions";
 
@@ -33,10 +36,23 @@ export default async function JobGradesPage() {
     employeeCountByGrade.set(employee.job_grade_id, (employeeCountByGrade.get(employee.job_grade_id) ?? 0) + 1);
   }
 
+  const csv = toCsv(
+    ["Grade", "Min Annual (NGN)", "Max Annual (NGN)", "Employees"],
+    (jobGrades ?? []).map((grade) => [
+      grade.name,
+      toNaira(BigInt(grade.min_annual_kobo)).toFixed(2),
+      toNaira(BigInt(grade.max_annual_kobo)).toFixed(2),
+      employeeCountByGrade.get(grade.id) ?? 0,
+    ]),
+  );
+
   return (
     <div className="mx-auto flex w-full max-w-[720px] flex-col gap-5 px-6 py-10">
       <header className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Job Grades</span>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Job Grades</span>
+          {jobGrades && jobGrades.length > 0 && <ExportCsvButton csv={csv} filename="job-grades.csv" />}
+        </div>
         <h1 className="text-[22px] font-extrabold text-ink">Salary bands for employee assignment</h1>
         <p className="text-[13px] text-ink-soft">
           Assign employees to a grade on their edit page. When an employee&apos;s annual contractual pay (basic +

@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { toNaira } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
 import { formatKobo } from "@/lib/format";
 import { getMembership } from "@/lib/membership";
 import { FREQUENCY_LABEL } from "@/lib/accounts";
 import { PayRunStatusBadge } from "@/components/Badge";
+import { toCsv } from "@/lib/csv";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const tdClass = "px-3 py-[10px] text-[13px]";
@@ -29,6 +32,20 @@ export default async function PayrollPage() {
     .select("*")
     .order("created_at", { ascending: false });
 
+  const csv = toCsv(
+    ["Period Start", "Period End", "Frequency", "Employees", "Gross (NGN)", "Net (NGN)", "Rule Version", "Status"],
+    (payRuns ?? []).map((run) => [
+      run.period_start,
+      run.period_end,
+      FREQUENCY_LABEL[run.frequency] ?? run.frequency,
+      run.employee_count,
+      toNaira(BigInt(run.gross_kobo)).toFixed(2),
+      toNaira(BigInt(run.net_kobo)).toFixed(2),
+      run.rule_version_id,
+      run.status,
+    ]),
+  );
+
   return (
     <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 px-6 py-10">
       <header className="flex items-center justify-between">
@@ -36,12 +53,15 @@ export default async function PayrollPage() {
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Payroll Runs</span>
           <h1 className="text-[22px] font-extrabold text-ink">Multi-frequency runs with full audit trail</h1>
         </div>
-        <Link
-          href="/payroll/new"
-          className="rounded-button bg-primary px-[22px] py-[11px] text-[13px] font-extrabold text-white"
-        >
-          + Run payroll
-        </Link>
+        <div className="flex items-center gap-2">
+          {payRuns && payRuns.length > 0 && <ExportCsvButton csv={csv} filename="payroll-runs.csv" />}
+          <Link
+            href="/payroll/new"
+            className="rounded-button bg-primary px-[22px] py-[11px] text-[13px] font-extrabold text-white"
+          >
+            + Run payroll
+          </Link>
+        </div>
       </header>
 
       <div className="overflow-x-auto rounded-card border border-border bg-surface">

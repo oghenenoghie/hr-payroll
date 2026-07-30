@@ -1,10 +1,13 @@
 import { Fragment } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { toNaira } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 import { formatKobo } from "@/lib/format";
 import { ACCOUNT_LABEL } from "@/lib/accounts";
+import { toCsv } from "@/lib/csv";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const tdClass = "px-3 py-[10px] text-[13px]";
@@ -95,6 +98,32 @@ export default async function GeneralLedgerPage({
     return accountByCode.get(code)?.name ?? ACCOUNT_LABEL[code] ?? code;
   }
 
+  const journalEntryById = new Map((journalEntries ?? []).map((entry) => [entry.id, entry]));
+
+  const trialBalanceCsv = toCsv(
+    ["Account", "Debit (NGN)", "Credit (NGN)"],
+    [...trialBalance.entries()].map(([code, totals]) => [
+      accountLabel(code),
+      totals.debit > 0n ? toNaira(totals.debit).toFixed(2) : "",
+      totals.credit > 0n ? toNaira(totals.credit).toFixed(2) : "",
+    ]),
+  );
+
+  const journalEntriesCsv = toCsv(
+    ["Date", "Memo", "Account", "Debit (NGN)", "Credit (NGN)"],
+    (postings ?? []).map((posting) => {
+      const entry = journalEntryById.get(posting.journal_entry_id);
+      const amountNaira = toNaira(BigInt(posting.amount_kobo)).toFixed(2);
+      return [
+        entry?.entry_date ?? "",
+        entry?.memo ?? "",
+        accountLabel(posting.account_code),
+        posting.direction === "debit" ? amountNaira : "",
+        posting.direction === "credit" ? amountNaira : "",
+      ];
+    }),
+  );
+
   return (
     <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 px-6 py-10">
       <header className="flex flex-col gap-1">
@@ -143,7 +172,10 @@ export default async function GeneralLedgerPage({
       </form>
 
       <div className="flex flex-col gap-2">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Trial balance</span>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Trial balance</span>
+          {trialBalance.size > 0 && <ExportCsvButton csv={trialBalanceCsv} filename="trial-balance.csv" />}
+        </div>
         <div className="overflow-x-auto rounded-card border border-border bg-surface">
           <table className="w-full min-w-[640px] border-collapse">
             <thead>
@@ -206,9 +238,14 @@ export default async function GeneralLedgerPage({
       </div>
 
       <div className="flex flex-col gap-2">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
-          Journal entries {journalEntryIds.length === JOURNAL_ENTRY_LIMIT && `(most recent ${JOURNAL_ENTRY_LIMIT})`}
-        </span>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
+            Journal entries {journalEntryIds.length === JOURNAL_ENTRY_LIMIT && `(most recent ${JOURNAL_ENTRY_LIMIT})`}
+          </span>
+          {journalEntries && journalEntries.length > 0 && (
+            <ExportCsvButton csv={journalEntriesCsv} filename="journal-entries.csv" />
+          )}
+        </div>
         <div className="flex flex-col gap-3">
           {journalEntries && journalEntries.length > 0 ? (
             journalEntries.map((entry) => (

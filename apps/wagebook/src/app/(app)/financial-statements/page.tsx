@@ -1,9 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { toNaira } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 import { formatKobo } from "@/lib/format";
 import { ACCOUNT_LABEL } from "@/lib/accounts";
+import { toCsv } from "@/lib/csv";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { PrintButton } from "@/components/PrintButton";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const tdClass = "px-3 py-[10px] text-[13px]";
@@ -73,21 +77,41 @@ export default async function ProfitAndLossPage({
   const totalExpense = expenseRows.reduce((sum, [, amount]) => sum + amount, 0n);
   const netIncome = totalRevenue - totalExpense;
 
+  const csv = toCsv(
+    ["Section", "Account", "Amount (NGN)"],
+    [
+      ...revenueRows.map(([code, amount]) => ["Revenue", accountLabel(code), toNaira(amount).toFixed(2)]),
+      ["Revenue", "Total revenue", toNaira(totalRevenue).toFixed(2)],
+      ...expenseRows.map(([code, amount]) => ["Expense", accountLabel(code), toNaira(amount).toFixed(2)]),
+      ["Expense", "Total expenses", toNaira(totalExpense).toFixed(2)],
+      [netIncome >= 0n ? "Net income" : "Net loss", "", toNaira(netIncome).toFixed(2)],
+    ],
+  );
+
   return (
-    <div className="mx-auto flex w-full max-w-[720px] flex-col gap-5 px-6 py-10">
+    <div className="mx-auto flex w-full max-w-[720px] flex-col gap-5 px-6 py-10 print:px-0 print:py-0">
       <header className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Financial Statements</span>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Financial Statements</span>
+          <div className="flex items-center gap-2 print:hidden">
+            <ExportCsvButton csv={csv} filename="profit-and-loss.csv" />
+            <PrintButton>Print / Save as PDF</PrintButton>
+          </div>
+        </div>
         <h1 className="text-[22px] font-extrabold text-ink">Profit &amp; Loss</h1>
         <p className="text-[13px] text-ink-soft">
           Revenue and expense for the period, derived directly from the general ledger — nothing here is entered by
           hand. Leave the dates blank for all time.
         </p>
-        <Link href="/financial-statements/balance-sheet" className="mt-1 text-[12.5px] font-bold text-primary">
+        <Link href="/financial-statements/balance-sheet" className="mt-1 text-[12.5px] font-bold text-primary print:hidden">
           View Balance Sheet →
         </Link>
       </header>
 
-      <form className="flex flex-wrap items-end gap-3 rounded-card border border-border bg-surface p-4" action="/financial-statements">
+      <form
+        className="flex flex-wrap items-end gap-3 rounded-card border border-border bg-surface p-4 print:hidden"
+        action="/financial-statements"
+      >
         <div className="flex flex-col gap-1">
           <label className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft" htmlFor="from">
             From

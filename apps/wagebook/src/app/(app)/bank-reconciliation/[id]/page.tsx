@@ -1,9 +1,13 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { toNaira } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 import { formatKobo } from "@/lib/format";
 import { ReconciliationStatusBadge } from "@/components/Badge";
+import { toCsv } from "@/lib/csv";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { PrintButton } from "@/components/PrintButton";
 import { StatementLineForm } from "./StatementLineForm";
 import { matchStatementLine, unmatchStatementLine, completeReconciliation } from "./actions";
 
@@ -99,15 +103,34 @@ export default async function BankReconciliationDetailPage({ params }: { params:
     return `${entry?.entry_date ?? "—"} · ${entry?.memo ?? "—"} · ${sign}${formatKobo(BigInt(posting.amount_kobo))}`;
   };
 
+  const csv = toCsv(
+    ["Date", "Description", "Type", "Amount (NGN)", "Matched"],
+    allLines.map((line) => [
+      line.line_date,
+      line.description,
+      line.type,
+      toNaira(BigInt(line.amount_kobo)).toFixed(2),
+      line.matched_posting_id ? "Yes" : "No",
+    ]),
+  );
+
   return (
-    <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 px-6 py-10">
+    <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 px-6 py-10 print:px-0 print:py-0">
       <header className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
-          <Link href="/bank-reconciliation" className="text-primary">
-            Bank &amp; Cash Reconciliation
-          </Link>{" "}
-          / {reconciliation.period_end}
-        </span>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
+            <Link href="/bank-reconciliation" className="text-primary print:hidden">
+              Bank &amp; Cash Reconciliation
+            </Link>
+            <span className="hidden print:inline">Bank &amp; Cash Reconciliation</span> / {reconciliation.period_end}
+          </span>
+          <div className="flex items-center gap-2 print:hidden">
+            {allLines.length > 0 && (
+              <ExportCsvButton csv={csv} filename={`bank-reconciliation-${reconciliation.period_end}.csv`} />
+            )}
+            <PrintButton>Print / Save as PDF</PrintButton>
+          </div>
+        </div>
         <div className="flex items-center gap-3">
           <h1 className="text-[22px] font-extrabold text-ink">Reconciliation as of {reconciliation.period_end}</h1>
           <ReconciliationStatusBadge status={reconciliation.status} />
@@ -154,7 +177,7 @@ export default async function BankReconciliationDetailPage({ params }: { params:
       </div>
 
       {reconciliation.status === "in_progress" && canManage && (
-        <div className="rounded-card border border-border bg-surface p-6">
+        <div className="rounded-card border border-border bg-surface p-6 print:hidden">
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Add a statement line</span>
           <div className="mt-3">
             <StatementLineForm reconciliationId={reconciliation.id} />
@@ -173,7 +196,7 @@ export default async function BankReconciliationDetailPage({ params }: { params:
                 <th className={`${thClass} text-left`}>Date</th>
                 <th className={`${thClass} text-left`}>Description</th>
                 <th className={`${thClass} text-right`}>Amount</th>
-                {canManage && reconciliation.status === "in_progress" && <th className={thClass}></th>}
+                {canManage && reconciliation.status === "in_progress" && <th className={`${thClass} print:hidden`}></th>}
               </tr>
             </thead>
             <tbody>
@@ -187,7 +210,7 @@ export default async function BankReconciliationDetailPage({ params }: { params:
                       {formatKobo(BigInt(line.amount_kobo))}
                     </td>
                     {canManage && reconciliation.status === "in_progress" && (
-                      <td className={`${tdClass} text-right`}>
+                      <td className={`${tdClass} text-right print:hidden`}>
                         {unmatchedPostings.length > 0 ? (
                           <form action={matchStatementLine} className="flex items-center justify-end gap-2">
                             <input type="hidden" name="line_id" value={line.id} />
@@ -278,7 +301,7 @@ export default async function BankReconciliationDetailPage({ params }: { params:
                 <tr className="border-b border-border">
                   <th className={`${thClass} text-left`}>Statement line</th>
                   <th className={`${thClass} text-left`}>Matched ledger posting</th>
-                  {canManage && reconciliation.status === "in_progress" && <th className={thClass}></th>}
+                  {canManage && reconciliation.status === "in_progress" && <th className={`${thClass} print:hidden`}></th>}
                 </tr>
               </thead>
               <tbody>
@@ -290,7 +313,7 @@ export default async function BankReconciliationDetailPage({ params }: { params:
                     </td>
                     <td className={`${tdClass} text-ink-soft`}>{postingLabel(line.matched_posting_id)}</td>
                     {canManage && reconciliation.status === "in_progress" && (
-                      <td className={`${tdClass} text-right`}>
+                      <td className={`${tdClass} text-right print:hidden`}>
                         <form action={unmatchStatementLine.bind(null, line.id, reconciliation.id)}>
                           <button type="submit" className="text-[12px] font-bold text-bad">
                             Unmatch
@@ -307,7 +330,7 @@ export default async function BankReconciliationDetailPage({ params }: { params:
       )}
 
       {reconciliation.status === "in_progress" && canManage && (
-        <form action={completeReconciliation.bind(null, reconciliation.id)} className="flex justify-end">
+        <form action={completeReconciliation.bind(null, reconciliation.id)} className="flex justify-end print:hidden">
           <button
             type="submit"
             className="rounded-button border border-border px-[18px] py-[9px] text-[12.5px] font-extrabold text-ink"

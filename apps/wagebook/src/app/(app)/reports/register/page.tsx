@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { toNaira } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
 import { formatKobo } from "@/lib/format";
 import { getMembership } from "@/lib/membership";
 import { FREQUENCY_LABEL } from "@/lib/accounts";
 import { Badge } from "@/components/Badge";
+import { toCsv } from "@/lib/csv";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const tdClass = "px-3 py-[10px] text-[13px]";
@@ -99,10 +102,33 @@ export default async function PayrollRegisterPage() {
       { grossKobo: 0n, netKobo: 0n, payeKobo: 0n, pensionKobo: 0n, nhfKobo: 0n },
     );
 
+  const csv = toCsv(
+    ["Period Start", "Period End", "Frequency", "Employees", "Gross (NGN)", "Net (NGN)", "PAYE (NGN)", "Pension (NGN)", "NHF (NGN)", "Status", "Ledger"],
+    (payRuns ?? []).map((run) => {
+      const liability = liabilityByRun.get(run.id) ?? { payeKobo: 0n, pensionKobo: 0n, nhfKobo: 0n };
+      return [
+        run.period_start,
+        run.period_end,
+        FREQUENCY_LABEL[run.frequency] ?? run.frequency,
+        run.employee_count,
+        toNaira(BigInt(run.gross_kobo)).toFixed(2),
+        toNaira(BigInt(run.net_kobo)).toFixed(2),
+        toNaira(liability.payeKobo).toFixed(2),
+        toNaira(liability.pensionKobo).toFixed(2),
+        toNaira(liability.nhfKobo).toFixed(2),
+        run.status,
+        isBalanced(run.id) ? "Balanced" : "Out of balance",
+      ];
+    }),
+  );
+
   return (
     <div className="mx-auto flex w-full max-w-[1100px] flex-col gap-5 px-6 py-10">
       <header className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Reports</span>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Reports</span>
+          {payRuns && payRuns.length > 0 && <ExportCsvButton csv={csv} filename="payroll-register.csv" />}
+        </div>
         <h1 className="text-[22px] font-extrabold text-ink">Payroll register &amp; reconciliation</h1>
         <p className="text-[13px] text-ink-soft">
           Every pay run with its statutory liability breakdown and a ledger-balanced check — draft and reversed runs

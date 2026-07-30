@@ -1,8 +1,11 @@
 import { redirect } from "next/navigation";
+import { toNaira } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 import { formatKobo } from "@/lib/format";
 import { LoanStatusBadge } from "@/components/Badge";
+import { toCsv } from "@/lib/csv";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { approveLoan, rejectLoan } from "./actions";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
@@ -31,10 +34,25 @@ export default async function LoansPage() {
   const pending = (loans ?? []).filter((l) => l.status === "pending");
   const rest = (loans ?? []).filter((l) => l.status !== "pending");
 
+  const csv = toCsv(
+    ["Employee", "Principal (NGN)", "Outstanding (NGN)", "Monthly Repayment (NGN)", "Reason", "Status"],
+    (loans ?? []).map((loan) => [
+      loan.employees?.full_name ?? "—",
+      toNaira(BigInt(loan.principal_kobo)).toFixed(2),
+      toNaira(BigInt(loan.outstanding_kobo)).toFixed(2),
+      toNaira(BigInt(loan.monthly_repayment_kobo)).toFixed(2),
+      loan.reason ?? "",
+      loan.status,
+    ]),
+  );
+
   return (
     <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 px-6 py-10">
       <header className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Loans &amp; Advances</span>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Loans &amp; Advances</span>
+          {loans && loans.length > 0 && <ExportCsvButton csv={csv} filename="loans.csv" />}
+        </div>
         <h1 className="text-[22px] font-extrabold text-ink">Requests, repayment schedules and payroll deductions</h1>
         <p className="text-[13px] text-ink-soft">
           Approved loans are deducted automatically from net pay in every pay run until fully repaid.

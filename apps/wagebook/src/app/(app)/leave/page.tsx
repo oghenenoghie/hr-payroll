@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 import { LeaveStatusBadge, LeaveEncashmentStatusBadge } from "@/components/Badge";
+import { toCsv } from "@/lib/csv";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { approveLeave, rejectLeave, approveLeaveEncashment, rejectLeaveEncashment } from "./actions";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
@@ -41,10 +43,30 @@ export default async function LeavePage() {
   const pendingEncashments = (encashmentRequests ?? []).filter((r) => r.status === "pending");
   const restEncashments = (encashmentRequests ?? []).filter((r) => r.status !== "pending");
 
+  const leaveCsv = toCsv(
+    ["Employee", "Type", "Start Date", "End Date", "Days", "Status"],
+    (leaveRequests ?? []).map((leave) => [
+      leave.employees?.full_name ?? "—",
+      leave.leave_type,
+      leave.start_date,
+      leave.end_date,
+      leave.days,
+      leave.status,
+    ]),
+  );
+
+  const encashmentCsv = toCsv(
+    ["Employee", "Days Requested", "Status"],
+    (encashmentRequests ?? []).map((request) => [request.employees?.full_name ?? "—", request.days_requested, request.status]),
+  );
+
   return (
     <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 px-6 py-10">
       <header className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Leave &amp; Attendance</span>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Leave &amp; Attendance</span>
+          {leaveRequests && leaveRequests.length > 0 && <ExportCsvButton csv={leaveCsv} filename="leave-requests.csv" />}
+        </div>
         <h1 className="text-[22px] font-extrabold text-ink">Policies, balances and approvals tied to payroll</h1>
         <p className="text-[13px] text-ink-soft">
           Approving annual leave decrements the employee&apos;s balance immediately. Unpaid leave is deducted from
@@ -142,7 +164,12 @@ export default async function LeavePage() {
       </div>
 
       <header className="flex flex-col gap-1 pt-4">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Leave Encashment</span>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Leave Encashment</span>
+          {encashmentRequests && encashmentRequests.length > 0 && (
+            <ExportCsvButton csv={encashmentCsv} filename="leave-encashments.csv" />
+          )}
+        </div>
         <p className="text-[13px] text-ink-soft">
           Cashing out unused annual leave for money while still employed. Approving decrements the balance
           immediately and atomically rejects if it&apos;s insufficient — the payout itself is taxable and goes out

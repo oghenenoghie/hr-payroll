@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getMembership } from "@/lib/membership";
 import { Badge } from "@/components/Badge";
+import { toCsv } from "@/lib/csv";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { MemberRoleForm } from "./MemberRoleForm";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
@@ -51,10 +53,23 @@ export default async function SecurityPage() {
     }),
   );
 
+  const csv = toCsv(
+    ["Member", "Email", "Role", "Two-Factor Authentication"],
+    rows.map((row) => [
+      row.fullName ?? "",
+      row.email,
+      row.role,
+      row.mfaEnabled ? "Enabled" : mfaRequiredRoles.has(row.role) ? "Required — not set up" : "Not enabled",
+    ]),
+  );
+
   return (
     <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 px-6 py-10">
       <header className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Security &amp; Access</span>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Security &amp; Access</span>
+          {rows.length > 0 && <ExportCsvButton csv={csv} filename="org-members.csv" />}
+        </div>
         <h1 className="text-[22px] font-extrabold text-ink">Role-based access and MFA, at a glance</h1>
         <p className="text-[13px] text-ink-soft">
           Two-factor authentication is required for {mfaRequiredLabels.join(" and ")} — those accounts are gated

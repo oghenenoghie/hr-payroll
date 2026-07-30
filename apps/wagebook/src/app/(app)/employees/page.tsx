@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { toNaira } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
 import { formatKobo, getProbationStatus, getContractStatus } from "@/lib/format";
 import { TinBadge, EmployeeStatusBadge, BankDetailsBadge, ProbationBadge, ContractStatusBadge } from "@/components/Badge";
 import { getMembership } from "@/lib/membership";
 import { notifyLifecycleDeadlines } from "@/lib/lifecycle-alerts";
+import { toCsv } from "@/lib/csv";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const tdClass = "px-3 py-[10px] text-[13px]";
@@ -66,6 +69,29 @@ export default async function EmployeesPage({
 
   const hasActiveFilters = Boolean(searchTerm || status || department || branch);
 
+  // Mirrors exactly what the table below shows — "Restricted" wherever
+  // employees_masked already nulled a salary-masked employee's figures,
+  // never the real value, so the export can't leak more than the screen.
+  const csv = toCsv(
+    ["Name", "Department", "Branch", "State", "Basic (NGN)", "TIN", "Bank Details", "Status", "Probation", "Contract"],
+    (employees ?? []).map((employee) => [
+      employee.full_name ?? "",
+      employee.department_name ?? "",
+      employee.branch_name ?? "",
+      employee.state_of_residence ?? "",
+      employee.basic_kobo !== null ? toNaira(BigInt(employee.basic_kobo)).toFixed(2) : "Restricted",
+      employee.tin ? "Valid" : "Missing",
+      employee.salary_masked && employee.bank_account_number === null
+        ? "Restricted"
+        : employee.bank_account_number
+          ? "On file"
+          : "Missing",
+      employee.status ?? "",
+      getProbationStatus(employee.probation_end_date, employee.confirmed ?? false),
+      getContractStatus(employee.employment_type ?? "permanent", employee.contract_end_date),
+    ]),
+  );
+
   return (
     <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 px-6 py-10">
       <header className="flex items-center justify-between">
@@ -74,12 +100,15 @@ export default async function EmployeesPage({
           <h1 className="text-[22px] font-extrabold text-ink">Directory</h1>
           <p className="text-[13px] text-ink-soft">Directory, TIN status and self-service</p>
         </div>
-        <Link
-          href="/employees/new"
-          className="rounded-button bg-primary px-[22px] py-[11px] text-[13px] font-extrabold text-white"
-        >
-          + Add employee
-        </Link>
+        <div className="flex items-center gap-2">
+          {employees && employees.length > 0 && <ExportCsvButton csv={csv} filename="employees.csv" />}
+          <Link
+            href="/employees/new"
+            className="rounded-button bg-primary px-[22px] py-[11px] text-[13px] font-extrabold text-white"
+          >
+            + Add employee
+          </Link>
+        </div>
       </header>
 
       <form className="flex flex-wrap items-end gap-3 rounded-card border border-border bg-surface p-4" action="/employees">

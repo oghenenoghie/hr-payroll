@@ -44,8 +44,8 @@ export function AppShell({
   }
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden md:flex-row">
-      <header className="flex items-center justify-between border-b border-primary bg-primary-dark px-4 py-3 md:hidden">
+    <div className="flex h-screen flex-col overflow-hidden md:flex-row print:block print:h-auto print:overflow-visible">
+      <header className="flex items-center justify-between border-b border-primary bg-primary-dark px-4 py-3 md:hidden print:hidden">
         <button
           type="button"
           onClick={() => setOpen(true)}
@@ -69,12 +69,12 @@ export function AppShell({
           type="button"
           aria-label="Close navigation menu"
           onClick={() => setOpen(false)}
-          className="fixed inset-0 z-40 bg-ink/40 md:hidden"
+          className="fixed inset-0 z-40 bg-ink/40 md:hidden print:hidden"
         />
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[240px] shrink-0 flex-col justify-between overflow-y-auto bg-primary-dark px-4 py-6 transition-transform duration-200 md:static md:translate-x-0 md:transition-none ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-[240px] shrink-0 flex-col justify-between overflow-y-auto bg-primary-dark px-4 py-6 transition-transform duration-200 md:static md:translate-x-0 md:transition-none print:hidden ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -118,7 +118,7 @@ export function AppShell({
         </div>
       </aside>
 
-      <main className="flex-1 overflow-y-auto bg-bg">{children}</main>
+      <main className="flex-1 overflow-y-auto bg-bg print:h-auto print:overflow-visible">{children}</main>
     </div>
   );
 }

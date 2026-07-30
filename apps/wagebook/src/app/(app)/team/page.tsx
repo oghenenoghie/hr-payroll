@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
+import { toNaira } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
 import { formatKobo } from "@/lib/format";
 import { TinBadge } from "@/components/Badge";
+import { toCsv } from "@/lib/csv";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { approveLeave, rejectLeave } from "../leave/actions";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
@@ -96,7 +99,22 @@ export default async function TeamPage() {
           )}
 
           <div className="flex flex-col gap-2">
-            <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Your team</span>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Your team</span>
+              <ExportCsvButton
+                csv={toCsv(
+                  ["Name", "State", "Basic (NGN)", "TIN", "Leave Balance (days)"],
+                  reports.map((report) => [
+                    report.full_name,
+                    report.state_of_residence ?? "",
+                    toNaira(BigInt(report.basic_kobo)).toFixed(2),
+                    report.tin ? "Valid" : "Missing",
+                    Number(report.annual_leave_balance_days),
+                  ]),
+                )}
+                filename="my-team.csv"
+              />
+            </div>
             <div className="overflow-x-auto rounded-card border border-border bg-surface">
               <table className="w-full min-w-[640px] border-collapse">
                 <thead>

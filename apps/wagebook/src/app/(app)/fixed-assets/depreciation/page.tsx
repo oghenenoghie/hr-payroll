@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { toNaira } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 import { formatKobo } from "@/lib/format";
+import { toCsv } from "@/lib/csv";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { RunDepreciationForm } from "./RunDepreciationForm";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
@@ -33,15 +36,23 @@ export default async function DepreciationRunsPage() {
     .select("*")
     .order("period_end", { ascending: false });
 
+  const csv = toCsv(
+    ["Period End", "Total (NGN)"],
+    (runs ?? []).map((run) => [run.period_end, toNaira(BigInt(run.total_amount_kobo)).toFixed(2)]),
+  );
+
   return (
     <div className="mx-auto flex w-full max-w-[720px] flex-col gap-5 px-6 py-10">
       <header className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
-          <Link href="/fixed-assets" className="text-primary">
-            Fixed Assets
-          </Link>{" "}
-          / Depreciation Runs
-        </span>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
+            <Link href="/fixed-assets" className="text-primary">
+              Fixed Assets
+            </Link>{" "}
+            / Depreciation Runs
+          </span>
+          {runs && runs.length > 0 && <ExportCsvButton csv={csv} filename="depreciation-runs.csv" />}
+        </div>
         <h1 className="text-[22px] font-extrabold text-ink">Depreciation Runs</h1>
         <p className="text-[13px] text-ink-soft">
           Straight-line only, one period at a time — like a pay run, each posts a single balanced journal entry

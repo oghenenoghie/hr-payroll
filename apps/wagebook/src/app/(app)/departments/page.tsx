@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
+import { toCsv } from "@/lib/csv";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { DepartmentForm } from "./DepartmentForm";
 import { deleteDepartment } from "./actions";
 
@@ -35,10 +37,18 @@ export default async function DepartmentsPage() {
     );
   }
 
+  const csv = toCsv(
+    ["Department", "Employees"],
+    (departments ?? []).map((department) => [department.name, employeeCountByDepartment.get(department.id) ?? 0]),
+  );
+
   return (
     <div className="mx-auto flex w-full max-w-[720px] flex-col gap-5 px-6 py-10">
       <header className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Departments</span>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Departments</span>
+          {departments && departments.length > 0 && <ExportCsvButton csv={csv} filename="departments.csv" />}
+        </div>
         <h1 className="text-[22px] font-extrabold text-ink">Cost centres for employee assignment and GL export</h1>
         <p className="text-[13px] text-ink-soft">
           Assign employees to a department on their edit page. The general ledger export attributes each employee&apos;s

@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 import { Badge } from "@/components/Badge";
+import { toCsv } from "@/lib/csv";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const tdClass = "px-3 py-[10px] text-[13px]";
@@ -34,12 +36,26 @@ export default async function AuditLogPage() {
     p_org_id: membership.orgId,
   });
 
+  const csv = toCsv(
+    ["When", "Actor", "Action", "Type", "IP Address"],
+    (entries ?? []).map((entry) => [
+      formatWhen(entry.created_at),
+      entry.actor_username ?? entry.actor_id ?? "Unknown",
+      entry.action ?? "",
+      entry.log_type ?? "",
+      entry.ip_address ?? "",
+    ]),
+  );
+
   return (
     <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 px-6 py-10">
       <header className="flex flex-col gap-1">
-        <Link href="/security" className="text-[12px] font-bold text-primary">
-          ← Security &amp; Access
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link href="/security" className="text-[12px] font-bold text-primary">
+            ← Security &amp; Access
+          </Link>
+          {!error && (entries ?? []).length > 0 && <ExportCsvButton csv={csv} filename="audit-log.csv" />}
+        </div>
         <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Audit Log</span>
         <h1 className="text-[22px] font-extrabold text-ink">Authentication events for your organisation</h1>
         <p className="text-[13px] text-ink-soft">
