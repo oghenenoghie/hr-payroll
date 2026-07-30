@@ -142,3 +142,22 @@ export function BenefitEnrollmentStatusBadge({ status }: { status: string }) {
   const tone = BENEFIT_ENROLLMENT_STATUS_TONE[status as keyof typeof BENEFIT_ENROLLMENT_STATUS_TONE] ?? "neutral";
   return <Badge tone={tone}>{status}</Badge>;
 }
+
+const VENDOR_BILL_STATUS_TONE = {
+  pending_approval: "warn",
+  approved: "good",
+  rejected: "bad",
+  paid: "neutral",
+} as const;
+
+const VENDOR_BILL_STATUS_LABEL: Record<string, string> = {
+  pending_approval: "Pending approval",
+  approved: "Approved",
+  rejected: "Rejected",
+  paid: "Paid",
+};
+
+export function VendorBillStatusBadge({ status }: { status: string }) {
+  const tone = VENDOR_BILL_STATUS_TONE[status as keyof typeof VENDOR_BILL_STATUS_TONE] ?? "neutral";
+  return <Badge tone={tone}>{VENDOR_BILL_STATUS_LABEL[status] ?? status}</Badge>;
+}
