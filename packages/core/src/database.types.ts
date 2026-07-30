@@ -2471,6 +2471,76 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      review_loan: {
+        Args: { p_approve: boolean; p_loan_id: string }
+        Returns: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          employee_id: string
+          id: string
+          monthly_repayment_kobo: number
+          org_id: string
+          outstanding_kobo: number
+          principal_kobo: number
+          reason: string | null
+          requested_by: string
+          status: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "loans"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      review_expense: {
+        Args: { p_approve: boolean; p_expense_id: string; p_taxable?: boolean }
+        Returns: {
+          amount_kobo: number
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          description: string
+          employee_id: string
+          id: string
+          org_id: string
+          paid_pay_run_id: string | null
+          requested_by: string
+          status: string
+          taxable: boolean | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "expenses"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      review_overtime_request: {
+        Args: { p_approve: boolean; p_overtime_request_id: string; p_rate_multiplier_bps?: number }
+        Returns: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          employee_id: string
+          hours: number
+          id: string
+          org_id: string
+          paid_pay_run_id: string | null
+          rate_multiplier_bps: number
+          reason: string | null
+          requested_by: string
+          status: string
+          work_date: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "overtime_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       [_ in never]: never

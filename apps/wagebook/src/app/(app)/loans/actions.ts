@@ -38,12 +38,15 @@ export async function approveLoan(loanId: string) {
     redirect("/login");
   }
 
-  await supabase
-    .from("loans")
-    .update({ status: "approved", approved_by: user.id, approved_at: new Date().toISOString() })
-    .eq("id", loanId);
+  // review_loan() only actually finalizes on the last approval step (a
+  // multi-step workflow's intermediate approvals leave status 'pending')
+  // — only notify the employee once it's genuinely decided, not on
+  // every step along the way.
+  const { data: loan } = await supabase.rpc("review_loan", { p_loan_id: loanId, p_approve: true });
 
-  await notifyLoanDecision(supabase, loanId, "approved");
+  if (loan?.status === "approved") {
+    await notifyLoanDecision(supabase, loanId, "approved");
+  }
 
   revalidatePath("/loans");
 }
@@ -58,10 +61,7 @@ export async function rejectLoan(loanId: string) {
     redirect("/login");
   }
 
-  await supabase
-    .from("loans")
-    .update({ status: "rejected", approved_by: user.id, approved_at: new Date().toISOString() })
-    .eq("id", loanId);
+  await supabase.rpc("review_loan", { p_loan_id: loanId, p_approve: false });
 
   await notifyLoanDecision(supabase, loanId, "rejected");
 
