@@ -38,12 +38,16 @@ export default async function BankReconciliationDetailPage({ params }: { params:
   const { data: reconciliation } = await supabase.from("bank_reconciliations").select("*").eq("id", id).single();
   if (!reconciliation) notFound();
 
-  // Point-in-time, matching the Balance Sheet: every cash_and_bank
-  // posting on or before this reconciliation's period end, not a range.
-  const { data: journalEntries } = await supabase
-    .from("journal_entries")
-    .select("id, entry_date, memo")
-    .lte("entry_date", reconciliation.period_end);
+  // journalEntries, matchedElsewhere and lines are independent of one
+  // another — only postings genuinely depends on journalEntries' ids, so
+  // it stays a second step while the rest run concurrently.
+  const [{ data: journalEntries }, { data: matchedElsewhere }, { data: lines }] = await Promise.all([
+    // Point-in-time, matching the Balance Sheet: every cash_and_bank
+    // posting on or before this reconciliation's period end, not a range.
+    supabase.from("journal_entries").select("id, entry_date, memo").lte("entry_date", reconciliation.period_end),
+    supabase.from("bank_statement_lines").select("matched_posting_id").not("matched_posting_id", "is", null),
+    supabase.from("bank_statement_lines").select("*").eq("reconciliation_id", id).order("line_date"),
+  ]);
   const journalEntryById = new Map((journalEntries ?? []).map((entry) => [entry.id, entry]));
   const journalEntryIds = (journalEntries ?? []).map((entry) => entry.id);
 
@@ -56,10 +60,6 @@ export default async function BankReconciliationDetailPage({ params }: { params:
           .in("journal_entry_id", journalEntryIds)
       : { data: [] };
 
-  const { data: matchedElsewhere } = await supabase
-    .from("bank_statement_lines")
-    .select("matched_posting_id")
-    .not("matched_posting_id", "is", null);
   const matchedPostingIds = new Set((matchedElsewhere ?? []).map((line) => line.matched_posting_id));
 
   const allPostings = postings ?? [];
@@ -75,11 +75,6 @@ export default async function BankReconciliationDetailPage({ params }: { params:
     0n,
   );
 
-  const { data: lines } = await supabase
-    .from("bank_statement_lines")
-    .select("*")
-    .eq("reconciliation_id", id)
-    .order("line_date");
   const allLines = lines ?? [];
   const matchedLines = allLines.filter((l) => l.matched_posting_id);
   const unmatchedLines = allLines.filter((l) => !l.matched_posting_id);

@@ -42,11 +42,8 @@ export default async function ViewEmployeePage({ params }: { params: Promise<{ i
   const { data: employee } = await supabase.from("employees_masked").select("*").eq("id", id).maybeSingle();
   if (!employee) notFound();
 
-  const { data: manager } = employee.manager_id
-    ? await supabase.from("employees").select("full_name").eq("id", employee.manager_id).maybeSingle()
-    : { data: null };
-
   const [
+    { data: manager },
     { data: leaveRequests },
     { data: loans },
     { data: expenses },
@@ -56,6 +53,9 @@ export default async function ViewEmployeePage({ params }: { params: Promise<{ i
     { data: compensationHistory },
     { data: payslips },
   ] = await Promise.all([
+    employee.manager_id
+      ? supabase.from("employees").select("full_name").eq("id", employee.manager_id).maybeSingle()
+      : Promise.resolve({ data: null }),
     supabase
       .from("leave_requests")
       .select("*")

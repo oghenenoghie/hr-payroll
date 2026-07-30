@@ -11,8 +11,13 @@ import { ExportCsvButton } from "@/components/ExportCsvButton";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const tdClass = "px-3 py-[10px] text-[13px]";
+const PAGE_SIZE = 25;
 
-export default async function PayrollRegisterPage() {
+export default async function PayrollRegisterPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -27,18 +32,59 @@ export default async function PayrollRegisterPage() {
     redirect("/me");
   }
 
-  const { data: payRuns } = await supabase
-    .from("pay_runs")
-    .select("id, period_start, period_end, frequency, status, gross_kobo, net_kobo, employee_count")
-    .order("period_start", { ascending: false });
+  const { page: pageParam } = await searchParams;
+  const requestedPage = Math.max(1, Number(pageParam) || 1);
 
-  const { data: payslips } = await supabase
-    .from("payslips")
-    .select("pay_run_id, paye_kobo, pension_employee_kobo, pension_employer_kobo, nhf_kobo");
+  // Two independent requests: the current page of runs, and the
+  // all-history "Totals" figures — the latter is a real database
+  // aggregate (see get_payroll_register_totals), not a full-table
+  // download summed in JavaScript, so paginating the list above it
+  // doesn't touch its accuracy.
+  const [payRunsResult, totalsResult] = await Promise.all([
+    supabase
+      .from("pay_runs")
+      .select("id, period_start, period_end, frequency, status, gross_kobo, net_kobo, employee_count", {
+        count: "exact",
+      })
+      .order("period_start", { ascending: false })
+      .range((requestedPage - 1) * PAGE_SIZE, requestedPage * PAGE_SIZE - 1),
+    membership ? supabase.rpc("get_payroll_register_totals", { p_org_id: membership.orgId }) : { data: null },
+  ]);
 
-  const { data: journalEntries } = await supabase.from("journal_entries").select("id, pay_run_id");
+  const payRuns = payRunsResult.data;
+  const totalRuns = payRunsResult.count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalRuns / PAGE_SIZE));
+  const currentPage = Math.min(requestedPage, totalPages);
+  const totalsRow = totalsResult.data?.[0];
+  const totals = {
+    grossKobo: BigInt(totalsRow?.gross_kobo ?? 0),
+    netKobo: BigInt(totalsRow?.net_kobo ?? 0),
+    payeKobo: BigInt(totalsRow?.paye_kobo ?? 0),
+    pensionKobo: BigInt(totalsRow?.pension_kobo ?? 0),
+    nhfKobo: BigInt(totalsRow?.nhf_kobo ?? 0),
+  };
 
-  const { data: postings } = await supabase.from("ledger_postings").select("journal_entry_id, direction, amount_kobo");
+  const payRunIds = (payRuns ?? []).map((run) => run.id);
+
+  // Narrowed to just the runs on this page — previously these three
+  // queries pulled every payslip/journal entry/posting in the org's
+  // entire history just to render one page of 25 rows.
+  const [{ data: payslips }, { data: journalEntries }] =
+    payRunIds.length > 0
+      ? await Promise.all([
+          supabase
+            .from("payslips")
+            .select("pay_run_id, paye_kobo, pension_employee_kobo, pension_employer_kobo, nhf_kobo")
+            .in("pay_run_id", payRunIds),
+          supabase.from("journal_entries").select("id, pay_run_id").in("pay_run_id", payRunIds),
+        ])
+      : [{ data: [] }, { data: [] }];
+
+  const journalEntryIds = (journalEntries ?? []).map((entry) => entry.id);
+  const { data: postings } =
+    journalEntryIds.length > 0
+      ? await supabase.from("ledger_postings").select("journal_entry_id, direction, amount_kobo").in("journal_entry_id", journalEntryIds)
+      : { data: [] };
 
   // One pass over payslips, keyed by pay_run_id — avoids a query per run.
   const liabilityByRun = new Map<string, { payeKobo: bigint; pensionKobo: bigint; nhfKobo: bigint }>();
@@ -86,22 +132,9 @@ export default async function PayrollRegisterPage() {
     return debits === credits;
   }
 
-  const totals = (payRuns ?? [])
-    .filter((run) => run.status === "posted")
-    .reduce(
-      (acc, run) => {
-        const liability = liabilityByRun.get(run.id) ?? { payeKobo: 0n, pensionKobo: 0n, nhfKobo: 0n };
-        return {
-          grossKobo: acc.grossKobo + BigInt(run.gross_kobo),
-          netKobo: acc.netKobo + BigInt(run.net_kobo),
-          payeKobo: acc.payeKobo + liability.payeKobo,
-          pensionKobo: acc.pensionKobo + liability.pensionKobo,
-          nhfKobo: acc.nhfKobo + liability.nhfKobo,
-        };
-      },
-      { grossKobo: 0n, netKobo: 0n, payeKobo: 0n, pensionKobo: 0n, nhfKobo: 0n },
-    );
-
+  // Scoped to this page, same as the table below — the all-history totals
+  // above are already a separate, real aggregate, not something a CSV of
+  // every run ever needs to re-derive from scratch on every page load.
   const csv = toCsv(
     ["Period Start", "Period End", "Frequency", "Employees", "Gross (NGN)", "Net (NGN)", "PAYE (NGN)", "Pension (NGN)", "NHF (NGN)", "Status", "Ledger"],
     (payRuns ?? []).map((run) => {
@@ -122,17 +155,22 @@ export default async function PayrollRegisterPage() {
     }),
   );
 
+  function pageHref(page: number): string {
+    return `/reports/register?page=${page}`;
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-[1100px] flex-col gap-5 px-6 py-10">
       <header className="flex flex-col gap-1">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Reports</span>
-          {payRuns && payRuns.length > 0 && <ExportCsvButton csv={csv} filename="payroll-register.csv" />}
+          {payRuns && payRuns.length > 0 && <ExportCsvButton csv={csv} filename="payroll-register.csv" label="Export this page (CSV)" />}
         </div>
         <h1 className="text-[22px] font-extrabold text-ink">Payroll register &amp; reconciliation</h1>
         <p className="text-[13px] text-ink-soft">
           Every pay run with its statutory liability breakdown and a ledger-balanced check — draft and reversed runs
-          are excluded from the totals row but still listed for the audit trail.
+          are excluded from the totals row but still listed for the audit trail. The totals row always reflects
+          every posted run in your org&apos;s history, not just this page.
         </p>
         <Link href="/reports" className="mt-1 text-[12.5px] font-bold text-primary">
           ← Back to Reports
@@ -195,11 +233,11 @@ export default async function PayrollRegisterPage() {
               </tr>
             )}
           </tbody>
-          {payRuns && payRuns.length > 0 && (
+          {totalRuns > 0 && (
             <tfoot>
               <tr className="border-t-2 border-border bg-bg">
                 <td className={`${tdClass} font-extrabold text-ink`} colSpan={3}>
-                  Totals (posted runs only)
+                  Totals (posted runs only, all history)
                 </td>
                 <td className={`${tdClass} text-right font-extrabold text-ink`}>{formatKobo(totals.grossKobo)}</td>
                 <td className={`${tdClass} text-right font-extrabold text-ink`}>{formatKobo(totals.netKobo)}</td>
@@ -212,6 +250,30 @@ export default async function PayrollRegisterPage() {
           )}
         </table>
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <span className="text-[12px] text-ink-soft">
+            Page {currentPage} of {totalPages} · {totalRuns} run{totalRuns === 1 ? "" : "s"} total
+          </span>
+          <div className="flex gap-3">
+            {currentPage > 1 ? (
+              <Link href={pageHref(currentPage - 1)} className="text-[12.5px] font-bold text-primary">
+                ← Previous
+              </Link>
+            ) : (
+              <span className="text-[12.5px] font-bold text-ink-soft">← Previous</span>
+            )}
+            {currentPage < totalPages ? (
+              <Link href={pageHref(currentPage + 1)} className="text-[12.5px] font-bold text-primary">
+                Next →
+              </Link>
+            ) : (
+              <span className="text-[12.5px] font-bold text-ink-soft">Next →</span>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
