@@ -24,6 +24,8 @@ const PAYROLL_ITEMS: NavItem[] = [
   { href: "/settlements", label: "Final Settlement" },
   { href: "/reports", label: "Reports" },
   { href: "/simulation", label: "Payroll Simulation" },
+  { href: "/vendors", label: "Vendors" },
+  { href: "/bills", label: "Bills (AP)" },
 ];
 
 const REQUESTS_ITEMS: NavItem[] = [

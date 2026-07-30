@@ -1845,6 +1845,139 @@ export type Database = {
           },
         ]
       }
+      vendors: {
+        Row: {
+          bank_account_name: string | null
+          bank_account_number: string | null
+          bank_name: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          name: string
+          org_id: string
+          status: string
+        }
+        Insert: {
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          org_id: string
+          status?: string
+        }
+        Update: {
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          org_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendors_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendor_bills: {
+        Row: {
+          amount_kobo: number
+          approved_at: string | null
+          approved_by: string | null
+          bill_date: string
+          bill_number: string | null
+          created_at: string
+          description: string
+          due_date: string | null
+          id: string
+          journal_entry_id: string | null
+          org_id: string
+          paid_at: string | null
+          payment_journal_entry_id: string | null
+          requested_by: string
+          status: string
+          vendor_id: string
+        }
+        Insert: {
+          amount_kobo: number
+          approved_at?: string | null
+          approved_by?: string | null
+          bill_date: string
+          bill_number?: string | null
+          created_at?: string
+          description: string
+          due_date?: string | null
+          id?: string
+          journal_entry_id?: string | null
+          org_id: string
+          paid_at?: string | null
+          payment_journal_entry_id?: string | null
+          requested_by: string
+          status?: string
+          vendor_id: string
+        }
+        Update: {
+          amount_kobo?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          bill_date?: string
+          bill_number?: string | null
+          created_at?: string
+          description?: string
+          due_date?: string | null
+          id?: string
+          journal_entry_id?: string | null
+          org_id?: string
+          paid_at?: string | null
+          payment_journal_entry_id?: string | null
+          requested_by?: string
+          status?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_bills_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_bills_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_bills_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_bills_payment_journal_entry_id_fkey"
+            columns: ["payment_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       employees_masked: {
@@ -2196,6 +2329,87 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "leave_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      approve_vendor_bill: {
+        Args: { p_bill_id: string; p_expense_account_code?: string }
+        Returns: {
+          amount_kobo: number
+          approved_at: string | null
+          approved_by: string | null
+          bill_date: string
+          bill_number: string | null
+          created_at: string
+          description: string
+          due_date: string | null
+          id: string
+          journal_entry_id: string | null
+          org_id: string
+          paid_at: string | null
+          payment_journal_entry_id: string | null
+          requested_by: string
+          status: string
+          vendor_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "vendor_bills"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      reject_vendor_bill: {
+        Args: { p_bill_id: string }
+        Returns: {
+          amount_kobo: number
+          approved_at: string | null
+          approved_by: string | null
+          bill_date: string
+          bill_number: string | null
+          created_at: string
+          description: string
+          due_date: string | null
+          id: string
+          journal_entry_id: string | null
+          org_id: string
+          paid_at: string | null
+          payment_journal_entry_id: string | null
+          requested_by: string
+          status: string
+          vendor_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "vendor_bills"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      pay_vendor_bill: {
+        Args: { p_bill_id: string }
+        Returns: {
+          amount_kobo: number
+          approved_at: string | null
+          approved_by: string | null
+          bill_date: string
+          bill_number: string | null
+          created_at: string
+          description: string
+          due_date: string | null
+          id: string
+          journal_entry_id: string | null
+          org_id: string
+          paid_at: string | null
+          payment_journal_entry_id: string | null
+          requested_by: string
+          status: string
+          vendor_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "vendor_bills"
           isOneToOne: true
           isSetofReturn: false
         }
