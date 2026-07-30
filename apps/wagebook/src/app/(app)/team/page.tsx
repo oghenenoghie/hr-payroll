@@ -23,7 +23,11 @@ export default async function TeamPage() {
   const { data: myEmployee } = await supabase.from("employees").select("id").eq("user_id", user.id).maybeSingle();
 
   const { data: reports } = myEmployee
-    ? await supabase.from("employees").select("*").eq("manager_id", myEmployee.id).order("full_name")
+    ? await supabase
+        .from("employees")
+        .select("id, full_name, state_of_residence, basic_kobo, tin, annual_leave_balance_days")
+        .eq("manager_id", myEmployee.id)
+        .order("full_name")
     : { data: null };
 
   const reportIds = (reports ?? []).map((r) => r.id);
@@ -32,7 +36,7 @@ export default async function TeamPage() {
     reportIds.length > 0
       ? await supabase
           .from("leave_requests")
-          .select("*, employees(full_name)")
+          .select("id, leave_type, start_date, end_date, days, employees(full_name)")
           .in("employee_id", reportIds)
           .eq("status", "pending")
           .order("created_at", { ascending: false })

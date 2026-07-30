@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 import { formatKobo } from "@/lib/format";
 import { ACCOUNT_LABEL } from "@/lib/accounts";
+import { getCachedChartOfAccounts } from "@/lib/reference-data";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { PrintButton } from "@/components/PrintButton";
@@ -41,8 +42,8 @@ export default async function BalanceSheetPage({
   const { as_of: asOfParam } = await searchParams;
   const asOf = asOfParam || todayIso();
 
-  const { data: accounts } = await supabase.from("chart_of_accounts").select("code, name, type");
-  const accountByCode = new Map((accounts ?? []).map((account) => [account.code, account]));
+  const accounts = await getCachedChartOfAccounts(membership.orgId);
+  const accountByCode = new Map(accounts.map((account) => [account.code, account]));
   const accountLabel = (code: string) => accountByCode.get(code)?.name ?? ACCOUNT_LABEL[code] ?? code;
 
   // Point-in-time, not a range: every journal entry ever posted on or

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 import { formatKobo } from "@/lib/format";
 import { ACCOUNT_LABEL } from "@/lib/accounts";
+import { getCachedChartOfAccounts } from "@/lib/reference-data";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
 
@@ -47,8 +48,8 @@ export default async function GeneralLedgerPage({
 
   const { from, to, page: pageParam } = await searchParams;
 
-  const { data: accounts } = await supabase.from("chart_of_accounts").select("code, name, type");
-  const accountByCode = new Map((accounts ?? []).map((account) => [account.code, account]));
+  const accounts = await getCachedChartOfAccounts(membership.orgId);
+  const accountByCode = new Map(accounts.map((account) => [account.code, account]));
 
   // Unbounded by row count (only by the date range, if any) — the trial
   // balance below must reflect every posting in range to be correct, so

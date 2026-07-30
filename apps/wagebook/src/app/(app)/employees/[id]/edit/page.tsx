@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
+import { getCachedDepartments, getCachedBranches, getCachedJobGrades } from "@/lib/reference-data";
 import { Badge } from "@/components/Badge";
 import { EditEmployeeForm } from "./EditEmployeeForm";
 import { OffboardingChecklistForm } from "./OffboardingChecklistForm";
@@ -35,9 +36,9 @@ export default async function EditEmployeePage({ params }: { params: Promise<{ i
   // (already known) — so they run as one batch instead of up to 9
   // sequential round-trips.
   const [
-    { data: departments },
-    { data: branches },
-    { data: jobGrades },
+    departments,
+    branches,
+    jobGrades,
     { data: managers },
     { data: statusHistory },
     { data: onboardingChecklist },
@@ -45,19 +46,9 @@ export default async function EditEmployeePage({ params }: { params: Promise<{ i
     { data: finalSettlement },
     { data: documentsRaw },
   ] = await Promise.all([
-    employee.org_id
-      ? supabase.from("departments").select("id, name").eq("org_id", employee.org_id).order("name")
-      : Promise.resolve({ data: null }),
-    employee.org_id
-      ? supabase.from("branches").select("id, name").eq("org_id", employee.org_id).order("name")
-      : Promise.resolve({ data: null }),
-    employee.org_id
-      ? supabase
-          .from("job_grades")
-          .select("id, name, min_annual_kobo, max_annual_kobo")
-          .eq("org_id", employee.org_id)
-          .order("min_annual_kobo")
-      : Promise.resolve({ data: null }),
+    employee.org_id ? getCachedDepartments(employee.org_id) : Promise.resolve([]),
+    employee.org_id ? getCachedBranches(employee.org_id) : Promise.resolve([]),
+    employee.org_id ? getCachedJobGrades(employee.org_id) : Promise.resolve([]),
     employee.org_id
       ? supabase
           .from("employees")

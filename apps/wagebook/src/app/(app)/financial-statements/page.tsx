@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 import { formatKobo } from "@/lib/format";
 import { ACCOUNT_LABEL } from "@/lib/accounts";
+import { getCachedChartOfAccounts } from "@/lib/reference-data";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { PrintButton } from "@/components/PrintButton";
@@ -46,8 +47,8 @@ export default async function ProfitAndLossPage({
   // click away, not removed, just no longer the silent default.
   const from = !showAllTime && !fromParam && !to ? currentYearStart() : fromParam;
 
-  const { data: accounts } = await supabase.from("chart_of_accounts").select("code, name, type");
-  const accountByCode = new Map((accounts ?? []).map((account) => [account.code, account]));
+  const accounts = await getCachedChartOfAccounts(membership.orgId);
+  const accountByCode = new Map(accounts.map((account) => [account.code, account]));
   const accountLabel = (code: string) => accountByCode.get(code)?.name ?? ACCOUNT_LABEL[code] ?? code;
 
   let journalEntriesQuery = supabase.from("journal_entries").select("id");

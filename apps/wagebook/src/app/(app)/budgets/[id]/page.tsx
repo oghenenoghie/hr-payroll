@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 import { formatKobo } from "@/lib/format";
 import { ACCOUNT_LABEL } from "@/lib/accounts";
+import { getCachedChartOfAccounts } from "@/lib/reference-data";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { PrintButton } from "@/components/PrintButton";
@@ -42,16 +43,16 @@ export default async function BudgetDetailPage({ params }: { params: Promise<{ i
   // Independent of each other — accounts and budget lines don't depend on
   // journal_entries, and journal_entries only needs the budget's own dates
   // (already known) — so all three run concurrently.
-  const [{ data: accounts }, { data: lines }, { data: journalEntries }] = await Promise.all([
-    supabase.from("chart_of_accounts").select("code, name, type"),
+  const [accounts, { data: lines }, { data: journalEntries }] = await Promise.all([
+    getCachedChartOfAccounts(membership.orgId),
     supabase.from("budget_lines").select("*").eq("budget_id", id),
     // Same signed-sum logic as Profit & Loss: revenue is credit-normal,
     // expense debit-normal — actuals here are pulled live, never stored.
     supabase.from("journal_entries").select("id").gte("entry_date", budget.period_start).lte("entry_date", budget.period_end),
   ]);
-  const accountByCode = new Map((accounts ?? []).map((account) => [account.code, account]));
+  const accountByCode = new Map(accounts.map((account) => [account.code, account]));
   const accountLabel = (code: string) => accountByCode.get(code)?.name ?? ACCOUNT_LABEL[code] ?? code;
-  const revenueExpenseAccounts = (accounts ?? []).filter((a) => a.type === "revenue" || a.type === "expense");
+  const revenueExpenseAccounts = accounts.filter((a) => a.type === "revenue" || a.type === "expense");
 
   const budgetLines = lines ?? [];
   const budgetedCodes = new Set(budgetLines.map((l) => l.account_code));
