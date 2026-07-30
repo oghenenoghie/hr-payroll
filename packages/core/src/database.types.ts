@@ -2260,6 +2260,159 @@ export type Database = {
           },
         ]
       }
+      fixed_assets: {
+        Row: {
+          accumulated_depreciation_kobo: number
+          acquisition_date: string
+          category: string | null
+          cost_kobo: number
+          created_at: string
+          created_by: string
+          disposal_journal_entry_id: string | null
+          disposal_proceeds_kobo: number | null
+          disposed_at: string | null
+          id: string
+          name: string
+          org_id: string
+          salvage_value_kobo: number
+          status: string
+          useful_life_months: number
+        }
+        Insert: {
+          accumulated_depreciation_kobo?: number
+          acquisition_date: string
+          category?: string | null
+          cost_kobo: number
+          created_at?: string
+          created_by: string
+          disposal_journal_entry_id?: string | null
+          disposal_proceeds_kobo?: number | null
+          disposed_at?: string | null
+          id?: string
+          name: string
+          org_id: string
+          salvage_value_kobo?: number
+          status?: string
+          useful_life_months: number
+        }
+        Update: {
+          accumulated_depreciation_kobo?: number
+          acquisition_date?: string
+          category?: string | null
+          cost_kobo?: number
+          created_at?: string
+          created_by?: string
+          disposal_journal_entry_id?: string | null
+          disposal_proceeds_kobo?: number | null
+          disposed_at?: string | null
+          id?: string
+          name?: string
+          org_id?: string
+          salvage_value_kobo?: number
+          status?: string
+          useful_life_months?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fixed_assets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fixed_assets_disposal_journal_entry_id_fkey"
+            columns: ["disposal_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      depreciation_runs: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          journal_entry_id: string
+          org_id: string
+          period_end: string
+          total_amount_kobo: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          journal_entry_id: string
+          org_id: string
+          period_end: string
+          total_amount_kobo: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          journal_entry_id?: string
+          org_id?: string
+          period_end?: string
+          total_amount_kobo?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "depreciation_runs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "depreciation_runs_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      depreciation_lines: {
+        Row: {
+          amount_kobo: number
+          asset_id: string
+          created_at: string
+          depreciation_run_id: string
+          id: string
+        }
+        Insert: {
+          amount_kobo: number
+          asset_id: string
+          created_at?: string
+          depreciation_run_id: string
+          id?: string
+        }
+        Update: {
+          amount_kobo?: number
+          asset_id?: string
+          created_at?: string
+          depreciation_run_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "depreciation_lines_depreciation_run_id_fkey"
+            columns: ["depreciation_run_id"]
+            isOneToOne: false
+            referencedRelation: "depreciation_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "depreciation_lines_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       employees_masked: {
@@ -2839,6 +2992,50 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "bank_reconciliations"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      run_depreciation: {
+        Args: { p_org_id: string; p_period_end: string }
+        Returns: {
+          created_at: string
+          created_by: string
+          id: string
+          journal_entry_id: string
+          org_id: string
+          period_end: string
+          total_amount_kobo: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "depreciation_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      dispose_fixed_asset: {
+        Args: { p_asset_id: string; p_disposal_date: string; p_proceeds_kobo?: number }
+        Returns: {
+          accumulated_depreciation_kobo: number
+          acquisition_date: string
+          category: string | null
+          cost_kobo: number
+          created_at: string
+          created_by: string
+          disposal_journal_entry_id: string | null
+          disposal_proceeds_kobo: number | null
+          disposed_at: string | null
+          id: string
+          name: string
+          org_id: string
+          salvage_value_kobo: number
+          status: string
+          useful_life_months: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "fixed_assets"
           isOneToOne: true
           isSetofReturn: false
         }

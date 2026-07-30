@@ -32,6 +32,8 @@ const PAYROLL_ITEMS: NavItem[] = [
   { href: "/general-ledger", label: "General Ledger" },
   { href: "/financial-statements", label: "Financial Statements" },
   { href: "/bank-reconciliation", label: "Bank Reconciliation" },
+  { href: "/fixed-assets", label: "Fixed Assets" },
+  { href: "/fixed-assets/depreciation", label: "Depreciation Runs" },
 ];
 
 const REQUESTS_ITEMS: NavItem[] = [

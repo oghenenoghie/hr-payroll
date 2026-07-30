@@ -195,3 +195,13 @@ export function ReconciliationStatusBadge({ status }: { status: string }) {
   const tone = RECONCILIATION_STATUS_TONE[status as keyof typeof RECONCILIATION_STATUS_TONE] ?? "neutral";
   return <Badge tone={tone}>{RECONCILIATION_STATUS_LABEL[status] ?? status}</Badge>;
 }
+
+const FIXED_ASSET_STATUS_TONE = {
+  active: "good",
+  disposed: "neutral",
+} as const;
+
+export function FixedAssetStatusBadge({ status }: { status: string }) {
+  const tone = FIXED_ASSET_STATUS_TONE[status as keyof typeof FIXED_ASSET_STATUS_TONE] ?? "neutral";
+  return <Badge tone={tone}>{status === "active" ? "Active" : "Disposed"}</Badge>;
+}
