@@ -2074,6 +2074,126 @@ export type Database = {
           },
         ]
       }
+      approval_workflow_steps: {
+        Row: {
+          approver_kind: string
+          approver_role: string | null
+          approver_user_id: string | null
+          created_at: string
+          id: string
+          org_id: string
+          request_type: string
+          step_order: number
+        }
+        Insert: {
+          approver_kind: string
+          approver_role?: string | null
+          approver_user_id?: string | null
+          created_at?: string
+          id?: string
+          org_id: string
+          request_type: string
+          step_order: number
+        }
+        Update: {
+          approver_kind?: string
+          approver_role?: string | null
+          approver_user_id?: string | null
+          created_at?: string
+          id?: string
+          org_id?: string
+          request_type?: string
+          step_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_workflow_steps_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      approval_instances: {
+        Row: {
+          created_at: string
+          current_step_order: number
+          id: string
+          org_id: string
+          request_id: string
+          request_table: string
+          status: string
+          total_steps: number
+        }
+        Insert: {
+          created_at?: string
+          current_step_order?: number
+          id?: string
+          org_id: string
+          request_id: string
+          request_table: string
+          status?: string
+          total_steps: number
+        }
+        Update: {
+          created_at?: string
+          current_step_order?: number
+          id?: string
+          org_id?: string
+          request_id?: string
+          request_table?: string
+          status?: string
+          total_steps?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_instances_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      approval_instance_decisions: {
+        Row: {
+          approval_instance_id: string
+          comment: string | null
+          decided_at: string
+          decided_by: string
+          decision: string
+          id: string
+          step_order: number
+        }
+        Insert: {
+          approval_instance_id: string
+          comment?: string | null
+          decided_at?: string
+          decided_by: string
+          decision: string
+          id?: string
+          step_order: number
+        }
+        Update: {
+          approval_instance_id?: string
+          comment?: string | null
+          decided_at?: string
+          decided_by?: string
+          decision?: string
+          id?: string
+          step_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_instance_decisions_approval_instance_id_fkey"
+            columns: ["approval_instance_id"]
+            isOneToOne: false
+            referencedRelation: "approval_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       apply_org_wide_raise: {
