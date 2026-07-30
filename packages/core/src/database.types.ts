@@ -1891,6 +1891,367 @@ export type Database = {
           },
         ]
       }
+      subscription_plans: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          max_employees: number | null
+          name: string
+          price_per_employee_kobo: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          max_employees?: number | null
+          name: string
+          price_per_employee_kobo: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          max_employees?: number | null
+          name?: string
+          price_per_employee_kobo?: number
+        }
+        Relationships: []
+      }
+      org_subscriptions: {
+        Row: {
+          canceled_at: string | null
+          created_at: string
+          current_period_end: string
+          current_period_start: string
+          id: string
+          org_id: string
+          plan_id: string
+          status: string
+          trial_ends_at: string | null
+        }
+        Insert: {
+          canceled_at?: string | null
+          created_at?: string
+          current_period_end: string
+          current_period_start: string
+          id?: string
+          org_id: string
+          plan_id: string
+          status?: string
+          trial_ends_at?: string | null
+        }
+        Update: {
+          canceled_at?: string | null
+          created_at?: string
+          current_period_end?: string
+          current_period_start?: string
+          id?: string
+          org_id?: string
+          plan_id?: string
+          status?: string
+          trial_ends_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_subscriptions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_periods: {
+        Row: {
+          amount_kobo: number
+          created_at: string
+          id: string
+          metered_employee_count: number
+          org_id: string
+          period_end: string
+          period_start: string
+          plan_id: string
+        }
+        Insert: {
+          amount_kobo: number
+          created_at?: string
+          id?: string
+          metered_employee_count: number
+          org_id: string
+          period_end: string
+          period_start: string
+          plan_id: string
+        }
+        Update: {
+          amount_kobo?: number
+          created_at?: string
+          id?: string
+          metered_employee_count?: number
+          org_id?: string
+          period_end?: string
+          period_start?: string
+          plan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_periods_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_periods_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          amount_kobo: number
+          billing_period_id: string
+          created_at: string
+          due_at: string
+          id: string
+          issued_at: string
+          org_id: string
+          paid_at: string | null
+          status: string
+        }
+        Insert: {
+          amount_kobo: number
+          billing_period_id: string
+          created_at?: string
+          due_at: string
+          id?: string
+          issued_at?: string
+          org_id: string
+          paid_at?: string | null
+          status?: string
+        }
+        Update: {
+          amount_kobo?: number
+          billing_period_id?: string
+          created_at?: string
+          due_at?: string
+          id?: string
+          issued_at?: string
+          org_id?: string
+          paid_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_billing_period_id_fkey"
+            columns: ["billing_period_id"]
+            isOneToOne: true
+            referencedRelation: "billing_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      approval_workflow_steps: {
+        Row: {
+          approver_kind: string
+          approver_role: string | null
+          approver_user_id: string | null
+          created_at: string
+          id: string
+          org_id: string
+          request_type: string
+          step_order: number
+        }
+        Insert: {
+          approver_kind: string
+          approver_role?: string | null
+          approver_user_id?: string | null
+          created_at?: string
+          id?: string
+          org_id: string
+          request_type: string
+          step_order: number
+        }
+        Update: {
+          approver_kind?: string
+          approver_role?: string | null
+          approver_user_id?: string | null
+          created_at?: string
+          id?: string
+          org_id?: string
+          request_type?: string
+          step_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_workflow_steps_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      approval_instances: {
+        Row: {
+          created_at: string
+          current_step_order: number
+          id: string
+          org_id: string
+          request_id: string
+          request_table: string
+          status: string
+          total_steps: number
+        }
+        Insert: {
+          created_at?: string
+          current_step_order?: number
+          id?: string
+          org_id: string
+          request_id: string
+          request_table: string
+          status?: string
+          total_steps: number
+        }
+        Update: {
+          created_at?: string
+          current_step_order?: number
+          id?: string
+          org_id?: string
+          request_id?: string
+          request_table?: string
+          status?: string
+          total_steps?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_instances_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      approval_instance_decisions: {
+        Row: {
+          approval_instance_id: string
+          comment: string | null
+          decided_at: string
+          decided_by: string
+          decision: string
+          id: string
+          step_order: number
+        }
+        Insert: {
+          approval_instance_id: string
+          comment?: string | null
+          decided_at?: string
+          decided_by: string
+          decision: string
+          id?: string
+          step_order: number
+        }
+        Update: {
+          approval_instance_id?: string
+          comment?: string | null
+          decided_at?: string
+          decided_by?: string
+          decision?: string
+          id?: string
+          step_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_instance_decisions_approval_instance_id_fkey"
+            columns: ["approval_instance_id"]
+            isOneToOne: false
+            referencedRelation: "approval_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pay_run_variance_flags: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          created_at: string
+          detail: string
+          employee_id: string | null
+          flag_type: string
+          id: string
+          org_id: string
+          pay_run_id: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          created_at?: string
+          detail: string
+          employee_id?: string | null
+          flag_type: string
+          id?: string
+          org_id: string
+          pay_run_id: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          created_at?: string
+          detail?: string
+          employee_id?: string | null
+          flag_type?: string
+          id?: string
+          org_id?: string
+          pay_run_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pay_run_variance_flags_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pay_run_variance_flags_pay_run_id_fkey"
+            columns: ["pay_run_id"]
+            isOneToOne: false
+            referencedRelation: "pay_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pay_run_variance_flags_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       apply_org_wide_raise: {
@@ -1898,7 +2259,7 @@ export type Database = {
         Returns: number
       }
       approve_pay_run: {
-        Args: { p_pay_run_id: string }
+        Args: { p_pay_run_id: string; p_acknowledge_variance?: boolean }
         Returns: {
           approved_at: string | null
           approved_by: string | null
@@ -1987,6 +2348,19 @@ export type Database = {
           created_at: string
           ip_address: string
           log_type: string
+        }[]
+      }
+      get_current_billing_estimate: {
+        Args: { p_org_id: string }
+        Returns: {
+          plan_code: string
+          plan_name: string
+          price_per_employee_kobo: number
+          max_employees: number | null
+          period_start: string
+          period_end: string
+          metered_employee_count: number
+          estimated_amount_kobo: number
         }[]
       }
       link_employee_account: {
@@ -2093,6 +2467,76 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "leave_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      review_loan: {
+        Args: { p_approve: boolean; p_loan_id: string }
+        Returns: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          employee_id: string
+          id: string
+          monthly_repayment_kobo: number
+          org_id: string
+          outstanding_kobo: number
+          principal_kobo: number
+          reason: string | null
+          requested_by: string
+          status: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "loans"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      review_expense: {
+        Args: { p_approve: boolean; p_expense_id: string; p_taxable?: boolean }
+        Returns: {
+          amount_kobo: number
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          description: string
+          employee_id: string
+          id: string
+          org_id: string
+          paid_pay_run_id: string | null
+          requested_by: string
+          status: string
+          taxable: boolean | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "expenses"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      review_overtime_request: {
+        Args: { p_approve: boolean; p_overtime_request_id: string; p_rate_multiplier_bps?: number }
+        Returns: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          employee_id: string
+          hours: number
+          id: string
+          org_id: string
+          paid_pay_run_id: string | null
+          rate_multiplier_bps: number
+          reason: string | null
+          requested_by: string
+          status: string
+          work_date: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "overtime_requests"
           isOneToOne: true
           isSetofReturn: false
         }

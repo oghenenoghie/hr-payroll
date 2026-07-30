@@ -7,6 +7,11 @@ import { approvePayRun, discardPayRunDraft } from "./actions";
 export function PayRunDraftActions({ payRunId }: { payRunId: string }) {
   const [approveState, approveAction] = useActionState(approvePayRun.bind(null, payRunId), null);
   const [discardState, discardAction] = useActionState(discardPayRunDraft.bind(null, payRunId), null);
+  // approve_pay_run() raises this exact message when the run has
+  // unreviewed variance flags — seeing it once means the reviewer has
+  // been stopped and shown the flags above; submitting again is treated
+  // as the explicit acknowledgment to proceed anyway.
+  const awaitingVarianceAck = Boolean(approveState?.error?.includes("unreviewed variance flag"));
 
   return (
     <div className="flex flex-col gap-3">
@@ -20,7 +25,8 @@ export function PayRunDraftActions({ payRunId }: { payRunId: string }) {
       <FormError message={discardState?.error} />
       <div className="flex gap-3">
         <form action={approveAction}>
-          <SubmitButton>Approve &amp; post</SubmitButton>
+          <input type="hidden" name="acknowledge_variance" value={awaitingVarianceAck ? "true" : "false"} />
+          <SubmitButton>{awaitingVarianceAck ? "Acknowledge flags & approve anyway" : "Approve & post"}</SubmitButton>
         </form>
         <form action={discardAction}>
           <button
