@@ -14,7 +14,12 @@
 -- Not built here: recurring bills, payment batches, supplier statements,
 -- multi-currency — this is the maker/approve/pay lifecycle and the
 -- ledger integration, disclosed honestly on the feature map.
-create table public.vendors (
+--
+-- Idempotent throughout (IF NOT EXISTS / DROP POLICY IF EXISTS): this
+-- project's operator applies migrations by hand in the SQL Editor rather
+-- than through a migration runner that tracks what already landed, so a
+-- half-applied or repeated run must be safe to redo from the top.
+create table if not exists public.vendors (
   id uuid primary key default gen_random_uuid(),
   org_id uuid not null references public.organizations (id) on delete cascade,
   name text not null check (char_length(name) > 0),
@@ -27,9 +32,9 @@ create table public.vendors (
   created_at timestamptz not null default now()
 );
 
-create index vendors_org_id_idx on public.vendors (org_id);
+create index if not exists vendors_org_id_idx on public.vendors (org_id);
 
-create table public.vendor_bills (
+create table if not exists public.vendor_bills (
   id uuid primary key default gen_random_uuid(),
   org_id uuid not null references public.organizations (id) on delete cascade,
   vendor_id uuid not null references public.vendors (id) on delete restrict,
@@ -49,39 +54,45 @@ create table public.vendor_bills (
   created_at timestamptz not null default now()
 );
 
-create index vendor_bills_org_id_idx on public.vendor_bills (org_id);
-create index vendor_bills_vendor_id_idx on public.vendor_bills (vendor_id);
-create index vendor_bills_status_idx on public.vendor_bills (status);
+create index if not exists vendor_bills_org_id_idx on public.vendor_bills (org_id);
+create index if not exists vendor_bills_vendor_id_idx on public.vendor_bills (vendor_id);
+create index if not exists vendor_bills_status_idx on public.vendor_bills (status);
 
 alter table public.vendors enable row level security;
 alter table public.vendor_bills enable row level security;
 
+drop policy if exists "admins, payroll managers and accountants can view vendors" on public.vendors;
 create policy "admins, payroll managers and accountants can view vendors"
 on public.vendors for select
 to authenticated
 using (core.has_org_role(org_id, array['admin', 'payroll_manager', 'accountant']));
 
+drop policy if exists "admins and payroll managers can add vendors" on public.vendors;
 create policy "admins and payroll managers can add vendors"
 on public.vendors for insert
 to authenticated
 with check (core.has_org_role(org_id, array['admin', 'payroll_manager']));
 
+drop policy if exists "admins and payroll managers can update vendors" on public.vendors;
 create policy "admins and payroll managers can update vendors"
 on public.vendors for update
 to authenticated
 using (core.has_org_role(org_id, array['admin', 'payroll_manager']))
 with check (core.has_org_role(org_id, array['admin', 'payroll_manager']));
 
+drop policy if exists "admins and payroll managers can delete vendors" on public.vendors;
 create policy "admins and payroll managers can delete vendors"
 on public.vendors for delete
 to authenticated
 using (core.has_org_role(org_id, array['admin', 'payroll_manager']));
 
+drop policy if exists "admins, payroll managers and accountants can view vendor bills" on public.vendor_bills;
 create policy "admins, payroll managers and accountants can view vendor bills"
 on public.vendor_bills for select
 to authenticated
 using (core.has_org_role(org_id, array['admin', 'payroll_manager', 'accountant']));
 
+drop policy if exists "admins and payroll managers can add vendor bills" on public.vendor_bills;
 create policy "admins and payroll managers can add vendor bills"
 on public.vendor_bills for insert
 to authenticated
@@ -91,6 +102,7 @@ with check (core.has_org_role(org_id, array['admin', 'payroll_manager']));
 -- this policy exists because they run security invoker (as the calling
 -- user, through normal RLS) rather than security definer, so they need
 -- something to satisfy. No client ever updates vendor_bills directly.
+drop policy if exists "admins and payroll managers can update vendor bills" on public.vendor_bills;
 create policy "admins and payroll managers can update vendor bills"
 on public.vendor_bills for update
 to authenticated
@@ -100,13 +112,15 @@ with check (core.has_org_role(org_id, array['admin', 'payroll_manager']));
 -- Accountant joins the two roles that could already see the ledger —
 -- the read-only reconciliation role from the roles/permissions migration
 -- gets its first real payoff here.
-drop policy "admins and payroll managers can view journal entries" on public.journal_entries;
+drop policy if exists "admins and payroll managers can view journal entries" on public.journal_entries;
+drop policy if exists "admins, payroll managers and accountants can view journal entries" on public.journal_entries;
 create policy "admins, payroll managers and accountants can view journal entries"
 on public.journal_entries for select
 to authenticated
 using (core.has_org_role(org_id, array['admin', 'payroll_manager', 'accountant']));
 
-drop policy "admins and payroll managers can view ledger postings" on public.ledger_postings;
+drop policy if exists "admins and payroll managers can view ledger postings" on public.ledger_postings;
+drop policy if exists "admins, payroll managers and accountants can view ledger postings" on public.ledger_postings;
 create policy "admins, payroll managers and accountants can view ledger postings"
 on public.ledger_postings for select
 to authenticated
