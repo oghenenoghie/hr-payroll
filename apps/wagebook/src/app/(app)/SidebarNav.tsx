@@ -30,6 +30,7 @@ const PAYROLL_ITEMS: NavItem[] = [
   { href: "/invoices", label: "Invoices (AR)" },
   { href: "/chart-of-accounts", label: "Chart of Accounts" },
   { href: "/general-ledger", label: "General Ledger" },
+  { href: "/financial-statements", label: "Financial Statements" },
 ];
 
 const REQUESTS_ITEMS: NavItem[] = [
