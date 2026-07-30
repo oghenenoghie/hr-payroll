@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { ConfirmActionButton } from "@/components/ConfirmActionButton";
 import { VendorForm } from "./VendorForm";
 import { deleteVendor } from "./actions";
 
@@ -104,11 +105,13 @@ export default async function VendorsPage({ searchParams }: { searchParams: Prom
                   </td>
                   {canManage && (
                     <td className={`${tdClass} text-right`}>
-                      <form action={deleteVendor.bind(null, vendor.id)}>
-                        <button type="submit" className="text-[12px] font-bold text-bad">
-                          Delete
-                        </button>
-                      </form>
+                      <ConfirmActionButton
+                        action={deleteVendor.bind(null, vendor.id)}
+                        label="Delete"
+                        confirmTitle="Delete this vendor?"
+                        confirmMessage={`"${vendor.name}" will be removed. This can't be undone.`}
+                        confirmLabel="Delete"
+                      />
                     </td>
                   )}
                 </tr>

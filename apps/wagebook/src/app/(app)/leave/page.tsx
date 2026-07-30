@@ -4,6 +4,7 @@ import { getMembership } from "@/lib/membership";
 import { LeaveStatusBadge, LeaveEncashmentStatusBadge } from "@/components/Badge";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { ConfirmActionButton } from "@/components/ConfirmActionButton";
 import { approveLeave, rejectLeave, approveLeaveEncashment, rejectLeaveEncashment } from "./actions";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
@@ -103,16 +104,22 @@ export default async function LeavePage() {
                     </td>
                     <td className={`${tdClass} text-right`}>
                       <div className="flex justify-end gap-2">
-                        <form action={approveLeave.bind(null, leave.id)}>
-                          <button type="submit" className="text-[12px] font-bold text-good">
-                            Approve
-                          </button>
-                        </form>
-                        <form action={rejectLeave.bind(null, leave.id)}>
-                          <button type="submit" className="text-[12px] font-bold text-bad">
-                            Reject
-                          </button>
-                        </form>
+                        <ConfirmActionButton
+                          action={approveLeave.bind(null, leave.id)}
+                          label="Approve"
+                          tone="primary"
+                          className="text-[12px] font-bold text-good disabled:opacity-50"
+                          confirmTitle="Approve this leave request?"
+                          confirmMessage={`${leave.employees?.full_name ?? "This employee"}'s ${leave.leave_type} leave (${leave.start_date} – ${leave.end_date}, ${leave.days} day${leave.days === 1 ? "" : "s"}) will be approved and their balance updated immediately.`}
+                          confirmLabel="Approve"
+                        />
+                        <ConfirmActionButton
+                          action={rejectLeave.bind(null, leave.id)}
+                          label="Reject"
+                          confirmTitle="Reject this leave request?"
+                          confirmMessage={`${leave.employees?.full_name ?? "This employee"}'s ${leave.leave_type} leave (${leave.start_date} – ${leave.end_date}) will be rejected.`}
+                          confirmLabel="Reject"
+                        />
                       </div>
                     </td>
                   </tr>
@@ -200,16 +207,22 @@ export default async function LeavePage() {
                     </td>
                     <td className={`${tdClass} text-right`}>
                       <div className="flex justify-end gap-2">
-                        <form action={approveLeaveEncashment.bind(null, request.id)}>
-                          <button type="submit" className="text-[12px] font-bold text-good">
-                            Approve
-                          </button>
-                        </form>
-                        <form action={rejectLeaveEncashment.bind(null, request.id)}>
-                          <button type="submit" className="text-[12px] font-bold text-bad">
-                            Reject
-                          </button>
-                        </form>
+                        <ConfirmActionButton
+                          action={approveLeaveEncashment.bind(null, request.id)}
+                          label="Approve"
+                          tone="primary"
+                          className="text-[12px] font-bold text-good disabled:opacity-50"
+                          confirmTitle="Approve this leave encashment?"
+                          confirmMessage={`${request.employees?.full_name ?? "This employee"}'s request to cash out ${request.days_requested} day${request.days_requested === 1 ? "" : "s"} will be approved. Their balance is decremented immediately, and the taxable payout goes out with the next pay run.`}
+                          confirmLabel="Approve"
+                        />
+                        <ConfirmActionButton
+                          action={rejectLeaveEncashment.bind(null, request.id)}
+                          label="Reject"
+                          confirmTitle="Reject this leave encashment?"
+                          confirmMessage={`${request.employees?.full_name ?? "This employee"}'s request to cash out ${request.days_requested} day${request.days_requested === 1 ? "" : "s"} will be rejected.`}
+                          confirmLabel="Reject"
+                        />
                       </div>
                     </td>
                   </tr>

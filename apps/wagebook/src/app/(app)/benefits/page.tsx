@@ -6,6 +6,8 @@ import { formatKobo } from "@/lib/format";
 import { Badge, BenefitEnrollmentStatusBadge } from "@/components/Badge";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { ConfirmActionButton } from "@/components/ConfirmActionButton";
+import { FormSubmitButton } from "@/components/FormSubmitButton";
 import { BenefitPlanForm } from "./BenefitPlanForm";
 import { EnrollmentForm } from "./EnrollmentForm";
 import { setBenefitPlanActive, cancelEnrollment } from "./actions";
@@ -119,11 +121,22 @@ export default async function BenefitsPage() {
                       <Badge tone={plan.active ? "good" : "neutral"}>{plan.active ? "Active" : "Inactive"}</Badge>
                     </td>
                     <td className={`${tdClass} text-right`}>
-                      <form action={setBenefitPlanActive.bind(null, plan.id, !plan.active)}>
-                        <button type="submit" className="text-[12px] font-bold text-primary">
-                          {plan.active ? "Deactivate" : "Reactivate"}
-                        </button>
-                      </form>
+                      {plan.active ? (
+                        <ConfirmActionButton
+                          action={setBenefitPlanActive.bind(null, plan.id, false)}
+                          label="Deactivate"
+                          className="text-[12px] font-bold text-primary disabled:opacity-50"
+                          confirmTitle="Deactivate this plan?"
+                          confirmMessage={`"${plan.name}" will no longer be available for new enrollments. Existing enrollments are unaffected.`}
+                          confirmLabel="Deactivate"
+                        />
+                      ) : (
+                        <form action={setBenefitPlanActive.bind(null, plan.id, true)}>
+                          <FormSubmitButton className="text-[12px] font-bold text-primary">
+                            Reactivate
+                          </FormSubmitButton>
+                        </form>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -176,11 +189,13 @@ export default async function BenefitsPage() {
                     <BenefitEnrollmentStatusBadge status={enrollment.status} />
                   </td>
                   <td className={`${tdClass} text-right`}>
-                    <form action={cancelEnrollment.bind(null, enrollment.id)}>
-                      <button type="submit" className="text-[12px] font-bold text-bad">
-                        Cancel
-                      </button>
-                    </form>
+                    <ConfirmActionButton
+                      action={cancelEnrollment.bind(null, enrollment.id)}
+                      label="Cancel"
+                      confirmTitle="Cancel this enrollment?"
+                      confirmMessage={`${enrollment.employees?.full_name ?? "This employee"}'s enrollment in "${enrollment.benefit_plans?.name ?? "this plan"}" will be cancelled.`}
+                      confirmLabel="Cancel enrollment"
+                    />
                   </td>
                 </tr>
               ))}

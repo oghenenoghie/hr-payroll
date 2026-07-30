@@ -8,6 +8,8 @@ import { ReconciliationStatusBadge } from "@/components/Badge";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { PrintButton } from "@/components/PrintButton";
+import { ConfirmActionButton } from "@/components/ConfirmActionButton";
+import { FormSubmitButton } from "@/components/FormSubmitButton";
 import { StatementLineForm } from "./StatementLineForm";
 import { matchStatementLine, unmatchStatementLine, completeReconciliation } from "./actions";
 
@@ -224,9 +226,7 @@ export default async function BankReconciliationDetailPage({ params }: { params:
                                 </option>
                               ))}
                             </select>
-                            <button type="submit" className="text-[12px] font-bold text-primary">
-                              Match
-                            </button>
+                            <FormSubmitButton className="text-[12px] font-bold text-primary">Match</FormSubmitButton>
                           </form>
                         ) : (
                           <span className="text-[12px] text-ink-soft">No unmatched ledger postings</span>
@@ -309,11 +309,13 @@ export default async function BankReconciliationDetailPage({ params }: { params:
                     <td className={`${tdClass} text-ink-soft`}>{postingLabel(line.matched_posting_id)}</td>
                     {canManage && reconciliation.status === "in_progress" && (
                       <td className={`${tdClass} text-right print:hidden`}>
-                        <form action={unmatchStatementLine.bind(null, line.id, reconciliation.id)}>
-                          <button type="submit" className="text-[12px] font-bold text-bad">
-                            Unmatch
-                          </button>
-                        </form>
+                        <ConfirmActionButton
+                          action={unmatchStatementLine.bind(null, line.id, reconciliation.id)}
+                          label="Unmatch"
+                          confirmTitle="Unmatch this line?"
+                          confirmMessage={`"${line.description}" will go back to being an unreconciled item on both sides.`}
+                          confirmLabel="Unmatch"
+                        />
                       </td>
                     )}
                   </tr>
@@ -325,14 +327,17 @@ export default async function BankReconciliationDetailPage({ params }: { params:
       )}
 
       {reconciliation.status === "in_progress" && canManage && (
-        <form action={completeReconciliation.bind(null, reconciliation.id)} className="flex justify-end print:hidden">
-          <button
-            type="submit"
-            className="rounded-button border border-border px-[18px] py-[9px] text-[12.5px] font-extrabold text-ink"
-          >
-            Complete reconciliation
-          </button>
-        </form>
+        <div className="flex justify-end print:hidden">
+          <ConfirmActionButton
+            action={completeReconciliation.bind(null, reconciliation.id)}
+            label="Complete reconciliation"
+            tone="primary"
+            className="rounded-button border border-border px-[18px] py-[9px] text-[12.5px] font-extrabold text-ink disabled:opacity-50"
+            confirmTitle="Complete this reconciliation?"
+            confirmMessage="This locks the reconciliation as a control record — it becomes immutable and can't be reopened. A mistake means starting a fresh reconciliation instead."
+            confirmLabel="Complete"
+          />
+        </div>
       )}
     </div>
   );

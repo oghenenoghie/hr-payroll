@@ -5,6 +5,7 @@ import { NG_2026_1, computeAnnualPaye, computePension, deriveChargeableIncome, c
 import type { PayComponent } from "@plutus/compliance";
 import { formatKobo } from "@/lib/format";
 import { FormError, FormNotice } from "@/components/AuthCard";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { applyRaise } from "./actions";
 
 interface EmployeeBase {
@@ -56,7 +57,8 @@ function scenarioAt(employees: EmployeeBase[], multiplier: number): ScenarioTota
 
 export function SimulationSlider({ employees, isAdmin }: { employees: EmployeeBase[]; isAdmin: boolean }) {
   const [raisePercent, setRaisePercent] = useState(0);
-  const [applyState, applyFormAction] = useActionState(applyRaise, null);
+  const [applyState, applyFormAction, isApplying] = useActionState(applyRaise, null);
+  const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
 
   const baseline = useMemo(() => scenarioAt(employees, 1), [employees]);
   const projected = useMemo(() => scenarioAt(employees, 1 + raisePercent / 100), [employees, raisePercent]);
@@ -112,19 +114,40 @@ export function SimulationSlider({ employees, isAdmin }: { employees: EmployeeBa
             above — a real change to their contractual pay, logged to each employee&apos;s compensation history and
             notified to their own account. This is not a pay run: nothing is paid out until you create one.
           </p>
-          <form action={applyFormAction} className="mt-3 flex flex-col gap-3">
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              setPendingFormData(new FormData(event.currentTarget));
+            }}
+            className="mt-3 flex flex-col gap-3"
+          >
             <FormError message={applyState?.error} />
             <FormNotice message={applyState?.success} />
             <input type="hidden" name="raisePercent" value={raisePercent} />
             <button
               type="submit"
-              disabled={raisePercent === 0}
+              disabled={raisePercent === 0 || isApplying}
               className="w-full rounded-button bg-primary px-[22px] py-[11px] text-[13px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40"
             >
-              Apply {raisePercent}% raise to {employees.length} employees
+              {isApplying ? "Working…" : `Apply ${raisePercent}% raise to ${employees.length} employees`}
             </button>
           </form>
         </div>
+      )}
+
+      {pendingFormData && (
+        <ConfirmDialog
+          title={`Apply this ${raisePercent}% raise?`}
+          message={`Basic, housing and transport will be scaled up by ${raisePercent}% for all ${employees.length} active employees shown above — a real, immediate change to their contractual pay, logged to each employee's compensation history. Nothing is paid out until you create a pay run afterward.`}
+          tone="primary"
+          confirmLabel="Apply raise"
+          onConfirm={() => {
+            const formData = pendingFormData;
+            setPendingFormData(null);
+            applyFormAction(formData);
+          }}
+          onCancel={() => setPendingFormData(null)}
+        />
       )}
     </div>
   );

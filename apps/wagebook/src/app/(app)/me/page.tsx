@@ -17,6 +17,7 @@ import { OvertimeRequestForm } from "./OvertimeRequestForm";
 import { LeaveEncashmentForm } from "./LeaveEncashmentForm";
 import { acknowledgePolicy } from "./actions";
 import { markNotificationRead } from "../notifications/actions";
+import { FormSubmitButton } from "@/components/FormSubmitButton";
 
 export default async function MePage() {
   const supabase = await createClient();
@@ -153,9 +154,7 @@ export default async function MePage() {
             >
               <span className="text-[13px] font-bold text-ink">{n.message}</span>
               <form action={markNotificationRead.bind(null, n.id)}>
-                <button type="submit" className="text-[12px] font-bold text-primary">
-                  Mark read
-                </button>
+                <FormSubmitButton className="text-[12px] font-bold text-primary">Mark read</FormSubmitButton>
               </form>
             </div>
           ))}
@@ -415,9 +414,9 @@ export default async function MePage() {
                   </div>
                   {status !== "acknowledged" && (
                     <form action={acknowledgePolicy.bind(null, policy.id)}>
-                      <button type="submit" className="text-[12px] font-bold text-primary">
+                      <FormSubmitButton className="text-[12px] font-bold text-primary">
                         Acknowledge
-                      </button>
+                      </FormSubmitButton>
                     </form>
                   )}
                 </div>

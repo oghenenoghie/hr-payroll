@@ -7,6 +7,7 @@ import { formatKobo } from "@/lib/format";
 import { VendorBillStatusBadge } from "@/components/Badge";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { ConfirmActionButton } from "@/components/ConfirmActionButton";
 import { BillForm } from "./BillForm";
 import { approveVendorBill, rejectVendorBill, payVendorBill } from "./actions";
 
@@ -125,16 +126,22 @@ export default async function BillsPage({ searchParams }: { searchParams: Promis
                     {canManage && (
                       <td className={`${tdClass} text-right`}>
                         <div className="flex justify-end gap-2">
-                          <form action={approveVendorBill.bind(null, bill.id)}>
-                            <button type="submit" className="text-[12px] font-bold text-good">
-                              Approve
-                            </button>
-                          </form>
-                          <form action={rejectVendorBill.bind(null, bill.id)}>
-                            <button type="submit" className="text-[12px] font-bold text-bad">
-                              Reject
-                            </button>
-                          </form>
+                          <ConfirmActionButton
+                            action={approveVendorBill.bind(null, bill.id)}
+                            label="Approve"
+                            tone="primary"
+                            className="text-[12px] font-bold text-good disabled:opacity-50"
+                            confirmTitle="Approve this bill?"
+                            confirmMessage={`"${bill.description}" from ${bill.vendors?.name ?? "this vendor"} (${formatKobo(BigInt(bill.amount_kobo))}) will be approved, debiting an expense account and crediting Accounts Payable immediately.`}
+                            confirmLabel="Approve"
+                          />
+                          <ConfirmActionButton
+                            action={rejectVendorBill.bind(null, bill.id)}
+                            label="Reject"
+                            confirmTitle="Reject this bill?"
+                            confirmMessage={`"${bill.description}" from ${bill.vendors?.name ?? "this vendor"} will be rejected.`}
+                            confirmLabel="Reject"
+                          />
                         </div>
                       </td>
                     )}
@@ -171,11 +178,15 @@ export default async function BillsPage({ searchParams }: { searchParams: Promis
                     <td className={`${tdClass} text-ink-soft`}>{bill.due_date ?? "—"}</td>
                     {canManage && (
                       <td className={`${tdClass} text-right`}>
-                        <form action={payVendorBill.bind(null, bill.id)}>
-                          <button type="submit" className="text-[12px] font-bold text-primary">
-                            Mark as paid
-                          </button>
-                        </form>
+                        <ConfirmActionButton
+                          action={payVendorBill.bind(null, bill.id)}
+                          label="Mark as paid"
+                          tone="primary"
+                          className="text-[12px] font-bold text-primary disabled:opacity-50"
+                          confirmTitle="Mark this bill as paid?"
+                          confirmMessage={`"${bill.description}" from ${bill.vendors?.name ?? "this vendor"} (${formatKobo(BigInt(bill.amount_kobo))}) will be marked paid, debiting Accounts Payable and crediting Cash & Bank.`}
+                          confirmLabel="Mark as paid"
+                        />
                       </td>
                     )}
                   </tr>

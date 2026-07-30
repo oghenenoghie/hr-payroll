@@ -7,6 +7,7 @@ import { formatKobo } from "@/lib/format";
 import { CustomerInvoiceStatusBadge } from "@/components/Badge";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { ConfirmActionButton } from "@/components/ConfirmActionButton";
 import { InvoiceForm } from "./InvoiceForm";
 import { issueCustomerInvoice, voidCustomerInvoice, receiveCustomerPayment } from "./actions";
 
@@ -126,16 +127,22 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
                     {canManage && (
                       <td className={`${tdClass} text-right`}>
                         <div className="flex justify-end gap-2">
-                          <form action={issueCustomerInvoice.bind(null, invoice.id)}>
-                            <button type="submit" className="text-[12px] font-bold text-good">
-                              Issue
-                            </button>
-                          </form>
-                          <form action={voidCustomerInvoice.bind(null, invoice.id)}>
-                            <button type="submit" className="text-[12px] font-bold text-bad">
-                              Void
-                            </button>
-                          </form>
+                          <ConfirmActionButton
+                            action={issueCustomerInvoice.bind(null, invoice.id)}
+                            label="Issue"
+                            tone="primary"
+                            className="text-[12px] font-bold text-good disabled:opacity-50"
+                            confirmTitle="Issue this invoice?"
+                            confirmMessage={`"${invoice.description}" to ${invoice.customers?.name ?? "this customer"} (${formatKobo(BigInt(invoice.amount_kobo))}) will be issued, debiting Accounts Receivable and crediting Sales Revenue immediately.`}
+                            confirmLabel="Issue"
+                          />
+                          <ConfirmActionButton
+                            action={voidCustomerInvoice.bind(null, invoice.id)}
+                            label="Void"
+                            confirmTitle="Void this invoice?"
+                            confirmMessage={`"${invoice.description}" to ${invoice.customers?.name ?? "this customer"} will be voided. This draft was never posted, so nothing in the ledger changes.`}
+                            confirmLabel="Void"
+                          />
                         </div>
                       </td>
                     )}
@@ -172,11 +179,15 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
                     <td className={`${tdClass} text-ink-soft`}>{invoice.due_date ?? "—"}</td>
                     {canManage && (
                       <td className={`${tdClass} text-right`}>
-                        <form action={receiveCustomerPayment.bind(null, invoice.id)}>
-                          <button type="submit" className="text-[12px] font-bold text-primary">
-                            Record payment
-                          </button>
-                        </form>
+                        <ConfirmActionButton
+                          action={receiveCustomerPayment.bind(null, invoice.id)}
+                          label="Record payment"
+                          tone="primary"
+                          className="text-[12px] font-bold text-primary disabled:opacity-50"
+                          confirmTitle="Record payment for this invoice?"
+                          confirmMessage={`"${invoice.description}" to ${invoice.customers?.name ?? "this customer"} (${formatKobo(BigInt(invoice.amount_kobo))}) will be marked paid, debiting Cash & Bank and crediting Accounts Receivable.`}
+                          confirmLabel="Record payment"
+                        />
                       </td>
                     )}
                   </tr>

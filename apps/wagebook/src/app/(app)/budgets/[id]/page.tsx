@@ -9,6 +9,7 @@ import { getCachedChartOfAccounts } from "@/lib/reference-data";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { PrintButton } from "@/components/PrintButton";
+import { ConfirmActionButton } from "@/components/ConfirmActionButton";
 import { BudgetLineForm } from "./BudgetLineForm";
 import { deleteBudgetLine, deleteBudget } from "./actions";
 
@@ -104,11 +105,13 @@ export default async function BudgetDetailPage({ params }: { params: Promise<{ i
           <td className={`${tdClass} text-right text-ink-soft`}>{pctOfBudget}%</td>
           {canManage && (
             <td className={`${tdClass} text-right`}>
-              <form action={deleteBudgetLine.bind(null, line.id, budget.id)}>
-                <button type="submit" className="text-[12px] font-bold text-bad">
-                  Delete
-                </button>
-              </form>
+              <ConfirmActionButton
+                action={deleteBudgetLine.bind(null, line.id, budget.id)}
+                label="Delete"
+                confirmTitle="Delete this budget line?"
+                confirmMessage={`The ${accountLabel(line.account_code)} line will be removed from this budget.`}
+                confirmLabel="Delete"
+              />
             </td>
           )}
         </tr>
@@ -262,11 +265,15 @@ export default async function BudgetDetailPage({ params }: { params: Promise<{ i
             </div>
           </div>
 
-          <form action={deleteBudget.bind(null, budget.id)} className="flex justify-end">
-            <button type="submit" className="text-[12px] font-bold text-bad">
-              Delete this budget
-            </button>
-          </form>
+          <div className="flex justify-end">
+            <ConfirmActionButton
+              action={deleteBudget.bind(null, budget.id)}
+              label="Delete this budget"
+              confirmTitle="Delete this budget?"
+              confirmMessage={`"${budget.name}" and every one of its budget lines will be removed. This can't be undone.`}
+              confirmLabel="Delete budget"
+            />
+          </div>
         </div>
       )}
     </div>

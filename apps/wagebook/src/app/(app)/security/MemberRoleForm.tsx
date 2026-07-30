@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { FormSubmitButton } from "@/components/FormSubmitButton";
 import { updateMemberRole, type UpdateRoleState } from "./actions";
 
 type Role = { key: string; label: string };
@@ -33,9 +34,7 @@ export function MemberRoleForm({
           </option>
         ))}
       </select>
-      <button type="submit" className="text-[12px] font-bold text-primary">
-        Save
-      </button>
+      <FormSubmitButton className="text-[12px] font-bold text-primary">Save</FormSubmitButton>
     </form>
   );
 }

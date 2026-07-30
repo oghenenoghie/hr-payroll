@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { ConfirmActionButton } from "@/components/ConfirmActionButton";
 import { BranchForm } from "./BranchForm";
 import { deleteBranch } from "./actions";
 
@@ -80,11 +81,13 @@ export default async function BranchesPage() {
                     {employeeCountByBranch.get(branch.id) ?? 0}
                   </td>
                   <td className={`${tdClass} text-right`}>
-                    <form action={deleteBranch.bind(null, branch.id)}>
-                      <button type="submit" className="text-[12px] font-bold text-bad">
-                        Delete
-                      </button>
-                    </form>
+                    <ConfirmActionButton
+                      action={deleteBranch.bind(null, branch.id)}
+                      label="Delete"
+                      confirmTitle="Delete this branch?"
+                      confirmMessage={`"${branch.name}" will be removed. Employees currently assigned to it keep their record but lose this branch assignment.`}
+                      confirmLabel="Delete"
+                    />
                   </td>
                 </tr>
               ))
