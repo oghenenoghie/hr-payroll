@@ -34,6 +34,7 @@ const PAYROLL_ITEMS: NavItem[] = [
   { href: "/bank-reconciliation", label: "Bank Reconciliation" },
   { href: "/fixed-assets", label: "Fixed Assets" },
   { href: "/fixed-assets/depreciation", label: "Depreciation Runs" },
+  { href: "/budgets", label: "Budgets" },
 ];
 
 const REQUESTS_ITEMS: NavItem[] = [

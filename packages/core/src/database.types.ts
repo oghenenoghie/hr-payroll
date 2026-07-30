@@ -2413,6 +2413,76 @@ export type Database = {
           },
         ]
       }
+      budgets: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+          org_id: string
+          period_end: string
+          period_start: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          name: string
+          org_id: string
+          period_end: string
+          period_start: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+          org_id?: string
+          period_end?: string
+          period_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budgets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budget_lines: {
+        Row: {
+          account_code: string
+          amount_kobo: number
+          budget_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          account_code: string
+          amount_kobo: number
+          budget_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          account_code?: string
+          amount_kobo?: number
+          budget_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_lines_budget_id_fkey"
+            columns: ["budget_id"]
+            isOneToOne: false
+            referencedRelation: "budgets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       employees_masked: {
