@@ -4,6 +4,7 @@ import { getMembership } from "@/lib/membership";
 import { OvertimeStatusBadge } from "@/components/Badge";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { ConfirmActionButton } from "@/components/ConfirmActionButton";
 import { approveOvertime, rejectOvertime } from "./actions";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
@@ -81,21 +82,31 @@ export default async function OvertimePage() {
                     <td className={`${tdClass} text-ink-soft`}>{request.reason ?? "—"}</td>
                     <td className={`${tdClass} text-right`}>
                       <div className="flex justify-end gap-2">
-                        <form action={approveOvertime.bind(null, request.id, 150)}>
-                          <button type="submit" className="text-[12px] font-bold text-good">
-                            Approve · 1.5×
-                          </button>
-                        </form>
-                        <form action={approveOvertime.bind(null, request.id, 200)}>
-                          <button type="submit" className="text-[12px] font-bold text-good">
-                            Approve · 2×
-                          </button>
-                        </form>
-                        <form action={rejectOvertime.bind(null, request.id)}>
-                          <button type="submit" className="text-[12px] font-bold text-bad">
-                            Reject
-                          </button>
-                        </form>
+                        <ConfirmActionButton
+                          action={approveOvertime.bind(null, request.id, 150)}
+                          label="Approve · 1.5×"
+                          tone="primary"
+                          className="text-[12px] font-bold text-good disabled:opacity-50"
+                          confirmTitle="Approve at 1.5× rate?"
+                          confirmMessage={`${request.employees?.full_name ?? "This employee"}'s ${Number(request.hours)} overtime hours on ${request.work_date} will be approved at 1.5× and paid out in the next pay run.`}
+                          confirmLabel="Approve"
+                        />
+                        <ConfirmActionButton
+                          action={approveOvertime.bind(null, request.id, 200)}
+                          label="Approve · 2×"
+                          tone="primary"
+                          className="text-[12px] font-bold text-good disabled:opacity-50"
+                          confirmTitle="Approve at 2× rate?"
+                          confirmMessage={`${request.employees?.full_name ?? "This employee"}'s ${Number(request.hours)} overtime hours on ${request.work_date} will be approved at 2× and paid out in the next pay run.`}
+                          confirmLabel="Approve"
+                        />
+                        <ConfirmActionButton
+                          action={rejectOvertime.bind(null, request.id)}
+                          label="Reject"
+                          confirmTitle="Reject this overtime request?"
+                          confirmMessage={`${request.employees?.full_name ?? "This employee"}'s ${Number(request.hours)} overtime hours on ${request.work_date} will be rejected.`}
+                          confirmLabel="Reject"
+                        />
                       </div>
                     </td>
                   </tr>

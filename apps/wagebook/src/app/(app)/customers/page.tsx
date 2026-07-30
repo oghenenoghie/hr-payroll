@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { ConfirmActionButton } from "@/components/ConfirmActionButton";
 import { CustomerForm } from "./CustomerForm";
 import { deleteCustomer } from "./actions";
 
@@ -102,11 +103,13 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                   <td className={`${tdClass} text-ink-soft`}>{customer.billing_address ?? "—"}</td>
                   {canManage && (
                     <td className={`${tdClass} text-right`}>
-                      <form action={deleteCustomer.bind(null, customer.id)}>
-                        <button type="submit" className="text-[12px] font-bold text-bad">
-                          Delete
-                        </button>
-                      </form>
+                      <ConfirmActionButton
+                        action={deleteCustomer.bind(null, customer.id)}
+                        label="Delete"
+                        confirmTitle="Delete this customer?"
+                        confirmMessage={`"${customer.name}" will be removed. This can't be undone.`}
+                        confirmLabel="Delete"
+                      />
                     </td>
                   )}
                 </tr>

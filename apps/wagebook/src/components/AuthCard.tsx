@@ -1,3 +1,7 @@
+"use client";
+
+import { useFormStatus } from "react-dom";
+
 export function AuthCard({
   title,
   subtitle,
@@ -58,12 +62,14 @@ export function FormField({
 }
 
 export function SubmitButton({ children }: { children: React.ReactNode }) {
+  const { pending } = useFormStatus();
   return (
     <button
       type="submit"
-      className="w-full rounded-button bg-primary px-[22px] py-[11px] text-[13px] font-extrabold text-white"
+      disabled={pending}
+      className="w-full rounded-button bg-primary px-[22px] py-[11px] text-[13px] font-extrabold text-white disabled:opacity-50"
     >
-      {children}
+      {pending ? "Working…" : children}
     </button>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { FormSubmitButton } from "@/components/FormSubmitButton";
 import { cycleAttendance } from "./actions";
 
 const STATUS_LABEL: Record<string, string> = { present: "Present", late: "Late", absent: "Absent" };
@@ -46,12 +47,11 @@ export function AttendanceGrid({
                   return (
                     <td key={date} className={`${tdClass} text-center`}>
                       <form action={cycleAttendance.bind(null, employee.id, date, status)}>
-                        <button
-                          type="submit"
+                        <FormSubmitButton
                           className={`w-full rounded-control px-2 py-1 text-[11px] font-bold uppercase tracking-[0.02em] ${STATUS_CLASS[status]}`}
                         >
                           {STATUS_LABEL[status]}
-                        </button>
+                        </FormSubmitButton>
                       </form>
                     </td>
                   );

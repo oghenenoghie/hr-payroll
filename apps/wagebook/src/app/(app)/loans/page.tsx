@@ -6,6 +6,7 @@ import { formatKobo } from "@/lib/format";
 import { LoanStatusBadge } from "@/components/Badge";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { ConfirmActionButton } from "@/components/ConfirmActionButton";
 import { approveLoan, rejectLoan } from "./actions";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
@@ -84,16 +85,22 @@ export default async function LoansPage() {
                     <td className={`${tdClass} text-ink-soft`}>{loan.reason ?? "—"}</td>
                     <td className={`${tdClass} text-right`}>
                       <div className="flex justify-end gap-2">
-                        <form action={approveLoan.bind(null, loan.id)}>
-                          <button type="submit" className="text-[12px] font-bold text-good">
-                            Approve
-                          </button>
-                        </form>
-                        <form action={rejectLoan.bind(null, loan.id)}>
-                          <button type="submit" className="text-[12px] font-bold text-bad">
-                            Reject
-                          </button>
-                        </form>
+                        <ConfirmActionButton
+                          action={approveLoan.bind(null, loan.id)}
+                          label="Approve"
+                          tone="primary"
+                          className="text-[12px] font-bold text-good disabled:opacity-50"
+                          confirmTitle="Approve this loan?"
+                          confirmMessage={`${loan.employees?.full_name ?? "This employee"}'s loan of ${formatKobo(BigInt(loan.principal_kobo))} will be approved, with ${formatKobo(BigInt(loan.monthly_repayment_kobo))} deducted from net pay each run until fully repaid.`}
+                          confirmLabel="Approve"
+                        />
+                        <ConfirmActionButton
+                          action={rejectLoan.bind(null, loan.id)}
+                          label="Reject"
+                          confirmTitle="Reject this loan?"
+                          confirmMessage={`${loan.employees?.full_name ?? "This employee"}'s loan request will be rejected.`}
+                          confirmLabel="Reject"
+                        />
                       </div>
                     </td>
                   </tr>

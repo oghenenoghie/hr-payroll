@@ -4,6 +4,7 @@ import { getMembership } from "@/lib/membership";
 import { Badge } from "@/components/Badge";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { ConfirmActionButton } from "@/components/ConfirmActionButton";
 import { AccountForm } from "./AccountForm";
 import { deleteAccount } from "./actions";
 
@@ -98,11 +99,13 @@ export default async function ChartOfAccountsPage() {
                       {canManage && (
                         <td className={`${tdClass} text-right`}>
                           {!account.is_system && (
-                            <form action={deleteAccount.bind(null, account.id)}>
-                              <button type="submit" className="text-[12px] font-bold text-bad">
-                                Delete
-                              </button>
-                            </form>
+                            <ConfirmActionButton
+                              action={deleteAccount.bind(null, account.id)}
+                              label="Delete"
+                              confirmTitle="Delete this account?"
+                              confirmMessage={`"${account.code} · ${account.name}" will be removed from the chart of accounts. Any existing ledger postings already made against this code are unaffected, but nothing new can post to it once it's gone.`}
+                              confirmLabel="Delete"
+                            />
                           )}
                         </td>
                       )}

@@ -5,6 +5,7 @@ import { formatKobo } from "@/lib/format";
 import { getMembership } from "@/lib/membership";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { ConfirmActionButton } from "@/components/ConfirmActionButton";
 import { JobGradeForm } from "./JobGradeForm";
 import { deleteJobGrade } from "./actions";
 
@@ -82,11 +83,13 @@ export default async function JobGradesPage() {
                     {employeeCountByGrade.get(grade.id) ?? 0}
                   </td>
                   <td className={`${tdClass} text-right`}>
-                    <form action={deleteJobGrade.bind(null, grade.id)}>
-                      <button type="submit" className="text-[12px] font-bold text-bad">
-                        Delete
-                      </button>
-                    </form>
+                    <ConfirmActionButton
+                      action={deleteJobGrade.bind(null, grade.id)}
+                      label="Delete"
+                      confirmTitle="Delete this job grade?"
+                      confirmMessage={`"${grade.name}" will be removed. Employees currently assigned to it keep their record but lose this grade assignment.`}
+                      confirmLabel="Delete"
+                    />
                   </td>
                 </tr>
               ))

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { ConfirmActionButton } from "@/components/ConfirmActionButton";
 import { DepartmentForm } from "./DepartmentForm";
 import { deleteDepartment } from "./actions";
 
@@ -74,11 +75,13 @@ export default async function DepartmentsPage() {
                     {employeeCountByDepartment.get(department.id) ?? 0}
                   </td>
                   <td className={`${tdClass} text-right`}>
-                    <form action={deleteDepartment.bind(null, department.id)}>
-                      <button type="submit" className="text-[12px] font-bold text-bad">
-                        Delete
-                      </button>
-                    </form>
+                    <ConfirmActionButton
+                      action={deleteDepartment.bind(null, department.id)}
+                      label="Delete"
+                      confirmTitle="Delete this department?"
+                      confirmMessage={`"${department.name}" will be removed. Employees currently assigned to it keep their record but lose this department assignment.`}
+                      confirmLabel="Delete"
+                    />
                   </td>
                 </tr>
               ))

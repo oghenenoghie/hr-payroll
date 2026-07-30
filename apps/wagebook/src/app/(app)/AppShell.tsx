@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import type { SectionKey } from "@/lib/nav-sections";
+import { FormSubmitButton } from "@/components/FormSubmitButton";
 import { signOut } from "./dashboard/actions";
 import { SidebarNav } from "./SidebarNav";
 
@@ -108,12 +109,9 @@ export function AppShell({
             </span>
           </div>
           <form action={signOut}>
-            <button
-              type="submit"
-              className="w-full rounded-control border border-primary-tint px-3 py-2 text-[12.5px] font-bold text-primary-tint"
-            >
+            <FormSubmitButton className="w-full rounded-control border border-primary-tint px-3 py-2 text-[12.5px] font-bold text-primary-tint">
               Sign out
-            </button>
+            </FormSubmitButton>
           </form>
         </div>
       </aside>

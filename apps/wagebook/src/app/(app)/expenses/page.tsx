@@ -6,6 +6,7 @@ import { formatKobo } from "@/lib/format";
 import { ExpenseStatusBadge } from "@/components/Badge";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { ConfirmActionButton } from "@/components/ConfirmActionButton";
 import { approveExpense, rejectExpense } from "./actions";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
@@ -80,21 +81,31 @@ export default async function ExpensesPage() {
                     <td className={`${tdClass} text-ink-soft`}>{expense.description}</td>
                     <td className={`${tdClass} text-right`}>
                       <div className="flex justify-end gap-2">
-                        <form action={approveExpense.bind(null, expense.id, true)}>
-                          <button type="submit" className="text-[12px] font-bold text-good">
-                            Approve · taxable
-                          </button>
-                        </form>
-                        <form action={approveExpense.bind(null, expense.id, false)}>
-                          <button type="submit" className="text-[12px] font-bold text-good">
-                            Approve · non-taxable
-                          </button>
-                        </form>
-                        <form action={rejectExpense.bind(null, expense.id)}>
-                          <button type="submit" className="text-[12px] font-bold text-bad">
-                            Reject
-                          </button>
-                        </form>
+                        <ConfirmActionButton
+                          action={approveExpense.bind(null, expense.id, true)}
+                          label="Approve · taxable"
+                          tone="primary"
+                          className="text-[12px] font-bold text-good disabled:opacity-50"
+                          confirmTitle="Approve this claim as taxable?"
+                          confirmMessage={`${expense.employees?.full_name ?? "This employee"}'s ${formatKobo(BigInt(expense.amount_kobo))} claim will be approved and added to chargeable income, re-taxed in the next pay run.`}
+                          confirmLabel="Approve"
+                        />
+                        <ConfirmActionButton
+                          action={approveExpense.bind(null, expense.id, false)}
+                          label="Approve · non-taxable"
+                          tone="primary"
+                          className="text-[12px] font-bold text-good disabled:opacity-50"
+                          confirmTitle="Approve this claim as non-taxable?"
+                          confirmMessage={`${expense.employees?.full_name ?? "This employee"}'s ${formatKobo(BigInt(expense.amount_kobo))} claim will be approved and paid out as pure cash in the next pay run.`}
+                          confirmLabel="Approve"
+                        />
+                        <ConfirmActionButton
+                          action={rejectExpense.bind(null, expense.id)}
+                          label="Reject"
+                          confirmTitle="Reject this claim?"
+                          confirmMessage={`${expense.employees?.full_name ?? "This employee"}'s ${formatKobo(BigInt(expense.amount_kobo))} claim will be rejected.`}
+                          confirmLabel="Reject"
+                        />
                       </div>
                     </td>
                   </tr>

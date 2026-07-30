@@ -5,6 +5,7 @@ import { formatKobo } from "@/lib/format";
 import { TinBadge } from "@/components/Badge";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { ConfirmActionButton } from "@/components/ConfirmActionButton";
 import { approveLeave, rejectLeave } from "../leave/actions";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
@@ -82,16 +83,22 @@ export default async function TeamPage() {
                         <td className={`${tdClass} text-right text-ink`}>{leave.days}</td>
                         <td className={`${tdClass} text-right`}>
                           <div className="flex justify-end gap-2">
-                            <form action={approveLeave.bind(null, leave.id)}>
-                              <button type="submit" className="text-[12px] font-bold text-good">
-                                Approve
-                              </button>
-                            </form>
-                            <form action={rejectLeave.bind(null, leave.id)}>
-                              <button type="submit" className="text-[12px] font-bold text-bad">
-                                Reject
-                              </button>
-                            </form>
+                            <ConfirmActionButton
+                              action={approveLeave.bind(null, leave.id)}
+                              label="Approve"
+                              tone="primary"
+                              className="text-[12px] font-bold text-good disabled:opacity-50"
+                              confirmTitle="Approve this leave request?"
+                              confirmMessage={`${leave.employees?.full_name ?? "This employee"}'s ${leave.leave_type} leave (${leave.start_date} – ${leave.end_date}, ${leave.days} day${leave.days === 1 ? "" : "s"}) will be approved.`}
+                              confirmLabel="Approve"
+                            />
+                            <ConfirmActionButton
+                              action={rejectLeave.bind(null, leave.id)}
+                              label="Reject"
+                              confirmTitle="Reject this leave request?"
+                              confirmMessage={`${leave.employees?.full_name ?? "This employee"}'s ${leave.leave_type} leave (${leave.start_date} – ${leave.end_date}) will be rejected.`}
+                              confirmLabel="Reject"
+                            />
                           </div>
                         </td>
                       </tr>
