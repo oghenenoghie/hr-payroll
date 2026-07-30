@@ -2194,6 +2194,64 @@ export type Database = {
           },
         ]
       }
+      pay_run_variance_flags: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          created_at: string
+          detail: string
+          employee_id: string | null
+          flag_type: string
+          id: string
+          org_id: string
+          pay_run_id: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          created_at?: string
+          detail: string
+          employee_id?: string | null
+          flag_type: string
+          id?: string
+          org_id: string
+          pay_run_id: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          created_at?: string
+          detail?: string
+          employee_id?: string | null
+          flag_type?: string
+          id?: string
+          org_id?: string
+          pay_run_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pay_run_variance_flags_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pay_run_variance_flags_pay_run_id_fkey"
+            columns: ["pay_run_id"]
+            isOneToOne: false
+            referencedRelation: "pay_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pay_run_variance_flags_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       apply_org_wide_raise: {
@@ -2201,7 +2259,7 @@ export type Database = {
         Returns: number
       }
       approve_pay_run: {
-        Args: { p_pay_run_id: string }
+        Args: { p_pay_run_id: string; p_acknowledge_variance?: boolean }
         Returns: {
           approved_at: string | null
           approved_by: string | null
