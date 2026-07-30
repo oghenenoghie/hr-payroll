@@ -197,15 +197,35 @@ export default async function ViewEmployeePage({ params }: { params: Promise<{ i
       </div>
 
       <div className="rounded-card border border-border bg-surface p-6">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Details</span>
+        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Personal information</span>
+        <div className="mt-3">
+          <div className={detailRow}>
+            <span className="text-ink-soft">Email</span>
+            <span className="font-bold text-ink">{employee.email ?? "—"}</span>
+          </div>
+          <div className={detailRow}>
+            <span className="text-ink-soft">Date of birth</span>
+            <span className="font-bold text-ink">
+              {employee.date_of_birth ? new Date(employee.date_of_birth).toLocaleDateString("en-NG") : "—"}
+            </span>
+          </div>
+          <div className={detailRow}>
+            <span className="text-ink-soft">Nationality</span>
+            <span className="font-bold text-ink">{employee.nationality ?? "—"}</span>
+          </div>
+          <div className={detailRow}>
+            <span className="text-ink-soft">State of residence</span>
+            <span className="font-bold text-ink">{employee.state_of_residence ?? "—"}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-card border border-border bg-surface p-6">
+        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Employment details</span>
         <div className="mt-3">
           <div className={detailRow}>
             <span className="text-ink-soft">Employee ID</span>
             <span className="font-bold text-ink">{employee.employee_id ?? "—"}</span>
-          </div>
-          <div className={detailRow}>
-            <span className="text-ink-soft">Email</span>
-            <span className="font-bold text-ink">{employee.email ?? "—"}</span>
           </div>
           <div className={detailRow}>
             <span className="text-ink-soft">Department</span>
@@ -216,30 +236,141 @@ export default async function ViewEmployeePage({ params }: { params: Promise<{ i
             <span className="font-bold text-ink">{employee.branch_name ?? "—"}</span>
           </div>
           <div className={detailRow}>
-            <span className="text-ink-soft">State of residence</span>
-            <span className="font-bold text-ink">{employee.state_of_residence ?? "—"}</span>
+            <span className="text-ink-soft">Job grade</span>
+            <span className="font-bold text-ink">{employee.job_grade_name ?? "—"}</span>
           </div>
           <div className={detailRow}>
             <span className="text-ink-soft">Manager</span>
             <span className="font-bold text-ink">{manager?.full_name ?? "—"}</span>
           </div>
           <div className={detailRow}>
+            <span className="text-ink-soft">Employment type</span>
+            <span className="font-bold capitalize text-ink">{employee.employment_type ?? "—"}</span>
+          </div>
+          <div className={detailRow}>
             <span className="text-ink-soft">Hire date</span>
             <span className="font-bold text-ink">{employee.hire_date ?? "—"}</span>
           </div>
+          {employee.contract_end_date && (
+            <div className={detailRow}>
+              <span className="text-ink-soft">Contract end date</span>
+              <span className="font-bold text-ink">
+                {new Date(employee.contract_end_date).toLocaleDateString("en-NG")}
+              </span>
+            </div>
+          )}
           <div className={detailRow}>
-            <span className="text-ink-soft">Basic (₦/yr)</span>
+            <span className="text-ink-soft">Probation</span>
+            <span className="font-bold text-ink">
+              {employee.confirmed
+                ? "Confirmed"
+                : employee.probation_end_date
+                  ? `Ends ${new Date(employee.probation_end_date).toLocaleDateString("en-NG")}`
+                  : "—"}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-card border border-border bg-surface p-6">
+        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Compensation (₦/yr)</span>
+        <div className="mt-3">
+          <div className={detailRow}>
+            <span className="text-ink-soft">Basic</span>
             <span className="font-bold text-ink">
               {employee.basic_kobo !== null ? formatKobo(BigInt(employee.basic_kobo)) : "Restricted"}
             </span>
           </div>
           <div className={detailRow}>
+            <span className="text-ink-soft">Housing</span>
+            <span className="font-bold text-ink">
+              {employee.housing_kobo !== null ? formatKobo(BigInt(employee.housing_kobo)) : "Restricted"}
+            </span>
+          </div>
+          <div className={detailRow}>
+            <span className="text-ink-soft">Transport</span>
+            <span className="font-bold text-ink">
+              {employee.transport_kobo !== null ? formatKobo(BigInt(employee.transport_kobo)) : "Restricted"}
+            </span>
+          </div>
+          <div className={detailRow}>
+            <span className="text-ink-soft">Annual rent</span>
+            <span className="font-bold text-ink">
+              {employee.annual_rent_kobo !== null ? formatKobo(BigInt(employee.annual_rent_kobo)) : "Restricted"}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-card border border-border bg-surface p-6">
+        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Statutory</span>
+        <div className="mt-3">
+          <div className={detailRow}>
+            <span className="text-ink-soft">TIN</span>
+            <span className="font-bold text-ink">{employee.tin ?? "—"}</span>
+          </div>
+          {employee.tin && (
+            <div className={detailRow}>
+              <span className="text-ink-soft">TIN validity</span>
+              <span className="font-bold text-ink">
+                {employee.tin_valid_from ? new Date(employee.tin_valid_from).toLocaleDateString("en-NG") : "—"} –{" "}
+                {employee.tin_valid_to ? new Date(employee.tin_valid_to).toLocaleDateString("en-NG") : "—"}
+              </span>
+            </div>
+          )}
+          <div className={detailRow}>
             <span className="text-ink-soft">PFA</span>
             <span className="font-bold text-ink">{employee.pfa ?? "—"}</span>
           </div>
+        </div>
+      </div>
+
+      <div className="rounded-card border border-border bg-surface p-6">
+        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Bank details</span>
+        <div className="mt-3">
           <div className={detailRow}>
-            <span className="text-ink-soft">Bank details</span>
+            <span className="text-ink-soft">Status</span>
             <BankDetailsBadge bankAccountNumber={employee.bank_account_number} />
+          </div>
+          <div className={detailRow}>
+            <span className="text-ink-soft">Bank name</span>
+            <span className="font-bold text-ink">{employee.bank_name ?? "Restricted"}</span>
+          </div>
+          <div className={detailRow}>
+            <span className="text-ink-soft">Account number</span>
+            <span className="font-bold text-ink">{employee.bank_account_number ?? "Restricted"}</span>
+          </div>
+          <div className={detailRow}>
+            <span className="text-ink-soft">Account name</span>
+            <span className="font-bold text-ink">{employee.bank_account_name ?? "Restricted"}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-card border border-border bg-surface p-6">
+        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Leave &amp; account</span>
+        <div className="mt-3">
+          <div className={detailRow}>
+            <span className="text-ink-soft">Annual leave balance</span>
+            <span className="font-bold text-ink">
+              {employee.annual_leave_balance_days !== null ? `${employee.annual_leave_balance_days} days` : "—"}
+            </span>
+          </div>
+          <div className={detailRow}>
+            <span className="text-ink-soft">Self-service account</span>
+            {employee.linked_at ? (
+              <span className="font-bold text-ink">
+                Linked since {new Date(employee.linked_at).toLocaleDateString("en-NG")}
+              </span>
+            ) : (
+              <Badge tone="neutral">Not linked</Badge>
+            )}
+          </div>
+          <div className={detailRow}>
+            <span className="text-ink-soft">Record created</span>
+            <span className="font-bold text-ink">
+              {employee.created_at ? new Date(employee.created_at).toLocaleDateString("en-NG") : "—"}
+            </span>
           </div>
         </div>
       </div>
