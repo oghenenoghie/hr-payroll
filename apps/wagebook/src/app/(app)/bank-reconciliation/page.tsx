@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { toNaira } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 import { formatKobo } from "@/lib/format";
 import { ReconciliationStatusBadge } from "@/components/Badge";
+import { toCsv } from "@/lib/csv";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { ReconciliationForm } from "./ReconciliationForm";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
@@ -34,10 +37,20 @@ export default async function BankReconciliationPage() {
     .select("*")
     .order("period_end", { ascending: false });
 
+  const csv = toCsv(
+    ["Period End", "Statement Balance (NGN)", "Status"],
+    (reconciliations ?? []).map((r) => [r.period_end, toNaira(BigInt(r.statement_balance_kobo)).toFixed(2), r.status]),
+  );
+
   return (
     <div className="mx-auto flex w-full max-w-[720px] flex-col gap-5 px-6 py-10">
       <header className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Accounting</span>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Accounting</span>
+          {reconciliations && reconciliations.length > 0 && (
+            <ExportCsvButton csv={csv} filename="bank-reconciliations.csv" />
+          )}
+        </div>
         <h1 className="text-[22px] font-extrabold text-ink">Bank &amp; Cash Reconciliation</h1>
         <p className="text-[13px] text-ink-soft">
           Match what the books say happened to cash against what the bank statement actually says, one statement

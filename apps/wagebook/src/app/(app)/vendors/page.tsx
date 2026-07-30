@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
+import { toCsv } from "@/lib/csv";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { VendorForm } from "./VendorForm";
 import { deleteVendor } from "./actions";
 
@@ -29,10 +31,26 @@ export default async function VendorsPage() {
 
   const { data: vendors } = await supabase.from("vendors").select("*").order("name");
 
+  const csv = toCsv(
+    ["Vendor", "Contact Email", "Contact Phone", "Bank Name", "Bank Account Number", "Bank Account Name", "Status"],
+    (vendors ?? []).map((vendor) => [
+      vendor.name,
+      vendor.contact_email ?? "",
+      vendor.contact_phone ?? "",
+      vendor.bank_name ?? "",
+      vendor.bank_account_number ?? "",
+      vendor.bank_account_name ?? "",
+      vendor.status,
+    ]),
+  );
+
   return (
     <div className="mx-auto flex w-full max-w-[720px] flex-col gap-5 px-6 py-10">
       <header className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Accounts Payable</span>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Accounts Payable</span>
+          {vendors && vendors.length > 0 && <ExportCsvButton csv={csv} filename="vendors.csv" />}
+        </div>
         <h1 className="text-[22px] font-extrabold text-ink">Vendors</h1>
         <p className="text-[13px] text-ink-soft">
           Suppliers you owe bills to. Add a vendor here first, then raise bills against them from{" "}

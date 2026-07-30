@@ -1,8 +1,11 @@
 import { redirect } from "next/navigation";
+import { toNaira } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 import { formatKobo } from "@/lib/format";
 import { VendorBillStatusBadge } from "@/components/Badge";
+import { toCsv } from "@/lib/csv";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { BillForm } from "./BillForm";
 import { approveVendorBill, rejectVendorBill, payVendorBill } from "./actions";
 
@@ -40,10 +43,26 @@ export default async function BillsPage() {
   const approved = (bills ?? []).filter((b) => b.status === "approved");
   const rest = (bills ?? []).filter((b) => b.status === "rejected" || b.status === "paid");
 
+  const csv = toCsv(
+    ["Vendor", "Description", "Bill Number", "Amount (NGN)", "Bill Date", "Due Date", "Status"],
+    (bills ?? []).map((bill) => [
+      bill.vendors?.name ?? "—",
+      bill.description,
+      bill.bill_number ?? "",
+      toNaira(BigInt(bill.amount_kobo)).toFixed(2),
+      bill.bill_date,
+      bill.due_date ?? "",
+      bill.status,
+    ]),
+  );
+
   return (
     <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 px-6 py-10">
       <header className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Accounts Payable</span>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Accounts Payable</span>
+          {bills && bills.length > 0 && <ExportCsvButton csv={csv} filename="vendor-bills.csv" />}
+        </div>
         <h1 className="text-[22px] font-extrabold text-ink">Vendor bills</h1>
         <p className="text-[13px] text-ink-soft">
           Approving a bill posts the liability to the general ledger immediately; paying it settles that liability

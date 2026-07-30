@@ -1,8 +1,11 @@
 import { redirect } from "next/navigation";
+import { toNaira } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 import { formatKobo } from "@/lib/format";
 import { CustomerInvoiceStatusBadge } from "@/components/Badge";
+import { toCsv } from "@/lib/csv";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { InvoiceForm } from "./InvoiceForm";
 import { issueCustomerInvoice, voidCustomerInvoice, receiveCustomerPayment } from "./actions";
 
@@ -40,10 +43,26 @@ export default async function InvoicesPage() {
   const issued = (invoices ?? []).filter((i) => i.status === "issued");
   const rest = (invoices ?? []).filter((i) => i.status === "paid" || i.status === "void");
 
+  const csv = toCsv(
+    ["Customer", "Description", "Invoice Number", "Amount (NGN)", "Invoice Date", "Due Date", "Status"],
+    (invoices ?? []).map((invoice) => [
+      invoice.customers?.name ?? "—",
+      invoice.description,
+      invoice.invoice_number ?? "",
+      toNaira(BigInt(invoice.amount_kobo)).toFixed(2),
+      invoice.invoice_date,
+      invoice.due_date ?? "",
+      invoice.status,
+    ]),
+  );
+
   return (
     <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 px-6 py-10">
       <header className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Accounts Receivable</span>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Accounts Receivable</span>
+          {invoices && invoices.length > 0 && <ExportCsvButton csv={csv} filename="customer-invoices.csv" />}
+        </div>
         <h1 className="text-[22px] font-extrabold text-ink">Customer invoices</h1>
         <p className="text-[13px] text-ink-soft">
           Issuing an invoice posts revenue to the general ledger immediately; receiving payment settles the

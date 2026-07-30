@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 import { formatKobo } from "@/lib/format";
+import { PrintButton } from "@/components/PrintButton";
 import { computeSettlementPreview, GRATUITY_DAYS_PER_YEAR_OF_SERVICE } from "./compute";
 import { SettleForm } from "./SettleForm";
 
@@ -25,9 +26,14 @@ export default async function SettleEmployeePage({ params }: { params: Promise<{
   if (!preview) notFound();
 
   return (
-    <div className="mx-auto flex w-full max-w-[560px] flex-col gap-5 px-6 py-10">
+    <div className="mx-auto flex w-full max-w-[560px] flex-col gap-5 px-6 py-10 print:px-0 print:py-0">
       <header className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Final Settlement</span>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Final Settlement</span>
+          <span className="print:hidden">
+            <PrintButton>Print / Save as PDF</PrintButton>
+          </span>
+        </div>
         <h1 className="text-[22px] font-extrabold text-ink">{preview.employeeName}</h1>
         <p className="text-[13px] text-ink-soft">Exit payroll — gratuity, leave payout and loan clearance.</p>
       </header>
@@ -92,7 +98,9 @@ export default async function SettleEmployeePage({ params }: { params: Promise<{
             </div>
           </div>
 
-          <SettleForm employeeId={preview.employeeId} />
+          <div className="print:hidden">
+            <SettleForm employeeId={preview.employeeId} />
+          </div>
         </>
       )}
     </div>

@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
+import { toCsv } from "@/lib/csv";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { CustomerForm } from "./CustomerForm";
 import { deleteCustomer } from "./actions";
 
@@ -30,10 +32,24 @@ export default async function CustomersPage() {
 
   const { data: customers } = await supabase.from("customers").select("*").order("name");
 
+  const csv = toCsv(
+    ["Customer", "Contact Email", "Contact Phone", "Billing Address", "Status"],
+    (customers ?? []).map((customer) => [
+      customer.name,
+      customer.contact_email ?? "",
+      customer.contact_phone ?? "",
+      customer.billing_address ?? "",
+      customer.status,
+    ]),
+  );
+
   return (
     <div className="mx-auto flex w-full max-w-[720px] flex-col gap-5 px-6 py-10">
       <header className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Accounts Receivable</span>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Accounts Receivable</span>
+          {customers && customers.length > 0 && <ExportCsvButton csv={csv} filename="customers.csv" />}
+        </div>
         <h1 className="text-[22px] font-extrabold text-ink">Customers</h1>
         <p className="text-[13px] text-ink-soft">
           Who you invoice. Add a customer here first, then raise invoices against them from{" "}

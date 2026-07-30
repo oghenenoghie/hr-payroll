@@ -2,6 +2,9 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 import { Badge } from "@/components/Badge";
+import { toCsv } from "@/lib/csv";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { PrintButton } from "@/components/PrintButton";
 
 type ChartEmployee = {
   id: string;
@@ -103,10 +106,30 @@ export default async function OrgChartPage() {
   const roots = buildTree((employees ?? []) as ChartEmployee[]);
   const rootsSorted = roots.slice().sort((a, b) => a.full_name.localeCompare(b.full_name));
 
+  const nameById = new Map((employees ?? []).map((e) => [e.id, e.full_name ?? ""]));
+  const csv = toCsv(
+    ["Employee", "Job Grade", "Manager", "Status"],
+    (employees ?? [])
+      .slice()
+      .sort((a, b) => (a.full_name ?? "").localeCompare(b.full_name ?? ""))
+      .map((e) => [
+        e.full_name ?? "",
+        e.job_grade_name ?? "",
+        e.manager_id ? (nameById.get(e.manager_id) ?? "") : "",
+        e.status ?? "",
+      ]),
+  );
+
   return (
-    <div className="mx-auto flex w-full max-w-[720px] flex-col gap-5 px-6 py-10">
+    <div className="mx-auto flex w-full max-w-[720px] flex-col gap-5 px-6 py-10 print:px-0 print:py-0">
       <header className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Org Chart</span>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Org Chart</span>
+          <div className="flex items-center gap-2 print:hidden">
+            {employees && employees.length > 0 && <ExportCsvButton csv={csv} filename="org-chart.csv" />}
+            <PrintButton>Print / Save as PDF</PrintButton>
+          </div>
+        </div>
         <h1 className="text-[22px] font-extrabold text-ink">Reporting hierarchy</h1>
         <p className="text-[13px] text-ink-soft">
           Built from each employee&apos;s Manager field on their edit page. Employees with no manager assigned appear

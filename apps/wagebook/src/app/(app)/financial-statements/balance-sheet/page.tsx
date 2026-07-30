@@ -1,9 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { toNaira } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 import { formatKobo } from "@/lib/format";
 import { ACCOUNT_LABEL } from "@/lib/accounts";
+import { toCsv } from "@/lib/csv";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { PrintButton } from "@/components/PrintButton";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const tdClass = "px-3 py-[10px] text-[13px]";
@@ -96,22 +100,45 @@ export default async function BalanceSheetPage({
   const totalEquity = equityRows.reduce((sum, [, amount]) => sum + amount, 0n) + retainedEarnings;
   const totalLiabilitiesAndEquity = totalLiabilities + totalEquity;
 
+  const csv = toCsv(
+    ["Section", "Account", "Balance (NGN)"],
+    [
+      ...assetRows.map(([code, amount]) => ["Asset", accountLabel(code), toNaira(amount).toFixed(2)]),
+      ["Asset", "Total assets", toNaira(totalAssets).toFixed(2)],
+      ...liabilityRows.map(([code, amount]) => ["Liability", accountLabel(code), toNaira(amount).toFixed(2)]),
+      ["Liability", "Total liabilities", toNaira(totalLiabilities).toFixed(2)],
+      ...equityRows.map(([code, amount]) => ["Equity", accountLabel(code), toNaira(amount).toFixed(2)]),
+      ["Equity", "Retained earnings (net income to date)", toNaira(retainedEarnings).toFixed(2)],
+      ["Equity", "Total equity", toNaira(totalEquity).toFixed(2)],
+      ["", "Total liabilities + equity", toNaira(totalLiabilitiesAndEquity).toFixed(2)],
+    ],
+  );
+
   return (
-    <div className="mx-auto flex w-full max-w-[720px] flex-col gap-5 px-6 py-10">
+    <div className="mx-auto flex w-full max-w-[720px] flex-col gap-5 px-6 py-10 print:px-0 print:py-0">
       <header className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Financial Statements</span>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Financial Statements</span>
+          <div className="flex items-center gap-2 print:hidden">
+            <ExportCsvButton csv={csv} filename={`balance-sheet-${asOf}.csv`} />
+            <PrintButton>Print / Save as PDF</PrintButton>
+          </div>
+        </div>
         <h1 className="text-[22px] font-extrabold text-ink">Balance Sheet</h1>
         <p className="text-[13px] text-ink-soft">
           A snapshot of everything posted to the general ledger up to a single date, not a range — assets on one
           side, what&apos;s owed and what&apos;s retained on the other. Assets = Liabilities + Equity always, by
           construction: every posting behind this comes from a balanced journal entry.
         </p>
-        <Link href="/financial-statements" className="mt-1 text-[12.5px] font-bold text-primary">
+        <Link href="/financial-statements" className="mt-1 text-[12.5px] font-bold text-primary print:hidden">
           View Profit &amp; Loss →
         </Link>
       </header>
 
-      <form className="flex flex-wrap items-end gap-3 rounded-card border border-border bg-surface p-4" action="/financial-statements/balance-sheet">
+      <form
+        className="flex flex-wrap items-end gap-3 rounded-card border border-border bg-surface p-4 print:hidden"
+        action="/financial-statements/balance-sheet"
+      >
         <div className="flex flex-col gap-1">
           <label className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft" htmlFor="as_of">
             As of

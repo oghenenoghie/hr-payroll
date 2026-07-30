@@ -192,6 +192,11 @@ export default async function MePage() {
                 <span>{formatKobo(BigInt(latestPayslip.net_kobo ?? 0))}</span>
               </div>
             </div>
+            {latestPayslip.id && (
+              <Link href={`/me/payslips/${latestPayslip.id}`} className="self-start text-[12px] font-bold text-primary">
+                Print / Save as PDF →
+              </Link>
+            )}
           </div>
         ) : (
           <p className="mt-2 text-[13px] text-ink-soft">No payslips yet.</p>

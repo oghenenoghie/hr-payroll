@@ -1,8 +1,11 @@
 import { redirect } from "next/navigation";
+import { toNaira } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 import { formatKobo } from "@/lib/format";
 import { Badge, BenefitEnrollmentStatusBadge } from "@/components/Badge";
+import { toCsv } from "@/lib/csv";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { BenefitPlanForm } from "./BenefitPlanForm";
 import { EnrollmentForm } from "./EnrollmentForm";
 import { setBenefitPlanActive, cancelEnrollment } from "./actions";
@@ -50,6 +53,26 @@ export default async function BenefitsPage() {
   const activeEnrollments = (enrollments ?? []).filter((e) => e.status === "active");
   const cancelledEnrollments = (enrollments ?? []).filter((e) => e.status !== "active");
 
+  const plansCsv = toCsv(
+    ["Plan", "Category", "Employer Cost / Period (NGN)", "Employee Cost / Period (NGN)", "Status"],
+    (plans ?? []).map((plan) => [
+      plan.name,
+      CATEGORY_LABEL[plan.category] ?? plan.category,
+      toNaira(BigInt(plan.employer_cost_kobo)).toFixed(2),
+      toNaira(BigInt(plan.employee_cost_kobo)).toFixed(2),
+      plan.active ? "Active" : "Inactive",
+    ]),
+  );
+
+  const enrollmentsCsv = toCsv(
+    ["Employee", "Plan", "Status"],
+    (enrollments ?? []).map((enrollment) => [
+      enrollment.employees?.full_name ?? "—",
+      enrollment.benefit_plans?.name ?? "—",
+      enrollment.status,
+    ]),
+  );
+
   return (
     <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 px-6 py-10">
       <header className="flex flex-col gap-1">
@@ -64,7 +87,10 @@ export default async function BenefitsPage() {
       </header>
 
       <div className="flex flex-col gap-2">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Plan catalog</span>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Plan catalog</span>
+          {plans && plans.length > 0 && <ExportCsvButton csv={plansCsv} filename="benefit-plans.csv" />}
+        </div>
         <div className="overflow-x-auto rounded-card border border-border bg-surface">
           <table className="w-full min-w-[720px] border-collapse">
             <thead>
@@ -127,7 +153,10 @@ export default async function BenefitsPage() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Enrollments</span>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Enrollments</span>
+          {enrollments && enrollments.length > 0 && <ExportCsvButton csv={enrollmentsCsv} filename="benefit-enrollments.csv" />}
+        </div>
         <div className="overflow-x-auto rounded-card border border-border bg-surface">
           <table className="w-full min-w-[720px] border-collapse">
             <thead>

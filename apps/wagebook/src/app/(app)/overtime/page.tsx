@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 import { OvertimeStatusBadge } from "@/components/Badge";
+import { toCsv } from "@/lib/csv";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { approveOvertime, rejectOvertime } from "./actions";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
@@ -30,10 +32,25 @@ export default async function OvertimePage() {
   const pending = (requests ?? []).filter((r) => r.status === "pending");
   const rest = (requests ?? []).filter((r) => r.status !== "pending");
 
+  const csv = toCsv(
+    ["Employee", "Date", "Hours", "Reason", "Rate", "Status"],
+    (requests ?? []).map((request) => [
+      request.employees?.full_name ?? "—",
+      request.work_date,
+      Number(request.hours),
+      request.reason ?? "",
+      request.status === "rejected" || request.status === "pending" ? "" : `${request.rate_multiplier_bps / 100}x`,
+      request.status,
+    ]),
+  );
+
   return (
     <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 px-6 py-10">
       <header className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Overtime Management</span>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Overtime Management</span>
+          {requests && requests.length > 0 && <ExportCsvButton csv={csv} filename="overtime-requests.csv" />}
+        </div>
         <h1 className="text-[22px] font-extrabold text-ink">Requests, approvals and pay rate</h1>
         <p className="text-[13px] text-ink-soft">
           Approving a request sets its pay rate — 1.5× is the standard weekday multiplier; 2× is available for

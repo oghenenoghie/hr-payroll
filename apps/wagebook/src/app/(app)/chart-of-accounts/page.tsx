@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 import { Badge } from "@/components/Badge";
+import { toCsv } from "@/lib/csv";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { AccountForm } from "./AccountForm";
 import { deleteAccount } from "./actions";
 
@@ -39,10 +41,24 @@ export default async function ChartOfAccountsPage() {
 
   const { data: accounts } = await supabase.from("chart_of_accounts").select("*").order("code");
 
+  const csv = toCsv(
+    ["Code", "Name", "Type", "Description", "Source"],
+    (accounts ?? []).map((account) => [
+      account.code,
+      account.name,
+      account.type,
+      account.description ?? "",
+      account.is_system ? "System" : "Custom",
+    ]),
+  );
+
   return (
     <div className="mx-auto flex w-full max-w-[720px] flex-col gap-5 px-6 py-10">
       <header className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Accounting</span>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Accounting</span>
+          {accounts && accounts.length > 0 && <ExportCsvButton csv={csv} filename="chart-of-accounts.csv" />}
+        </div>
         <h1 className="text-[22px] font-extrabold text-ink">Chart of Accounts</h1>
         <p className="text-[13px] text-ink-soft">
           Every account payroll, final settlement and accounts payable post to, plus any custom accounts you add.

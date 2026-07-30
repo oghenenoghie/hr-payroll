@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { toNaira } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 import { formatKobo } from "@/lib/format";
 import { FixedAssetStatusBadge } from "@/components/Badge";
+import { toCsv } from "@/lib/csv";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { AssetForm } from "./AssetForm";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
@@ -31,10 +34,29 @@ export default async function FixedAssetsPage() {
 
   const { data: assets } = await supabase.from("fixed_assets").select("*").order("acquisition_date", { ascending: false });
 
+  const csv = toCsv(
+    ["Asset", "Category", "Acquisition Date", "Cost (NGN)", "Accumulated Depreciation (NGN)", "Book Value (NGN)", "Status"],
+    (assets ?? []).map((asset) => {
+      const bookValue = BigInt(asset.cost_kobo) - BigInt(asset.accumulated_depreciation_kobo);
+      return [
+        asset.name,
+        asset.category ?? "",
+        asset.acquisition_date,
+        toNaira(BigInt(asset.cost_kobo)).toFixed(2),
+        toNaira(BigInt(asset.accumulated_depreciation_kobo)).toFixed(2),
+        toNaira(bookValue).toFixed(2),
+        asset.status,
+      ];
+    }),
+  );
+
   return (
     <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 px-6 py-10">
       <header className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Accounting</span>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Accounting</span>
+          {assets && assets.length > 0 && <ExportCsvButton csv={csv} filename="fixed-assets.csv" />}
+        </div>
         <h1 className="text-[22px] font-extrabold text-ink">Fixed Assets</h1>
         <p className="text-[13px] text-ink-soft">
           The asset register. Straight-line depreciation only, run manually one period at a time from{" "}
