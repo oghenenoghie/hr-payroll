@@ -1,8 +1,26 @@
 "use client";
 
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import type { SectionKey } from "@/lib/nav-sections";
+
+// Must be a descendant of the Link it reports on — useLinkStatus only
+// reflects pending state for the nearest enclosing <Link>. Reserves its
+// own space (rather than popping in) so a fast, already-prefetched
+// navigation never causes a layout shift; only shows once navigation has
+// actually taken a moment, for a route that's dynamic and has no
+// loading.tsx of its own to fall back on.
+function NavLinkSpinner() {
+  const { pending } = useLinkStatus();
+  return (
+    <span
+      aria-hidden
+      className={`ml-2 inline-block h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent transition-opacity duration-150 ${
+        pending ? "opacity-70" : "opacity-0"
+      }`}
+    />
+  );
+}
 
 type NavItem = { href: string; label: string };
 type NavGroup = { heading?: string; items: NavItem[] };
@@ -123,7 +141,10 @@ export function SidebarNav({
                   active ? "bg-primary text-white" : "text-primary-tint hover:bg-primary"
                 }`}
               >
-                <span>{item.label}</span>
+                <span className="flex items-center">
+                  {item.label}
+                  <NavLinkSpinner />
+                </span>
                 {item.href === "/notifications" && unreadNotifications > 0 && (
                   <span className="rounded-badge bg-white px-[7px] py-[1px] text-[11px] font-extrabold text-primary-dark">
                     {unreadNotifications}
