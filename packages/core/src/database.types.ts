@@ -1891,6 +1891,189 @@ export type Database = {
           },
         ]
       }
+      subscription_plans: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          max_employees: number | null
+          name: string
+          price_per_employee_kobo: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          max_employees?: number | null
+          name: string
+          price_per_employee_kobo: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          max_employees?: number | null
+          name?: string
+          price_per_employee_kobo?: number
+        }
+        Relationships: []
+      }
+      org_subscriptions: {
+        Row: {
+          canceled_at: string | null
+          created_at: string
+          current_period_end: string
+          current_period_start: string
+          id: string
+          org_id: string
+          plan_id: string
+          status: string
+          trial_ends_at: string | null
+        }
+        Insert: {
+          canceled_at?: string | null
+          created_at?: string
+          current_period_end: string
+          current_period_start: string
+          id?: string
+          org_id: string
+          plan_id: string
+          status?: string
+          trial_ends_at?: string | null
+        }
+        Update: {
+          canceled_at?: string | null
+          created_at?: string
+          current_period_end?: string
+          current_period_start?: string
+          id?: string
+          org_id?: string
+          plan_id?: string
+          status?: string
+          trial_ends_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_subscriptions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_periods: {
+        Row: {
+          amount_kobo: number
+          created_at: string
+          id: string
+          metered_employee_count: number
+          org_id: string
+          period_end: string
+          period_start: string
+          plan_id: string
+        }
+        Insert: {
+          amount_kobo: number
+          created_at?: string
+          id?: string
+          metered_employee_count: number
+          org_id: string
+          period_end: string
+          period_start: string
+          plan_id: string
+        }
+        Update: {
+          amount_kobo?: number
+          created_at?: string
+          id?: string
+          metered_employee_count?: number
+          org_id?: string
+          period_end?: string
+          period_start?: string
+          plan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_periods_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_periods_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          amount_kobo: number
+          billing_period_id: string
+          created_at: string
+          due_at: string
+          id: string
+          issued_at: string
+          org_id: string
+          paid_at: string | null
+          status: string
+        }
+        Insert: {
+          amount_kobo: number
+          billing_period_id: string
+          created_at?: string
+          due_at: string
+          id?: string
+          issued_at?: string
+          org_id: string
+          paid_at?: string | null
+          status?: string
+        }
+        Update: {
+          amount_kobo?: number
+          billing_period_id?: string
+          created_at?: string
+          due_at?: string
+          id?: string
+          issued_at?: string
+          org_id?: string
+          paid_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_billing_period_id_fkey"
+            columns: ["billing_period_id"]
+            isOneToOne: true
+            referencedRelation: "billing_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       apply_org_wide_raise: {
@@ -1987,6 +2170,19 @@ export type Database = {
           created_at: string
           ip_address: string
           log_type: string
+        }[]
+      }
+      get_current_billing_estimate: {
+        Args: { p_org_id: string }
+        Returns: {
+          plan_code: string
+          plan_name: string
+          price_per_employee_kobo: number
+          max_employees: number | null
+          period_start: string
+          period_end: string
+          metered_employee_count: number
+          estimated_amount_kobo: number
         }[]
       }
       link_employee_account: {

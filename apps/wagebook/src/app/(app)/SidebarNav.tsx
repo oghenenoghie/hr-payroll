@@ -46,6 +46,7 @@ const TOOLS_ITEMS: NavItem[] = [
 const MANAGER_NAV_ITEM: NavItem = { href: "/team", label: "My Team" };
 const SECURITY_NAV_ITEM: NavItem = { href: "/security", label: "Security & Access" };
 const INTEGRATIONS_NAV_ITEM: NavItem = { href: "/integrations", label: "Integrations" };
+const BILLING_NAV_ITEM: NavItem = { href: "/billing", label: "Billing & Subscription" };
 
 const EMPLOYEE_NAV_ITEMS: NavItem[] = [{ href: "/me", label: "Overview" }];
 
@@ -64,7 +65,7 @@ const DEPARTMENT_MANAGER_NAV_ITEMS: NavItem[] = [
 function buildAdminGroups(isManager: boolean, isAdmin: boolean, isAuditor: boolean): NavGroup[] {
   const workforce = isManager ? [...WORKFORCE_ITEMS, MANAGER_NAV_ITEM] : WORKFORCE_ITEMS;
   const company = isAdmin
-    ? [...COMPANY_ITEMS, INTEGRATIONS_NAV_ITEM, SECURITY_NAV_ITEM]
+    ? [...COMPANY_ITEMS, INTEGRATIONS_NAV_ITEM, BILLING_NAV_ITEM, SECURITY_NAV_ITEM]
     : isAuditor
       ? [...COMPANY_ITEMS, SECURITY_NAV_ITEM]
       : COMPANY_ITEMS;

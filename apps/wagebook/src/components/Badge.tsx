@@ -142,3 +142,14 @@ export function BenefitEnrollmentStatusBadge({ status }: { status: string }) {
   const tone = BENEFIT_ENROLLMENT_STATUS_TONE[status as keyof typeof BENEFIT_ENROLLMENT_STATUS_TONE] ?? "neutral";
   return <Badge tone={tone}>{status}</Badge>;
 }
+
+const INVOICE_STATUS_TONE = {
+  issued: "warn",
+  paid: "good",
+  void: "neutral",
+} as const;
+
+export function InvoiceStatusBadge({ status }: { status: string }) {
+  const tone = INVOICE_STATUS_TONE[status as keyof typeof INVOICE_STATUS_TONE] ?? "neutral";
+  return <Badge tone={tone}>{status}</Badge>;
+}
