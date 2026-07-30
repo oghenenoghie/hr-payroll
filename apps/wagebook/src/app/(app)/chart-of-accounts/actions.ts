@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 
@@ -53,6 +53,7 @@ export async function createAccount(_prevState: CreateAccountState, formData: Fo
   }
 
   revalidatePath("/chart-of-accounts");
+  updateTag("chart_of_accounts");
   return { success: true };
 }
 
@@ -69,4 +70,5 @@ export async function deleteAccount(accountId: string) {
   await supabase.from("chart_of_accounts").delete().eq("id", accountId);
 
   revalidatePath("/chart-of-accounts");
+  updateTag("chart_of_accounts");
 }

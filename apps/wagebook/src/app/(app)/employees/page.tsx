@@ -6,16 +6,18 @@ import { formatKobo, getProbationStatus, getContractStatus } from "@/lib/format"
 import { TinBadge, EmployeeStatusBadge, BankDetailsBadge, ProbationBadge, ContractStatusBadge } from "@/components/Badge";
 import { getMembership } from "@/lib/membership";
 import { notifyLifecycleDeadlines } from "@/lib/lifecycle-alerts";
+import { getCachedDepartments, getCachedBranches } from "@/lib/reference-data";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const tdClass = "px-3 py-[10px] text-[13px]";
+const PAGE_SIZE = 50;
 
 export default async function EmployeesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string; department?: string; branch?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; department?: string; branch?: string; page?: string }>;
 }) {
   const supabase = await createClient();
   const {
@@ -35,22 +37,23 @@ export default async function EmployeesPage({
     await notifyLifecycleDeadlines(supabase, membership.orgId);
   }
 
-  const { q, status, department, branch } = await searchParams;
+  const { q, status, department, branch, page: pageParam } = await searchParams;
   const searchTerm = q?.trim() ?? "";
+  const requestedPage = Math.max(1, Number(pageParam) || 1);
 
-  const { data: departments } = membership
-    ? await supabase.from("departments").select("id, name").eq("org_id", membership.orgId).order("name")
-    : { data: null };
-
-  const { data: branches } = membership
-    ? await supabase.from("branches").select("id, name").eq("org_id", membership.orgId).order("name")
-    : { data: null };
+  const [departments, branches] = await Promise.all([
+    membership ? getCachedDepartments(membership.orgId) : Promise.resolve([]),
+    membership ? getCachedBranches(membership.orgId) : Promise.resolve([]),
+  ]);
 
   // Queries the salary-masked view rather than the raw table — for an
   // hr_manager viewer, any employee flagged salary_masked comes back with
   // null salary/bank columns (see the migration comment for why); admin
   // and payroll_manager always see real values through the same view.
-  let query = supabase.from("employees_masked").select("*").order("created_at", { ascending: false });
+  let query = supabase
+    .from("employees_masked")
+    .select("*", { count: "exact" })
+    .order("created_at", { ascending: false });
 
   if (searchTerm) {
     query = query.ilike("full_name", `%${searchTerm}%`);
@@ -65,13 +68,31 @@ export default async function EmployeesPage({
     query = query.eq("branch_id", branch);
   }
 
-  const { data: employees } = await query;
+  const { data: employees, count } = await query.range(
+    (requestedPage - 1) * PAGE_SIZE,
+    requestedPage * PAGE_SIZE - 1,
+  );
+
+  const totalEmployees = count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalEmployees / PAGE_SIZE));
+  const currentPage = Math.min(requestedPage, totalPages);
 
   const hasActiveFilters = Boolean(searchTerm || status || department || branch);
+
+  function pageHref(page: number): string {
+    const params = new URLSearchParams();
+    if (searchTerm) params.set("q", searchTerm);
+    if (status) params.set("status", status);
+    if (department) params.set("department", department);
+    if (branch) params.set("branch", branch);
+    params.set("page", String(page));
+    return `/employees?${params.toString()}`;
+  }
 
   // Mirrors exactly what the table below shows — "Restricted" wherever
   // employees_masked already nulled a salary-masked employee's figures,
   // never the real value, so the export can't leak more than the screen.
+  // Scoped to this page, same as pagination elsewhere in this pass.
   const csv = toCsv(
     ["Name", "Department", "Branch", "State", "Basic (NGN)", "TIN", "Bank Details", "Status", "Probation", "Contract"],
     (employees ?? []).map((employee) => [
@@ -101,7 +122,9 @@ export default async function EmployeesPage({
           <p className="text-[13px] text-ink-soft">Directory, TIN status and self-service</p>
         </div>
         <div className="flex items-center gap-2">
-          {employees && employees.length > 0 && <ExportCsvButton csv={csv} filename="employees.csv" />}
+          {employees && employees.length > 0 && (
+            <ExportCsvButton csv={csv} filename="employees.csv" label="Export this page (CSV)" />
+          )}
           <Link
             href="/employees/new"
             className="rounded-button bg-primary px-[22px] py-[11px] text-[13px] font-extrabold text-white"
@@ -266,6 +289,31 @@ export default async function EmployeesPage({
           </tbody>
         </table>
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <span className="text-[12px] text-ink-soft">
+            Page {currentPage} of {totalPages} · {totalEmployees} employee{totalEmployees === 1 ? "" : "s"}
+            {hasActiveFilters ? " matching these filters" : ""}
+          </span>
+          <div className="flex gap-3">
+            {currentPage > 1 ? (
+              <Link href={pageHref(currentPage - 1)} className="text-[12.5px] font-bold text-primary">
+                ← Previous
+              </Link>
+            ) : (
+              <span className="text-[12.5px] font-bold text-ink-soft">← Previous</span>
+            )}
+            {currentPage < totalPages ? (
+              <Link href={pageHref(currentPage + 1)} className="text-[12.5px] font-bold text-primary">
+                Next →
+              </Link>
+            ) : (
+              <span className="text-[12.5px] font-bold text-ink-soft">Next →</span>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

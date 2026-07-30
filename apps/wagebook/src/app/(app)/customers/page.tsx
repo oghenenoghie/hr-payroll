@@ -9,8 +9,9 @@ import { deleteCustomer } from "./actions";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const tdClass = "px-3 py-[10px] text-[13px]";
+const PAGE_SIZE = 50;
 
-export default async function CustomersPage() {
+export default async function CustomersPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -30,7 +31,25 @@ export default async function CustomersPage() {
 
   const canManage = membership.role === "admin" || membership.role === "payroll_manager";
 
-  const { data: customers } = await supabase.from("customers").select("*").order("name");
+  const { page: pageParam } = await searchParams;
+  const requestedPage = Math.max(1, Number(pageParam) || 1);
+
+  const {
+    data: customers,
+    count,
+  } = await supabase
+    .from("customers")
+    .select("*", { count: "exact" })
+    .order("name")
+    .range((requestedPage - 1) * PAGE_SIZE, requestedPage * PAGE_SIZE - 1);
+
+  const totalCustomers = count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCustomers / PAGE_SIZE));
+  const currentPage = Math.min(requestedPage, totalPages);
+
+  function pageHref(page: number): string {
+    return `/customers?page=${page}`;
+  }
 
   const csv = toCsv(
     ["Customer", "Contact Email", "Contact Phone", "Billing Address", "Status"],
@@ -48,7 +67,9 @@ export default async function CustomersPage() {
       <header className="flex flex-col gap-1">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Accounts Receivable</span>
-          {customers && customers.length > 0 && <ExportCsvButton csv={csv} filename="customers.csv" />}
+          {customers && customers.length > 0 && (
+            <ExportCsvButton csv={csv} filename="customers.csv" label="Export this page (CSV)" />
+          )}
         </div>
         <h1 className="text-[22px] font-extrabold text-ink">Customers</h1>
         <p className="text-[13px] text-ink-soft">
@@ -100,6 +121,30 @@ export default async function CustomersPage() {
           </tbody>
         </table>
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <span className="text-[12px] text-ink-soft">
+            Page {currentPage} of {totalPages} · {totalCustomers} customer{totalCustomers === 1 ? "" : "s"} total
+          </span>
+          <div className="flex gap-3">
+            {currentPage > 1 ? (
+              <Link href={pageHref(currentPage - 1)} className="text-[12.5px] font-bold text-primary">
+                ← Previous
+              </Link>
+            ) : (
+              <span className="text-[12.5px] font-bold text-ink-soft">← Previous</span>
+            )}
+            {currentPage < totalPages ? (
+              <Link href={pageHref(currentPage + 1)} className="text-[12.5px] font-bold text-primary">
+                Next →
+              </Link>
+            ) : (
+              <span className="text-[12.5px] font-bold text-ink-soft">Next →</span>
+            )}
+          </div>
+        </div>
+      )}
 
       {canManage && (
         <div className="rounded-card border border-border bg-surface p-6">

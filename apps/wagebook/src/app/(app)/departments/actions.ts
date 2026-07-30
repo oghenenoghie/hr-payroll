@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 
@@ -41,6 +41,7 @@ export async function createDepartment(
   revalidatePath("/departments");
   revalidatePath("/employees");
   revalidatePath("/employees/new");
+  updateTag("departments");
   return { success: true };
 }
 
@@ -58,4 +59,5 @@ export async function deleteDepartment(departmentId: string) {
 
   revalidatePath("/departments");
   revalidatePath("/employees");
+  updateTag("departments");
 }

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { toNaira } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
@@ -11,8 +12,9 @@ import { issueCustomerInvoice, voidCustomerInvoice, receiveCustomerPayment } fro
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const tdClass = "px-3 py-[10px] text-[13px]";
+const PAGE_SIZE = 25;
 
-export default async function InvoicesPage() {
+export default async function InvoicesPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -32,20 +34,47 @@ export default async function InvoicesPage() {
 
   const canManage = membership.role === "admin" || membership.role === "payroll_manager";
 
-  const { data: invoices } = await supabase
-    .from("customer_invoices")
-    .select("*, customers(name)")
-    .order("created_at", { ascending: false });
+  const { page: pageParam } = await searchParams;
+  const requestedPage = Math.max(1, Number(pageParam) || 1);
 
-  const { data: customers } = await supabase.from("customers").select("id, name").eq("status", "active").order("name");
+  // Draft/issued are an actionable work queue — every item needs to stay
+  // visible, so that fetch is unbounded (naturally small, capped by how
+  // many invoices are actually mid-workflow at once). Only the settled
+  // history (paid/void) grows without bound over the org's lifetime, so
+  // that's the part that's actually paginated.
+  const [{ data: queue }, { data: settled, count }, { data: customers }] = await Promise.all([
+    supabase
+      .from("customer_invoices")
+      .select("*, customers(name)")
+      .in("status", ["draft", "issued"])
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("customer_invoices")
+      .select("*, customers(name)", { count: "exact" })
+      .in("status", ["paid", "void"])
+      .order("created_at", { ascending: false })
+      .range((requestedPage - 1) * PAGE_SIZE, requestedPage * PAGE_SIZE - 1),
+    supabase.from("customers").select("id, name").eq("status", "active").order("name"),
+  ]);
 
-  const drafts = (invoices ?? []).filter((i) => i.status === "draft");
-  const issued = (invoices ?? []).filter((i) => i.status === "issued");
-  const rest = (invoices ?? []).filter((i) => i.status === "paid" || i.status === "void");
+  const drafts = (queue ?? []).filter((i) => i.status === "draft");
+  const issued = (queue ?? []).filter((i) => i.status === "issued");
+  const rest = settled ?? [];
 
+  const totalSettled = count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalSettled / PAGE_SIZE));
+  const currentPage = Math.min(requestedPage, totalPages);
+
+  function pageHref(page: number): string {
+    return `/invoices?page=${page}`;
+  }
+
+  // Scoped to the actionable queue plus this page of settled history —
+  // matches exactly what's on screen, never a separate full-history
+  // re-query.
   const csv = toCsv(
     ["Customer", "Description", "Invoice Number", "Amount (NGN)", "Invoice Date", "Due Date", "Status"],
-    (invoices ?? []).map((invoice) => [
+    [...drafts, ...issued, ...rest].map((invoice) => [
       invoice.customers?.name ?? "—",
       invoice.description,
       invoice.invoice_number ?? "",
@@ -61,7 +90,9 @@ export default async function InvoicesPage() {
       <header className="flex flex-col gap-1">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Accounts Receivable</span>
-          {invoices && invoices.length > 0 && <ExportCsvButton csv={csv} filename="customer-invoices.csv" />}
+          {(drafts.length > 0 || issued.length > 0 || rest.length > 0) && (
+            <ExportCsvButton csv={csv} filename="customer-invoices.csv" label="Export queue + this page (CSV)" />
+          )}
         </div>
         <h1 className="text-[22px] font-extrabold text-ink">Customer invoices</h1>
         <p className="text-[13px] text-ink-soft">
@@ -157,7 +188,9 @@ export default async function InvoicesPage() {
       )}
 
       <div className="flex flex-col gap-2">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">All settled</span>
+        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
+          Settled ({totalSettled} total)
+        </span>
         <div className="overflow-x-auto rounded-card border border-border bg-surface">
           <table className="w-full min-w-[720px] border-collapse">
             <thead>
@@ -190,6 +223,29 @@ export default async function InvoicesPage() {
             </tbody>
           </table>
         </div>
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between">
+            <span className="text-[12px] text-ink-soft">
+              Page {currentPage} of {totalPages}
+            </span>
+            <div className="flex gap-3">
+              {currentPage > 1 ? (
+                <Link href={pageHref(currentPage - 1)} className="text-[12.5px] font-bold text-primary">
+                  ← Previous
+                </Link>
+              ) : (
+                <span className="text-[12.5px] font-bold text-ink-soft">← Previous</span>
+              )}
+              {currentPage < totalPages ? (
+                <Link href={pageHref(currentPage + 1)} className="text-[12.5px] font-bold text-primary">
+                  Next →
+                </Link>
+              ) : (
+                <span className="text-[12.5px] font-bold text-ink-soft">Next →</span>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {canManage && (

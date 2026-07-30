@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { naira } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
@@ -56,6 +56,7 @@ export async function createJobGrade(
   revalidatePath("/job-grades");
   revalidatePath("/employees");
   revalidatePath("/employees/new");
+  updateTag("job_grades");
   return { success: true };
 }
 
@@ -73,4 +74,5 @@ export async function deleteJobGrade(jobGradeId: string) {
 
   revalidatePath("/job-grades");
   revalidatePath("/employees");
+  updateTag("job_grades");
 }

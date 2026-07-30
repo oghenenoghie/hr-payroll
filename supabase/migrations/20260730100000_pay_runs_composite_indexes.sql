@@ -1,0 +1,31 @@
+-- Composite indexes on pay_runs matching the two real, explicit multi-column
+-- filter shapes this app actually issues (not a speculative "index every
+-- combination" pass — pay_runs.status alone was never indexed at all
+-- before this):
+--
+--   (org_id, status) -- get_payroll_register_totals() filters
+--                        `pr.org_id = p_org_id and pr.status = 'posted'`
+--                        directly in its SQL body (not just via RLS), and
+--                        this now runs on every Payroll Register page load.
+--
+--   (status, period_start) -- the annual tax reconciliation report, its
+--                        CSV export route, and both the admin and
+--                        self-service tax certificate pages all filter
+--                        `.eq("status", "posted").gte("period_start", ...)
+--                        .lte("period_start", ...)` with no org_id in the
+--                        query text at all (org scoping there comes only
+--                        from RLS), so a composite on (org_id, status)
+--                        wouldn't serve this shape — the leading columns
+--                        need to match what the query itself filters on.
+--
+-- journal_entries deliberately isn't touched here: every page that filters
+-- it by entry_date (General Ledger, Profit & Loss, Balance Sheet, Budgets,
+-- Bank Reconciliation) does so without an explicit org_id in the query text
+-- either — org scoping is RLS-only there too — so the single-column
+-- journal_entries_entry_date_idx added in 20260730070000 is already the
+-- right shape; a composite (org_id, entry_date) index would sit unused by
+-- any of this app's actual queries.
+--
+-- Idempotent (IF NOT EXISTS), matching every migration since 20260730010000.
+create index if not exists pay_runs_org_id_status_idx on public.pay_runs (org_id, status);
+create index if not exists pay_runs_status_period_start_idx on public.pay_runs (status, period_start);

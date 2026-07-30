@@ -109,7 +109,10 @@ export default async function MePage() {
       .eq("employee_id", employee.id)
       .gte("date", thirtyDaysAgo)
       .order("date", { ascending: false }),
-    supabase.from("company_policies").select("*").order("created_at", { ascending: false }),
+    // Only title/updated_at are needed to show a policy's acknowledgement
+    // status here — the full document body is fetched separately, only
+    // when an employee actually opens one to read/acknowledge it.
+    supabase.from("company_policies").select("id, title, updated_at").order("created_at", { ascending: false }),
     supabase.from("policy_acknowledgements").select("policy_id, acknowledged_at").eq("employee_id", employee.id),
     supabase
       .from("employee_documents")

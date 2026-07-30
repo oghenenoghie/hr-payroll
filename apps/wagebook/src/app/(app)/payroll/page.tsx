@@ -29,7 +29,7 @@ export default async function PayrollPage() {
 
   const { data: payRuns } = await supabase
     .from("pay_runs")
-    .select("*")
+    .select("id, period_start, period_end, frequency, employee_count, gross_kobo, net_kobo, rule_version_id, status")
     .order("created_at", { ascending: false });
 
   const csv = toCsv(

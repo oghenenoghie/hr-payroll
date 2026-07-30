@@ -24,9 +24,11 @@ export default async function PoliciesPage() {
     redirect("/me");
   }
 
+  // The full document body is only needed on the edit page — this list
+  // just shows title + acknowledgement stats.
   const { data: policies } = await supabase
     .from("company_policies")
-    .select("*")
+    .select("id, title, updated_at")
     .order("created_at", { ascending: false });
 
   const { count: activeEmployeeCount } = await supabase

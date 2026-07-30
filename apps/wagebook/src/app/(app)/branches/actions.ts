@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 
@@ -40,6 +40,7 @@ export async function createBranch(_prevState: CreateBranchState, formData: Form
   revalidatePath("/branches");
   revalidatePath("/employees");
   revalidatePath("/employees/new");
+  updateTag("branches");
   return { success: true };
 }
 
@@ -57,4 +58,5 @@ export async function deleteBranch(branchId: string) {
 
   revalidatePath("/branches");
   revalidatePath("/employees");
+  updateTag("branches");
 }
