@@ -26,6 +26,8 @@ const PAYROLL_ITEMS: NavItem[] = [
   { href: "/simulation", label: "Payroll Simulation" },
   { href: "/vendors", label: "Vendors" },
   { href: "/bills", label: "Bills (AP)" },
+  { href: "/customers", label: "Customers" },
+  { href: "/invoices", label: "Invoices (AR)" },
   { href: "/chart-of-accounts", label: "Chart of Accounts" },
   { href: "/general-ledger", label: "General Ledger" },
 ];
