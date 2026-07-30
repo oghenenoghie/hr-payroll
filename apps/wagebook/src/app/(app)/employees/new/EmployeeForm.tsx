@@ -13,7 +13,6 @@ type Manager = { id: string; full_name: string };
 const initialValues = {
   full_name: "",
   email: "",
-  employee_id: "",
   state_of_residence: "",
   hire_date: "",
   probation_end_date: "",
@@ -64,23 +63,17 @@ export function EmployeeForm({
     <form action={formAction} className="flex flex-col gap-4">
       <FormError message={state?.error} />
       <FormField label="Full name" name="full_name" value={values.full_name} onChange={set("full_name")} />
-      <div className="grid grid-cols-2 gap-4">
-        <FormField
-          label="Email"
-          name="email"
-          type="email"
-          required={false}
-          value={values.email}
-          onChange={set("email")}
-        />
-        <FormField
-          label="Employee ID"
-          name="employee_id"
-          required={false}
-          value={values.employee_id}
-          onChange={set("employee_id")}
-        />
-      </div>
+      <FormField
+        label="Email"
+        name="email"
+        type="email"
+        required={false}
+        value={values.email}
+        onChange={set("email")}
+      />
+      <p className="-mt-2 text-[12px] text-ink-soft">
+        A unique Employee ID is generated automatically once this employee is added.
+      </p>
       <FormField
         label="State of residence"
         name="state_of_residence"
