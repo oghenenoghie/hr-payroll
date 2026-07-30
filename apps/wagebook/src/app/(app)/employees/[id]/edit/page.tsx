@@ -3,11 +3,13 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 import { getCachedDepartments, getCachedBranches, getCachedJobGrades } from "@/lib/reference-data";
+import { getInitials } from "@/lib/format";
 import { Badge } from "@/components/Badge";
 import { EditEmployeeForm } from "./EditEmployeeForm";
 import { OffboardingChecklistForm } from "./OffboardingChecklistForm";
 import { OnboardingChecklistForm } from "./OnboardingChecklistForm";
 import { EmployeeDocumentsPanel } from "./EmployeeDocumentsPanel";
+import { EmployeePhotoPanel } from "./EmployeePhotoPanel";
 
 export default async function EditEmployeePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -45,6 +47,7 @@ export default async function EditEmployeePage({ params }: { params: Promise<{ i
     { data: offboardingChecklist },
     { data: finalSettlement },
     { data: documentsRaw },
+    photoSigned,
   ] = await Promise.all([
     employee.org_id ? getCachedDepartments(employee.org_id) : Promise.resolve([]),
     employee.org_id ? getCachedBranches(employee.org_id) : Promise.resolve([]),
@@ -85,7 +88,12 @@ export default async function EditEmployeePage({ params }: { params: Promise<{ i
       .select("id, file_name, document_type, storage_path, uploaded_at")
       .eq("employee_id", id)
       .order("uploaded_at", { ascending: false }),
+    employee.photo_path
+      ? supabase.storage.from("employee-photos").createSignedUrl(employee.photo_path, 60 * 10)
+      : Promise.resolve({ data: null }),
   ]);
+
+  const photoUrl = photoSigned?.data?.signedUrl ?? null;
 
   // Signed URLs since the bucket is private — generated per request, not
   // stored, so a deleted or access-revoked document never leaves a stale
@@ -109,6 +117,18 @@ export default async function EditEmployeePage({ params }: { params: Promise<{ i
         <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Employees</span>
         <h1 className="text-[22px] font-extrabold text-ink">{employee.full_name}</h1>
       </header>
+      <div className="rounded-card border border-border bg-surface p-6">
+        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Profile photo</span>
+        <div className="mt-3">
+          <EmployeePhotoPanel
+            employeeId={employee.id!}
+            photoUrl={photoUrl}
+            photoPath={employee.photo_path}
+            initials={getInitials(employee.full_name ?? "?")}
+            canManage={canManageDocuments}
+          />
+        </div>
+      </div>
       <div className="rounded-card border border-border bg-surface p-6">
         <EditEmployeeForm
           employee={employee}
