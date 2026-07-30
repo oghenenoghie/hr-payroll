@@ -2149,6 +2149,117 @@ export type Database = {
           },
         ]
       }
+      bank_reconciliations: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          created_by: string
+          id: string
+          org_id: string
+          period_end: string
+          statement_balance_kobo: number
+          status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          org_id: string
+          period_end: string
+          statement_balance_kobo: number
+          status?: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          org_id?: string
+          period_end?: string
+          statement_balance_kobo?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_reconciliations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bank_statement_lines: {
+        Row: {
+          amount_kobo: number
+          created_at: string
+          created_by: string
+          description: string
+          id: string
+          line_date: string
+          matched_at: string | null
+          matched_by: string | null
+          matched_posting_id: string | null
+          org_id: string
+          reconciliation_id: string
+          type: string
+        }
+        Insert: {
+          amount_kobo: number
+          created_at?: string
+          created_by: string
+          description: string
+          id?: string
+          line_date: string
+          matched_at?: string | null
+          matched_by?: string | null
+          matched_posting_id?: string | null
+          org_id: string
+          reconciliation_id: string
+          type: string
+        }
+        Update: {
+          amount_kobo?: number
+          created_at?: string
+          created_by?: string
+          description?: string
+          id?: string
+          line_date?: string
+          matched_at?: string | null
+          matched_by?: string | null
+          matched_posting_id?: string | null
+          org_id?: string
+          reconciliation_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_statement_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_statement_lines_reconciliation_id_fkey"
+            columns: ["reconciliation_id"]
+            isOneToOne: false
+            referencedRelation: "bank_reconciliations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_statement_lines_matched_posting_id_fkey"
+            columns: ["matched_posting_id"]
+            isOneToOne: true
+            referencedRelation: "ledger_postings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       employees_masked: {
@@ -2662,6 +2773,72 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "customer_invoices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      match_bank_statement_line: {
+        Args: { p_line_id: string; p_posting_id: string }
+        Returns: {
+          amount_kobo: number
+          created_at: string
+          created_by: string
+          description: string
+          id: string
+          line_date: string
+          matched_at: string | null
+          matched_by: string | null
+          matched_posting_id: string | null
+          org_id: string
+          reconciliation_id: string
+          type: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "bank_statement_lines"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      unmatch_bank_statement_line: {
+        Args: { p_line_id: string }
+        Returns: {
+          amount_kobo: number
+          created_at: string
+          created_by: string
+          description: string
+          id: string
+          line_date: string
+          matched_at: string | null
+          matched_by: string | null
+          matched_posting_id: string | null
+          org_id: string
+          reconciliation_id: string
+          type: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "bank_statement_lines"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      complete_bank_reconciliation: {
+        Args: { p_reconciliation_id: string }
+        Returns: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          created_by: string
+          id: string
+          org_id: string
+          period_end: string
+          statement_balance_kobo: number
+          status: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "bank_reconciliations"
           isOneToOne: true
           isSetofReturn: false
         }

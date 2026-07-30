@@ -31,6 +31,7 @@ const PAYROLL_ITEMS: NavItem[] = [
   { href: "/chart-of-accounts", label: "Chart of Accounts" },
   { href: "/general-ledger", label: "General Ledger" },
   { href: "/financial-statements", label: "Financial Statements" },
+  { href: "/bank-reconciliation", label: "Bank Reconciliation" },
 ];
 
 const REQUESTS_ITEMS: NavItem[] = [

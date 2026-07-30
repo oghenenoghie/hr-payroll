@@ -180,3 +180,18 @@ export function CustomerInvoiceStatusBadge({ status }: { status: string }) {
   const tone = CUSTOMER_INVOICE_STATUS_TONE[status as keyof typeof CUSTOMER_INVOICE_STATUS_TONE] ?? "neutral";
   return <Badge tone={tone}>{CUSTOMER_INVOICE_STATUS_LABEL[status] ?? status}</Badge>;
 }
+
+const RECONCILIATION_STATUS_TONE = {
+  in_progress: "warn",
+  completed: "good",
+} as const;
+
+const RECONCILIATION_STATUS_LABEL: Record<string, string> = {
+  in_progress: "In progress",
+  completed: "Completed",
+};
+
+export function ReconciliationStatusBadge({ status }: { status: string }) {
+  const tone = RECONCILIATION_STATUS_TONE[status as keyof typeof RECONCILIATION_STATUS_TONE] ?? "neutral";
+  return <Badge tone={tone}>{RECONCILIATION_STATUS_LABEL[status] ?? status}</Badge>;
+}
