@@ -294,3 +294,81 @@ export async function deleteEmployeeDocument(documentId: string, storagePath: st
 
   revalidatePath("/employees");
 }
+
+const EMPLOYEE_PHOTO_MAX_BYTES = 5 * 1024 * 1024;
+const ALLOWED_PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+export type UploadEmployeePhotoState = { error?: string } | null;
+
+// Fixed path per employee — {org_id}/{employee_id}/photo, no filename or
+// extension — so re-uploading always overwrites the same storage object
+// (upsert) rather than leaving the previous photo orphaned in the bucket
+// every time someone changes it.
+export async function uploadEmployeePhoto(
+  employeeId: string,
+  _prevState: UploadEmployeePhotoState,
+  formData: FormData,
+): Promise<UploadEmployeePhotoState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const membership = await getMembership(supabase, user.id);
+  if (!membership || (membership.role !== "admin" && membership.role !== "hr_manager")) {
+    return { error: "You don't have permission to update employee photos." };
+  }
+
+  const file = formData.get("photo");
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: "Choose an image to upload." };
+  }
+  if (!ALLOWED_PHOTO_TYPES.has(file.type)) {
+    return { error: "Photos must be a JPEG, PNG or WebP image." };
+  }
+  if (file.size > EMPLOYEE_PHOTO_MAX_BYTES) {
+    return { error: "Photos must be 5MB or smaller." };
+  }
+
+  const storagePath = `${membership.orgId}/${employeeId}/photo`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("employee-photos")
+    .upload(storagePath, file, { upsert: true, contentType: file.type });
+  if (uploadError) {
+    return { error: uploadError.message };
+  }
+
+  const { error: updateError } = await supabase
+    .from("employees")
+    .update({ photo_path: storagePath })
+    .eq("id", employeeId);
+  if (updateError) {
+    return { error: updateError.message };
+  }
+
+  revalidatePath(`/employees/${employeeId}`);
+  revalidatePath(`/employees/${employeeId}/edit`);
+  return null;
+}
+
+export async function removeEmployeePhoto(employeeId: string, storagePath: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  await supabase.storage.from("employee-photos").remove([storagePath]);
+  await supabase.from("employees").update({ photo_path: null }).eq("id", employeeId);
+
+  revalidatePath(`/employees/${employeeId}`);
+  revalidatePath(`/employees/${employeeId}/edit`);
+}

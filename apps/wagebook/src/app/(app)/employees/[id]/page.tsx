@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { formatKobo, getProbationStatus, getContractStatus } from "@/lib/format";
+import { formatKobo, getProbationStatus, getContractStatus, getInitials } from "@/lib/format";
 import {
   Badge,
   TinBadge,
@@ -52,6 +52,7 @@ export default async function ViewEmployeePage({ params }: { params: Promise<{ i
     { data: statusHistory },
     { data: compensationHistory },
     { data: payslips },
+    photoSigned,
   ] = await Promise.all([
     employee.manager_id
       ? supabase.from("employees").select("full_name").eq("id", employee.manager_id).maybeSingle()
@@ -94,7 +95,12 @@ export default async function ViewEmployeePage({ params }: { params: Promise<{ i
       .eq("employee_id", id)
       .order("created_at", { ascending: false })
       .limit(15),
+    employee.photo_path
+      ? supabase.storage.from("employee-photos").createSignedUrl(employee.photo_path, 60 * 10)
+      : Promise.resolve({ data: null }),
   ]);
+
+  const photoUrl = photoSigned?.data?.signedUrl ?? null;
 
   const activity: ActivityEntry[] = [
     ...(leaveRequests ?? []).map((r) => ({
@@ -155,6 +161,19 @@ export default async function ViewEmployeePage({ params }: { params: Promise<{ i
 
   return (
     <div className="mx-auto flex w-full max-w-[720px] flex-col gap-5 px-6 py-10">
+      <div className="flex flex-col items-center gap-2">
+        <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border border-border bg-surface">
+          {photoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- signed Storage URL, expires shortly; not a static asset next/image can optimize.
+            <img src={photoUrl} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <span className="text-[28px] font-extrabold text-ink-soft">
+              {getInitials(employee.full_name ?? "?")}
+            </span>
+          )}
+        </div>
+      </div>
+
       <header className="flex items-center justify-between">
         <div className="flex flex-col gap-1">
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Employees</span>
