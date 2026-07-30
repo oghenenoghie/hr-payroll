@@ -15,11 +15,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const membership = await getMembership(supabase, user.id);
 
-  // MFA is a stated product requirement for Admin and Payroll Manager,
-  // never optional for those roles. Gate every (app) route here rather
-  // than a single entry-point page, since any of them could be the first
-  // page a session lands on (deep link, bookmark, browser restore).
-  if (membership?.role === "admin" || membership?.role === "payroll_manager") {
+  // MFA is a stated product requirement for Admin, Payroll Manager and
+  // Accountant (full Payroll Manager parity), never optional for those
+  // roles. Gate every (app) route here rather than a single entry-point
+  // page, since any of them could be the first page a session lands on
+  // (deep link, bookmark, browser restore).
+  if (
+    membership?.role === "admin" ||
+    membership?.role === "payroll_manager" ||
+    membership?.role === "accountant"
+  ) {
     const { data: factorsData } = await supabase.auth.mfa.listFactors();
     const hasVerifiedTotp = (factorsData?.all ?? []).some(
       (factor) => factor.factor_type === "totp" && factor.status === "verified",

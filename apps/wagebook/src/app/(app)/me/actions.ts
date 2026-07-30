@@ -58,7 +58,7 @@ export async function requestLoan(_prevState: RequestLoanState, formData: FormDa
     return { error: error.message };
   }
 
-  const approverIds = await getOrgRoleUserIds(supabase, employee.org_id, ["admin", "payroll_manager"]);
+  const approverIds = await getOrgRoleUserIds(supabase, employee.org_id, ["admin", "payroll_manager", "accountant"]);
   await notifyUsers(supabase, {
     orgId: employee.org_id,
     recipientUserIds: approverIds,
@@ -115,7 +115,7 @@ export async function requestExpense(_prevState: RequestExpenseState, formData: 
     return { error: error.message };
   }
 
-  const approverIds = await getOrgRoleUserIds(supabase, employee.org_id, ["admin", "payroll_manager"]);
+  const approverIds = await getOrgRoleUserIds(supabase, employee.org_id, ["admin", "payroll_manager", "accountant"]);
   await notifyUsers(supabase, {
     orgId: employee.org_id,
     recipientUserIds: approverIds,
@@ -177,7 +177,7 @@ export async function requestOvertime(
     return { error: error.message };
   }
 
-  const approverIds = await getOrgRoleUserIds(supabase, employee.org_id, ["admin", "payroll_manager"]);
+  const approverIds = await getOrgRoleUserIds(supabase, employee.org_id, ["admin", "payroll_manager", "accountant"]);
   await notifyUsers(supabase, {
     orgId: employee.org_id,
     recipientUserIds: approverIds,
@@ -317,7 +317,7 @@ export async function requestLeaveEncashment(
     return { error: requestError.message };
   }
 
-  const approverIds = await getOrgRoleUserIds(supabase, employee.org_id, ["admin", "payroll_manager"]);
+  const approverIds = await getOrgRoleUserIds(supabase, employee.org_id, ["admin", "payroll_manager", "accountant"]);
   await notifyUsers(supabase, {
     orgId: employee.org_id,
     recipientUserIds: approverIds,

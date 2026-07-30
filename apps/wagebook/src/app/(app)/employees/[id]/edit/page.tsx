@@ -98,7 +98,8 @@ export default async function EditEmployeePage({ params }: { params: Promise<{ i
   );
 
   const canEditSalary = employee.basic_kobo !== null;
-  const canControlMasking = membership?.role === "admin" || membership?.role === "payroll_manager";
+  const canControlMasking =
+    membership?.role === "admin" || membership?.role === "payroll_manager" || membership?.role === "accountant";
   const canManageDocuments = membership?.role === "admin" || membership?.role === "hr_manager";
 
   return (

@@ -4,15 +4,21 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getMembership } from "@/lib/membership";
 import { Badge } from "@/components/Badge";
+import { InviteTeamMemberForm } from "./InviteTeamMemberForm";
 
 const ROLE_LABEL: Record<string, string> = {
-  admin: "Admin",
+  admin: "Super Admin",
   payroll_manager: "Payroll Manager",
   hr_manager: "HR Manager",
+  accountant: "Accountant",
+  department_manager: "Department Manager",
+  auditor: "Auditor",
   employee: "Employee",
 };
 
-const MFA_REQUIRED_ROLES = new Set(["admin", "payroll_manager"]);
+// Accountant has full Payroll Manager parity (payroll processing, ledger
+// writes), so it carries the same MFA requirement.
+const MFA_REQUIRED_ROLES = new Set(["admin", "payroll_manager", "accountant"]);
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const tdClass = "px-3 py-[10px] text-[13px]";
@@ -28,9 +34,10 @@ export default async function SecurityPage() {
   }
 
   const membership = await getMembership(supabase, user.id);
-  if (membership?.role !== "admin") {
+  if (!membership || (membership.role !== "admin" && membership.role !== "auditor")) {
     redirect("/dashboard");
   }
+  const isAdmin = membership.role === "admin";
 
   const { data: memberships } = await supabase
     .from("org_memberships")
@@ -60,10 +67,25 @@ export default async function SecurityPage() {
         <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Security &amp; Access</span>
         <h1 className="text-[22px] font-extrabold text-ink">Role-based access and MFA, at a glance</h1>
         <p className="text-[13px] text-ink-soft">
-          Two-factor authentication is required for Admin and Payroll Manager — those accounts are gated into
-          setup on their next sign-in until they enroll.
+          Two-factor authentication is required for Super Admin, Payroll Manager and Accountant — those accounts
+          are gated into setup on their next sign-in until they enroll.
         </p>
       </header>
+
+      {isAdmin && (
+        <div className="rounded-card border border-border bg-surface p-6">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
+            Invite a team member
+          </span>
+          <p className="mt-1 text-[13px] text-ink-soft">
+            Grants operational access to the platform itself — not an employee&apos;s self-service account, which is
+            invited from their record on the Employees page.
+          </p>
+          <div className="mt-4">
+            <InviteTeamMemberForm />
+          </div>
+        </div>
+      )}
 
       <div className="overflow-x-auto rounded-card border border-border bg-surface">
         <table className="w-full min-w-[640px] border-collapse">

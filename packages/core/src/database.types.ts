@@ -242,22 +242,32 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          manager_id: string | null
           name: string
           org_id: string
         }
         Insert: {
           created_at?: string
           id?: string
+          manager_id?: string | null
           name: string
           org_id: string
         }
         Update: {
           created_at?: string
           id?: string
+          manager_id?: string | null
           name?: string
           org_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "departments_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "departments_org_id_fkey"
             columns: ["org_id"]

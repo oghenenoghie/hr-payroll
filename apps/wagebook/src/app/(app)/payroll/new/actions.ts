@@ -33,7 +33,7 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
     .from("org_memberships")
     .select("org_id")
     .eq("user_id", user.id)
-    .in("role", ["admin", "payroll_manager"]);
+    .in("role", ["admin", "payroll_manager", "accountant"]);
 
   const membership = memberships?.[0];
   if (!membership) {
@@ -788,7 +788,7 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
     return { error: rpcError?.message ?? "Failed to create the pay run." };
   }
 
-  const approverIds = await getOrgRoleUserIds(supabase, membership.org_id, ["admin", "payroll_manager"]);
+  const approverIds = await getOrgRoleUserIds(supabase, membership.org_id, ["admin", "payroll_manager", "accountant"]);
   await notifyUsers(supabase, {
     orgId: membership.org_id,
     recipientUserIds: approverIds.filter((id) => id !== user.id),
