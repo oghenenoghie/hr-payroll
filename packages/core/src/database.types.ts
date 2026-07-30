@@ -2022,6 +2022,133 @@ export type Database = {
           },
         ]
       }
+      customers: {
+        Row: {
+          billing_address: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          name: string
+          org_id: string
+          status: string
+        }
+        Insert: {
+          billing_address?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          org_id: string
+          status?: string
+        }
+        Update: {
+          billing_address?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          org_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_invoices: {
+        Row: {
+          amount_kobo: number
+          created_at: string
+          created_by: string
+          customer_id: string
+          description: string
+          due_date: string | null
+          id: string
+          invoice_date: string
+          invoice_number: string | null
+          issued_at: string | null
+          issued_by: string | null
+          journal_entry_id: string | null
+          org_id: string
+          paid_at: string | null
+          payment_journal_entry_id: string | null
+          status: string
+        }
+        Insert: {
+          amount_kobo: number
+          created_at?: string
+          created_by: string
+          customer_id: string
+          description: string
+          due_date?: string | null
+          id?: string
+          invoice_date: string
+          invoice_number?: string | null
+          issued_at?: string | null
+          issued_by?: string | null
+          journal_entry_id?: string | null
+          org_id: string
+          paid_at?: string | null
+          payment_journal_entry_id?: string | null
+          status?: string
+        }
+        Update: {
+          amount_kobo?: number
+          created_at?: string
+          created_by?: string
+          customer_id?: string
+          description?: string
+          due_date?: string | null
+          id?: string
+          invoice_date?: string
+          invoice_number?: string | null
+          issued_at?: string | null
+          issued_by?: string | null
+          journal_entry_id?: string | null
+          org_id?: string
+          paid_at?: string | null
+          payment_journal_entry_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_invoices_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_invoices_payment_journal_entry_id_fkey"
+            columns: ["payment_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       employees_masked: {
@@ -2454,6 +2581,87 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "vendor_bills"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      issue_customer_invoice: {
+        Args: { p_invoice_id: string; p_revenue_account_code?: string }
+        Returns: {
+          amount_kobo: number
+          created_at: string
+          created_by: string
+          customer_id: string
+          description: string
+          due_date: string | null
+          id: string
+          invoice_date: string
+          invoice_number: string | null
+          issued_at: string | null
+          issued_by: string | null
+          journal_entry_id: string | null
+          org_id: string
+          paid_at: string | null
+          payment_journal_entry_id: string | null
+          status: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "customer_invoices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      void_customer_invoice: {
+        Args: { p_invoice_id: string }
+        Returns: {
+          amount_kobo: number
+          created_at: string
+          created_by: string
+          customer_id: string
+          description: string
+          due_date: string | null
+          id: string
+          invoice_date: string
+          invoice_number: string | null
+          issued_at: string | null
+          issued_by: string | null
+          journal_entry_id: string | null
+          org_id: string
+          paid_at: string | null
+          payment_journal_entry_id: string | null
+          status: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "customer_invoices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      receive_customer_payment: {
+        Args: { p_invoice_id: string }
+        Returns: {
+          amount_kobo: number
+          created_at: string
+          created_by: string
+          customer_id: string
+          description: string
+          due_date: string | null
+          id: string
+          invoice_date: string
+          invoice_number: string | null
+          issued_at: string | null
+          issued_by: string | null
+          journal_entry_id: string | null
+          org_id: string
+          paid_at: string | null
+          payment_journal_entry_id: string | null
+          status: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "customer_invoices"
           isOneToOne: true
           isSetofReturn: false
         }

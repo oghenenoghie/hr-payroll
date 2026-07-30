@@ -161,3 +161,22 @@ export function VendorBillStatusBadge({ status }: { status: string }) {
   const tone = VENDOR_BILL_STATUS_TONE[status as keyof typeof VENDOR_BILL_STATUS_TONE] ?? "neutral";
   return <Badge tone={tone}>{VENDOR_BILL_STATUS_LABEL[status] ?? status}</Badge>;
 }
+
+const CUSTOMER_INVOICE_STATUS_TONE = {
+  draft: "neutral",
+  issued: "warn",
+  paid: "good",
+  void: "bad",
+} as const;
+
+const CUSTOMER_INVOICE_STATUS_LABEL: Record<string, string> = {
+  draft: "Draft",
+  issued: "Issued — awaiting payment",
+  paid: "Paid",
+  void: "Void",
+};
+
+export function CustomerInvoiceStatusBadge({ status }: { status: string }) {
+  const tone = CUSTOMER_INVOICE_STATUS_TONE[status as keyof typeof CUSTOMER_INVOICE_STATUS_TONE] ?? "neutral";
+  return <Badge tone={tone}>{CUSTOMER_INVOICE_STATUS_LABEL[status] ?? status}</Badge>;
+}
