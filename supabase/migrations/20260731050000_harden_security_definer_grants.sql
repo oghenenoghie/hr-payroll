@@ -15,10 +15,35 @@
 --
 -- 2. set_employee_id_default / generate_employee_id had a mutable search_path.
 --    Both fully-qualify every reference already, so pinning search_path is safe.
+--    These two functions have no CREATE in any migration in this repo (their
+--    origin migration appears to have been lost independently of this change)
+--    so they don't exist on a from-scratch database. Guard the ALTERs so this
+--    migration still no-ops cleanly there instead of failing; they take effect
+--    wherever the functions actually exist (e.g. the current live database).
 
 revoke execute on function public.apply_org_wide_raise(uuid, numeric) from anon;
 revoke execute on function public.discard_pay_run_draft(uuid) from anon;
 revoke execute on function public.reverse_pay_run(uuid, text) from anon;
 
-alter function public.set_employee_id_default() set search_path = '';
-alter function public.generate_employee_id() set search_path = '';
+do $$
+begin
+  if exists (
+    select 1 from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.proname = 'set_employee_id_default'
+      and pg_get_function_identity_arguments(p.oid) = ''
+  ) then
+    alter function public.set_employee_id_default() set search_path = '';
+  end if;
+
+  if exists (
+    select 1 from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.proname = 'generate_employee_id'
+      and pg_get_function_identity_arguments(p.oid) = ''
+  ) then
+    alter function public.generate_employee_id() set search_path = '';
+  end if;
+end $$;
