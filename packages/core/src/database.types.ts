@@ -1816,6 +1816,45 @@ export type Database = {
           },
         ]
       }
+      module_role_visibility: {
+        Row: {
+          org_id: string
+          module_key: string
+          role_key: string
+          created_at: string
+          created_by: string
+        }
+        Insert: {
+          org_id: string
+          module_key: string
+          role_key: string
+          created_at?: string
+          created_by: string
+        }
+        Update: {
+          org_id?: string
+          module_key?: string
+          role_key?: string
+          created_at?: string
+          created_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_role_visibility_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "module_role_visibility_role_key_fkey"
+            columns: ["role_key"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
       user_nav_overrides: {
         Row: {
           org_id: string
