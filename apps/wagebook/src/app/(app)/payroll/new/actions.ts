@@ -464,14 +464,15 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
     }
 
     // Mid-period salary changes: an employee whose basic/housing/transport
-    // changed inside this period was paid at two different rates across it.
-    // Only the earliest change within the period matters as a two-way split
-    // boundary — days before it were at that row's "old" rate, days from it
-    // onward are at the employee's current rate (which is what this run
-    // already computes everything at), regardless of how many further
-    // changes happened later in the same period. changed_at is a
-    // timestamptz auto-logged by a trigger (see migration), never a
-    // client-chosen effective date.
+    // changed inside this period was paid at more than one rate across it.
+    // Every change within the period is its own segment boundary — the
+    // segment before the first change was at that row's "old" rate, each
+    // segment between two consecutive changes was at the later row's "old"
+    // rate (the same rate the earlier change transitioned *to*), and the
+    // segment from the last change onward is already correct, since
+    // derivePeriodPayslip above computed the whole period at the employee's
+    // current rate. changed_at is a timestamptz auto-logged by a trigger
+    // (see migration), never a client-chosen effective date.
     const periodEndExclusive = new Date(Date.parse(periodEnd) + 86_400_000).toISOString().slice(0, 10);
     const { data: compensationChanges } = await supabase
       .from("employee_compensation_history")
@@ -481,15 +482,15 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
       .lt("changed_at", periodEndExclusive)
       .order("changed_at", { ascending: true });
 
-    const earliestCompChangeByEmployee = new Map<string, { oldAnnualContractualKobo: bigint; changedAt: string }>();
+    const compChangesByEmployee = new Map<string, { oldAnnualContractualKobo: bigint; changedAt: string }[]>();
     for (const change of compensationChanges ?? []) {
-      if (!earliestCompChangeByEmployee.has(change.employee_id)) {
-        earliestCompChangeByEmployee.set(change.employee_id, {
-          oldAnnualContractualKobo:
-            BigInt(change.old_basic_kobo) + BigInt(change.old_housing_kobo) + BigInt(change.old_transport_kobo),
-          changedAt: change.changed_at,
-        });
-      }
+      const list = compChangesByEmployee.get(change.employee_id) ?? [];
+      list.push({
+        oldAnnualContractualKobo:
+          BigInt(change.old_basic_kobo) + BigInt(change.old_housing_kobo) + BigInt(change.old_transport_kobo),
+        changedAt: change.changed_at,
+      });
+      compChangesByEmployee.set(change.employee_id, list);
     }
 
     payslipsPayload = employees.map((employee) => {
@@ -569,24 +570,26 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
         newHireProrationDeductionKobo = dailyRateKobo * BigInt(daysNotEmployed);
       }
 
-      // Mid-period salary change: the days before the change were paid at
-      // the old rate, but derivePeriodPayslip above already computed this
-      // whole period at the employee's current rate. This adjustment is
-      // signed — positive (reduces gross) for a raise, since the pre-change
-      // days were over-credited at the new higher rate; negative (increases
-      // gross) for a pay cut, since those days were under-credited at the
-      // new lower rate. Same clamp-via-min idiom as new-hire proration
-      // above: daysAtOldRate naturally clamps to [0, period length].
+      // Mid-period salary change: the days before each change were paid at
+      // that segment's own rate, but derivePeriodPayslip above already
+      // computed this whole period at the employee's current rate. Each
+      // segment's adjustment is signed — positive (reduces gross) where that
+      // segment's rate was lower than current, since those days were
+      // over-credited; negative (increases gross) where it was higher,
+      // since those days were under-credited. Same clamp-via-min idiom as
+      // new-hire proration above: each segment's day count naturally clamps
+      // to [0, period length].
       let salaryChangeAdjustmentKobo = 0n;
-      const compChange = earliestCompChangeByEmployee.get(employee.id);
-      if (compChange) {
-        const changeTime = Date.parse(compChange.changedAt.slice(0, 10));
-        const periodStartTime = Date.parse(periodStart);
-        const periodEndTime = Date.parse(periodEnd);
-        const lastOldRateTime = Math.min(changeTime - 86_400_000, periodEndTime);
-        const daysAtOldRate = Math.max(0, Math.round((lastOldRateTime - periodStartTime) / 86_400_000) + 1);
-        const oldDailyRateKobo = compChange.oldAnnualContractualKobo / 365n;
-        salaryChangeAdjustmentKobo = (dailyRateKobo - oldDailyRateKobo) * BigInt(daysAtOldRate);
+      const compChanges = compChangesByEmployee.get(employee.id) ?? [];
+      const periodStartTime = Date.parse(periodStart);
+      const periodEndTime = Date.parse(periodEnd);
+      for (let i = 0; i < compChanges.length; i++) {
+        const segmentEndTime = Date.parse(compChanges[i].changedAt.slice(0, 10));
+        const segmentStartTime = i === 0 ? periodStartTime : Date.parse(compChanges[i - 1].changedAt.slice(0, 10));
+        const lastSegmentDayTime = Math.min(segmentEndTime - 86_400_000, periodEndTime);
+        const daysInSegment = Math.max(0, Math.round((lastSegmentDayTime - segmentStartTime) / 86_400_000) + 1);
+        const segmentDailyRateKobo = compChanges[i].oldAnnualContractualKobo / 365n;
+        salaryChangeAdjustmentKobo += (dailyRateKobo - segmentDailyRateKobo) * BigInt(daysInSegment);
       }
 
       const daysOffDeductionKobo =
