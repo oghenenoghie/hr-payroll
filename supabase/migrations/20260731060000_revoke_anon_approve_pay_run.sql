@@ -1,0 +1,12 @@
+-- 20260731030000_payroll_variance_detection.sql redeclared approve_pay_run
+-- as a new two-arg overload (p_pay_run_id, p_acknowledge_variance) but its
+-- revoke only said "from public", unlike every sibling redeclare in that
+-- same file (create_pay_run, review_expense, etc.) which explicitly says
+-- "from public, anon, authenticated". Supabase grants EXECUTE to the
+-- anon/authenticated roles via default privileges, not through the PUBLIC
+-- pseudo-role, so "revoke ... from public" alone doesn't touch it — the
+-- new overload was left anon-executable. core.has_org_role() already
+-- rejects anon's null auth.uid(), so not exploitable, but this closes the
+-- same least-privilege gap 20260731050000_harden_security_definer_grants.sql
+-- closed for the other org-scoped RPCs.
+revoke execute on function public.approve_pay_run(uuid, boolean) from anon;
