@@ -95,8 +95,86 @@ export async function voidCustomerInvoice(invoiceId: string) {
   revalidatePath("/invoices");
 }
 
-export async function receiveCustomerPayment(invoiceId: string) {
-  const supabase = await requireApprover();
-  await supabase.rpc("receive_customer_payment", { p_invoice_id: invoiceId });
+export type ReceivePaymentState = { error?: string } | null;
+
+export async function receiveCustomerPayment(
+  invoiceId: string,
+  _prevState: ReceivePaymentState,
+  formData: FormData,
+): Promise<ReceivePaymentState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const membership = await getMembership(supabase, user.id);
+  if (!membership || (membership.role !== "admin" && membership.role !== "payroll_manager")) {
+    return { error: "You don't have permission to record payments." };
+  }
+
+  const amountNaira = Number(formData.get("amount") ?? 0);
+  if (!amountNaira || amountNaira <= 0) {
+    return { error: "Enter an amount greater than zero." };
+  }
+
+  const { error } = await supabase.rpc("receive_customer_payment", {
+    p_invoice_id: invoiceId,
+    p_amount_kobo: Number(naira(amountNaira)),
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
   revalidatePath("/invoices");
+  return null;
+}
+
+export type IssueCreditNoteState = { error?: string } | null;
+
+export async function issueCreditNote(
+  invoiceId: string,
+  _prevState: IssueCreditNoteState,
+  formData: FormData,
+): Promise<IssueCreditNoteState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const membership = await getMembership(supabase, user.id);
+  if (!membership || (membership.role !== "admin" && membership.role !== "payroll_manager")) {
+    return { error: "You don't have permission to issue credit notes." };
+  }
+
+  const amountNaira = Number(formData.get("amount") ?? 0);
+  const reason = String(formData.get("reason") ?? "").trim();
+
+  if (!amountNaira || amountNaira <= 0) {
+    return { error: "Enter an amount greater than zero." };
+  }
+  if (!reason) {
+    return { error: "Enter a reason for the credit note." };
+  }
+
+  const { error } = await supabase.rpc("issue_credit_note", {
+    p_invoice_id: invoiceId,
+    p_amount_kobo: Number(naira(amountNaira)),
+    p_reason: reason,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/invoices");
+  return null;
 }

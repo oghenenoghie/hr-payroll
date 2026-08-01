@@ -2245,6 +2245,170 @@ export type Database = {
           },
         ]
       }
+      customer_invoice_payments: {
+        Row: {
+          id: string
+          org_id: string
+          invoice_id: string
+          amount_kobo: number
+          payment_date: string
+          journal_entry_id: string
+          received_by: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          invoice_id: string
+          amount_kobo: number
+          payment_date: string
+          journal_entry_id: string
+          received_by: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          invoice_id?: string
+          amount_kobo?: number
+          payment_date?: string
+          journal_entry_id?: string
+          received_by?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_invoice_payments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_invoice_payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "customer_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_invoice_payments_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_credit_notes: {
+        Row: {
+          id: string
+          org_id: string
+          invoice_id: string
+          amount_kobo: number
+          reason: string
+          journal_entry_id: string
+          issued_by: string
+          issued_at: string
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          invoice_id: string
+          amount_kobo: number
+          reason: string
+          journal_entry_id: string
+          issued_by: string
+          issued_at?: string
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          invoice_id?: string
+          amount_kobo?: number
+          reason?: string
+          journal_entry_id?: string
+          issued_by?: string
+          issued_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_credit_notes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_credit_notes_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "customer_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_credit_notes_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_invoice_templates: {
+        Row: {
+          id: string
+          org_id: string
+          customer_id: string
+          description: string
+          amount_kobo: number
+          cadence: string
+          next_invoice_date: string
+          active: boolean
+          created_by: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          customer_id: string
+          description: string
+          amount_kobo: number
+          cadence: string
+          next_invoice_date: string
+          active?: boolean
+          created_by: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          customer_id?: string
+          description?: string
+          amount_kobo?: number
+          cadence?: string
+          next_invoice_date?: string
+          active?: boolean
+          created_by?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_invoice_templates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_invoice_templates_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bank_reconciliations: {
         Row: {
           completed_at: string | null
@@ -3108,7 +3272,34 @@ export type Database = {
         }
       }
       receive_customer_payment: {
-        Args: { p_invoice_id: string }
+        Args: { p_invoice_id: string; p_amount_kobo?: number }
+        Returns: {
+          amount_kobo: number
+          created_at: string
+          created_by: string
+          customer_id: string
+          description: string
+          due_date: string | null
+          id: string
+          invoice_date: string
+          invoice_number: string | null
+          issued_at: string | null
+          issued_by: string | null
+          journal_entry_id: string | null
+          org_id: string
+          paid_at: string | null
+          payment_journal_entry_id: string | null
+          status: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "customer_invoices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      issue_credit_note: {
+        Args: { p_invoice_id: string; p_amount_kobo: number; p_reason: string }
         Returns: {
           amount_kobo: number
           created_at: string

@@ -9,7 +9,8 @@ import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { ConfirmActionButton } from "@/components/ConfirmActionButton";
 import { InvoiceForm } from "./InvoiceForm";
-import { issueCustomerInvoice, voidCustomerInvoice, receiveCustomerPayment } from "./actions";
+import { IssuedInvoiceActions } from "./IssuedInvoiceActions";
+import { issueCustomerInvoice, voidCustomerInvoice } from "./actions";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const tdClass = "px-3 py-[10px] text-[13px]";
@@ -62,6 +63,32 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
   const issued = (queue ?? []).filter((i) => i.status === "issued");
   const rest = settled ?? [];
 
+  // Outstanding balance per issued invoice: amount minus every payment and
+  // credit note posted against it so far (see the partial-payments
+  // migration) — never a stored column, always derived on read, matching
+  // this codebase's convention for every other derived figure (Budgets,
+  // P&L). Depends on `issued` above, so it's a genuinely sequential
+  // second round-trip rather than folded into the first Promise.all.
+  const issuedInvoiceIds = issued.map((i) => i.id);
+  const [{ data: payments }, { data: creditNotes }] = await Promise.all([
+    issuedInvoiceIds.length > 0
+      ? supabase.from("customer_invoice_payments").select("invoice_id, amount_kobo").in("invoice_id", issuedInvoiceIds)
+      : Promise.resolve({ data: [] }),
+    issuedInvoiceIds.length > 0
+      ? supabase.from("customer_credit_notes").select("invoice_id, amount_kobo").in("invoice_id", issuedInvoiceIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+  const settledByInvoice = new Map<string, bigint>();
+  for (const p of payments ?? []) {
+    settledByInvoice.set(p.invoice_id, (settledByInvoice.get(p.invoice_id) ?? 0n) + BigInt(p.amount_kobo));
+  }
+  for (const c of creditNotes ?? []) {
+    settledByInvoice.set(c.invoice_id, (settledByInvoice.get(c.invoice_id) ?? 0n) + BigInt(c.amount_kobo));
+  }
+  function outstandingKobo(invoice: { id: string; amount_kobo: number }): bigint {
+    return BigInt(invoice.amount_kobo) - (settledByInvoice.get(invoice.id) ?? 0n);
+  }
+
   const totalSettled = count ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalSettled / PAGE_SIZE));
   const currentPage = Math.min(requestedPage, totalPages);
@@ -101,6 +128,14 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
           receivable against cash. Every step is a real, balanced journal entry — see the general ledger for the
           postings.
         </p>
+        <div className="mt-1 flex gap-4">
+          <Link href="/invoices/recurring" className="w-fit text-[12.5px] font-bold text-primary">
+            Manage recurring invoices →
+          </Link>
+          <Link href="/invoices/aging" className="w-fit text-[12.5px] font-bold text-primary">
+            View aging report →
+          </Link>
+        </div>
       </header>
 
       {drafts.length > 0 && (
@@ -166,32 +201,34 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
                   <th className={`${thClass} text-left`}>Customer</th>
                   <th className={`${thClass} text-left`}>Description</th>
                   <th className={`${thClass} text-right`}>Amount</th>
+                  <th className={`${thClass} text-right`}>Outstanding</th>
                   <th className={`${thClass} text-left`}>Due date</th>
                   {canManage && <th className={thClass}></th>}
                 </tr>
               </thead>
               <tbody>
-                {issued.map((invoice) => (
-                  <tr key={invoice.id} className="border-b border-border last:border-b-0">
-                    <td className={`${tdClass} font-bold text-ink`}>{invoice.customers?.name ?? "—"}</td>
-                    <td className={`${tdClass} text-ink-soft`}>{invoice.description}</td>
-                    <td className={`${tdClass} text-right text-ink`}>{formatKobo(BigInt(invoice.amount_kobo))}</td>
-                    <td className={`${tdClass} text-ink-soft`}>{invoice.due_date ?? "—"}</td>
-                    {canManage && (
-                      <td className={`${tdClass} text-right`}>
-                        <ConfirmActionButton
-                          action={receiveCustomerPayment.bind(null, invoice.id)}
-                          label="Record payment"
-                          tone="primary"
-                          className="text-[12px] font-bold text-primary disabled:opacity-50"
-                          confirmTitle="Record payment for this invoice?"
-                          confirmMessage={`"${invoice.description}" to ${invoice.customers?.name ?? "this customer"} (${formatKobo(BigInt(invoice.amount_kobo))}) will be marked paid, debiting Cash & Bank and crediting Accounts Receivable.`}
-                          confirmLabel="Record payment"
-                        />
-                      </td>
-                    )}
-                  </tr>
-                ))}
+                {issued.map((invoice) => {
+                  const outstanding = outstandingKobo(invoice);
+                  return (
+                    <tr key={invoice.id} className="border-b border-border last:border-b-0">
+                      <td className={`${tdClass} font-bold text-ink`}>{invoice.customers?.name ?? "—"}</td>
+                      <td className={`${tdClass} text-ink-soft`}>{invoice.description}</td>
+                      <td className={`${tdClass} text-right text-ink`}>{formatKobo(BigInt(invoice.amount_kobo))}</td>
+                      <td className={`${tdClass} text-right font-bold text-ink`}>{formatKobo(outstanding)}</td>
+                      <td className={`${tdClass} text-ink-soft`}>{invoice.due_date ?? "—"}</td>
+                      {canManage && (
+                        <td className={`${tdClass} text-right`}>
+                          <IssuedInvoiceActions
+                            invoiceId={invoice.id}
+                            invoiceDescription={invoice.description}
+                            customerName={invoice.customers?.name ?? "this customer"}
+                            outstandingNaira={(Number(outstanding) / 100).toFixed(2)}
+                          />
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
