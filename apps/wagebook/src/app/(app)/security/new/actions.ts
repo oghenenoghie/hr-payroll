@@ -2,6 +2,7 @@
 
 import { randomBytes, randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getMembership } from "@/lib/membership";
@@ -157,4 +158,88 @@ export async function createTeamMember(
   }
 
   return { success: true, fullName, loginIdentifier, password };
+}
+
+export type BulkCreateLoginsResult = {
+  error?: string;
+  created?: { fullName: string; loginIdentifier: string; password: string }[];
+  skipped?: { fullName: string; reason: string }[];
+};
+
+// Same per-employee flow as createTeamMember's "employee" branch, just
+// looped over every employee record in the org that has no linked account
+// yet, so an admin doesn't have to run the single-member form one at a
+// time. Each employee is handled independently — one failure is recorded
+// in `skipped` rather than aborting the rest of the batch.
+export async function createLoginsForAllEmployees(): Promise<BulkCreateLoginsResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const membership = await getMembership(supabase, user.id);
+  if (!membership || membership.role !== "admin") {
+    return { error: "You don't have permission to add team members." };
+  }
+
+  const { data: unlinkedEmployees, error: fetchError } = await supabase
+    .from("employees")
+    .select("id, full_name, email, employee_id")
+    .eq("org_id", membership.orgId)
+    .is("user_id", null)
+    .order("full_name");
+
+  if (fetchError) {
+    return { error: fetchError.message };
+  }
+  if (!unlinkedEmployees || unlinkedEmployees.length === 0) {
+    return { error: "Every employee record already has a linked account." };
+  }
+
+  const admin = createAdminClient();
+  const created: { fullName: string; loginIdentifier: string; password: string }[] = [];
+  const skipped: { fullName: string; reason: string }[] = [];
+
+  for (const employee of unlinkedEmployees) {
+    if (!employee.email && !employee.employee_id) {
+      skipped.push({ fullName: employee.full_name, reason: "No email or Employee ID on file" });
+      continue;
+    }
+
+    const password = generatePassword();
+    const authEmail = employee.email ?? syntheticAuthEmail();
+    const loginIdentifier = employee.email ?? employee.employee_id!;
+
+    const { data: createdUser, error: createError } = await admin.auth.admin.createUser({
+      email: authEmail,
+      password,
+      email_confirm: true,
+      user_metadata: { full_name: employee.full_name },
+    });
+
+    if (createError || !createdUser.user) {
+      skipped.push({ fullName: employee.full_name, reason: createError?.message ?? "Failed to create the account." });
+      continue;
+    }
+
+    const { error: linkError } = await supabase.rpc("link_employee_account", {
+      p_employee_id: employee.id,
+      p_user_id: createdUser.user.id,
+    });
+    if (linkError) {
+      await admin.auth.admin.deleteUser(createdUser.user.id);
+      skipped.push({ fullName: employee.full_name, reason: `Couldn't link account: ${linkError.message}` });
+      continue;
+    }
+
+    created.push({ fullName: employee.full_name, loginIdentifier, password });
+  }
+
+  revalidatePath("/security/new");
+  revalidatePath("/security");
+  return { created, skipped };
 }

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 import { NewMemberForm } from "./NewMemberForm";
+import { BulkCreateLoginsPanel } from "./BulkCreateLoginsPanel";
 
 export default async function NewTeamMemberPage() {
   const supabase = await createClient();
@@ -38,7 +39,14 @@ export default async function NewTeamMemberPage() {
         </p>
       </header>
 
-      <NewMemberForm unlinkedEmployees={unlinkedEmployees ?? []} roles={roles ?? []} />
+      <BulkCreateLoginsPanel unlinkedCount={unlinkedEmployees?.length ?? 0} />
+
+      <div className="rounded-card border border-border bg-surface p-6">
+        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Add one at a time</span>
+        <div className="mt-3">
+          <NewMemberForm unlinkedEmployees={unlinkedEmployees ?? []} roles={roles ?? []} />
+        </div>
+      </div>
     </div>
   );
 }
