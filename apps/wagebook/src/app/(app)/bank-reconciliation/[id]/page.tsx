@@ -11,7 +11,13 @@ import { PrintButton } from "@/components/PrintButton";
 import { ConfirmActionButton } from "@/components/ConfirmActionButton";
 import { FormSubmitButton } from "@/components/FormSubmitButton";
 import { StatementLineForm } from "./StatementLineForm";
-import { matchStatementLine, unmatchStatementLine, completeReconciliation } from "./actions";
+import {
+  matchStatementLine,
+  unmatchStatementLine,
+  completeReconciliation,
+  reopenReconciliation,
+  postBankStatementItem,
+} from "./actions";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const tdClass = "px-3 py-[10px] text-[13px]";
@@ -40,16 +46,23 @@ export default async function BankReconciliationDetailPage({ params }: { params:
   const { data: reconciliation } = await supabase.from("bank_reconciliations").select("*").eq("id", id).single();
   if (!reconciliation) notFound();
 
-  // journalEntries, matchedElsewhere and lines are independent of one
-  // another — only postings genuinely depends on journalEntries' ids, so
-  // it stays a second step while the rest run concurrently.
-  const [{ data: journalEntries }, { data: matchedElsewhere }, { data: lines }] = await Promise.all([
-    // Point-in-time, matching the Balance Sheet: every cash_and_bank
-    // posting on or before this reconciliation's period end, not a range.
-    supabase.from("journal_entries").select("id, entry_date, memo").lte("entry_date", reconciliation.period_end),
-    supabase.from("bank_statement_lines").select("matched_posting_id").not("matched_posting_id", "is", null),
-    supabase.from("bank_statement_lines").select("*").eq("reconciliation_id", id).order("line_date"),
-  ]);
+  // journalEntries, matchedElsewhere, lines and accounts are independent
+  // of one another — only postings genuinely depends on journalEntries'
+  // ids, so it stays a second step while the rest run concurrently.
+  const [{ data: journalEntries }, { data: matchedElsewhere }, { data: lines }, { data: accounts }] =
+    await Promise.all([
+      // Point-in-time, matching the Balance Sheet: every cash_and_bank
+      // posting on or before this reconciliation's period end, not a range.
+      supabase.from("journal_entries").select("id, entry_date, memo").lte("entry_date", reconciliation.period_end),
+      supabase.from("bank_statement_lines").select("matched_posting_id").not("matched_posting_id", "is", null),
+      supabase.from("bank_statement_lines").select("*").eq("reconciliation_id", id).order("line_date"),
+      supabase
+        .from("chart_of_accounts")
+        .select("code, name, type")
+        .in("type", ["expense", "revenue"])
+        .eq("status", "active")
+        .order("name"),
+    ]);
   const journalEntryById = new Map((journalEntries ?? []).map((entry) => [entry.id, entry]));
   const journalEntryIds = (journalEntries ?? []).map((entry) => entry.id);
 
@@ -84,6 +97,9 @@ export default async function BankReconciliationDetailPage({ params }: { params:
     (sum, l) => sum + (l.type === "deposit" ? BigInt(l.amount_kobo) : -BigInt(l.amount_kobo)),
     0n,
   );
+
+  const expenseAccounts = (accounts ?? []).filter((a) => a.type === "expense");
+  const revenueAccounts = (accounts ?? []).filter((a) => a.type === "revenue");
 
   const statementBalance = BigInt(reconciliation.statement_balance_kobo);
   const adjustedBookBalance = bookBalance + unmatchedBankEffect;
@@ -208,29 +224,54 @@ export default async function BankReconciliationDetailPage({ params }: { params:
                     </td>
                     {canManage && reconciliation.status === "in_progress" && (
                       <td className={`${tdClass} text-right print:hidden`}>
-                        {unmatchedPostings.length > 0 ? (
-                          <form action={matchStatementLine} className="flex items-center justify-end gap-2">
-                            <input type="hidden" name="line_id" value={line.id} />
-                            <input type="hidden" name="reconciliation_id" value={reconciliation.id} />
-                            <select
-                              name="posting_id"
-                              defaultValue=""
-                              className="rounded-control border border-border bg-surface px-2 py-1 text-[12px] text-ink outline-none focus:border-primary"
-                            >
-                              <option value="" disabled>
-                                Match to…
-                              </option>
-                              {unmatchedPostings.map((posting) => (
-                                <option key={posting.id} value={posting.id}>
-                                  {postingLabel(posting.id)}
+                        <div className="flex flex-col items-end gap-1.5">
+                          {unmatchedPostings.length > 0 ? (
+                            <form action={matchStatementLine} className="flex items-center justify-end gap-2">
+                              <input type="hidden" name="line_id" value={line.id} />
+                              <input type="hidden" name="reconciliation_id" value={reconciliation.id} />
+                              <select
+                                name="posting_id"
+                                defaultValue=""
+                                className="rounded-control border border-border bg-surface px-2 py-1 text-[12px] text-ink outline-none focus:border-primary"
+                              >
+                                <option value="" disabled>
+                                  Match to…
                                 </option>
-                              ))}
-                            </select>
-                            <FormSubmitButton className="text-[12px] font-bold text-primary">Match</FormSubmitButton>
-                          </form>
-                        ) : (
-                          <span className="text-[12px] text-ink-soft">No unmatched ledger postings</span>
-                        )}
+                                {unmatchedPostings.map((posting) => (
+                                  <option key={posting.id} value={posting.id}>
+                                    {postingLabel(posting.id)}
+                                  </option>
+                                ))}
+                              </select>
+                              <FormSubmitButton className="text-[12px] font-bold text-primary">Match</FormSubmitButton>
+                            </form>
+                          ) : (
+                            <span className="text-[12px] text-ink-soft">No unmatched ledger postings</span>
+                          )}
+                          {(() => {
+                            const relevantAccounts = line.type === "deposit" ? revenueAccounts : expenseAccounts;
+                            return relevantAccounts.length > 0 ? (
+                              <form action={postBankStatementItem} className="flex items-center justify-end gap-2">
+                                <input type="hidden" name="line_id" value={line.id} />
+                                <input type="hidden" name="reconciliation_id" value={reconciliation.id} />
+                                <select
+                                  name="account_code"
+                                  defaultValue={line.type === "deposit" ? "bank_interest_income" : "bank_fees_expense"}
+                                  className="rounded-control border border-border bg-surface px-2 py-1 text-[12px] text-ink outline-none focus:border-primary"
+                                >
+                                  {relevantAccounts.map((account) => (
+                                    <option key={account.code} value={account.code}>
+                                      {account.name}
+                                    </option>
+                                  ))}
+                                </select>
+                                <FormSubmitButton className="text-[12px] font-bold text-primary">
+                                  Post as entry
+                                </FormSubmitButton>
+                              </form>
+                            ) : null;
+                          })()}
+                        </div>
                       </td>
                     )}
                   </tr>
@@ -334,8 +375,21 @@ export default async function BankReconciliationDetailPage({ params }: { params:
             tone="primary"
             className="rounded-button border border-border px-[18px] py-[9px] text-[12.5px] font-extrabold text-ink disabled:opacity-50"
             confirmTitle="Complete this reconciliation?"
-            confirmMessage="This locks the reconciliation as a control record — it becomes immutable and can't be reopened. A mistake means starting a fresh reconciliation instead."
+            confirmMessage="This locks the reconciliation as a control record. It stays locked until it's reopened — matching/unmatching isn't possible while completed."
             confirmLabel="Complete"
+          />
+        </div>
+      )}
+
+      {reconciliation.status === "completed" && canManage && (
+        <div className="flex justify-end print:hidden">
+          <ConfirmActionButton
+            action={reopenReconciliation.bind(null, reconciliation.id)}
+            label="Reopen reconciliation"
+            className="rounded-button border border-border px-[18px] py-[9px] text-[12.5px] font-extrabold text-ink disabled:opacity-50"
+            confirmTitle="Reopen this reconciliation?"
+            confirmMessage="This unlocks matching and unmatching again and clears the completion record. It doesn't touch the ledger — nothing was ever posted by completing it."
+            confirmLabel="Reopen"
           />
         </div>
       )}

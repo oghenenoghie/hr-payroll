@@ -3200,6 +3200,49 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      reopen_bank_reconciliation: {
+        Args: { p_reconciliation_id: string }
+        Returns: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          created_by: string
+          id: string
+          org_id: string
+          period_end: string
+          statement_balance_kobo: number
+          status: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "bank_reconciliations"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      post_bank_statement_item: {
+        Args: { p_line_id: string; p_account_code: string }
+        Returns: {
+          amount_kobo: number
+          created_at: string
+          created_by: string
+          description: string
+          id: string
+          line_date: string
+          matched_at: string | null
+          matched_by: string | null
+          matched_posting_id: string | null
+          org_id: string
+          reconciliation_id: string
+          type: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "bank_statement_lines"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       run_depreciation: {
         Args: { p_org_id: string; p_period_end: string }
         Returns: {

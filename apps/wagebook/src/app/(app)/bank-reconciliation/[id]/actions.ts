@@ -119,3 +119,24 @@ export async function completeReconciliation(reconciliationId: string) {
   revalidatePath(`/bank-reconciliation/${reconciliationId}`);
   revalidatePath("/bank-reconciliation");
 }
+
+export async function reopenReconciliation(reconciliationId: string) {
+  const supabase = await requireApprover();
+  await supabase.rpc("reopen_bank_reconciliation", { p_reconciliation_id: reconciliationId });
+  revalidatePath(`/bank-reconciliation/${reconciliationId}`);
+  revalidatePath("/bank-reconciliation");
+}
+
+export async function postBankStatementItem(formData: FormData) {
+  const supabase = await requireApprover();
+
+  const lineId = String(formData.get("line_id") ?? "").trim();
+  const accountCode = String(formData.get("account_code") ?? "").trim();
+  const reconciliationId = String(formData.get("reconciliation_id") ?? "").trim();
+
+  if (lineId && accountCode) {
+    await supabase.rpc("post_bank_statement_item", { p_line_id: lineId, p_account_code: accountCode });
+  }
+
+  revalidatePath(`/bank-reconciliation/${reconciliationId}`);
+}
