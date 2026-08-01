@@ -165,16 +165,21 @@ export default async function EditEmployeePage({ params }: { params: Promise<{ i
         </div>
       </div>
       <div className="rounded-card border border-border bg-surface p-6">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
-          Employment &amp; salary certificate
-        </span>
+        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Documents</span>
         <p className="mt-2 text-[13px] text-ink-soft">
-          A printable document confirming employment and current salary — a common request for loan and visa
-          applications.
+          Printable documents generated on demand from live records — never a stored/stale copy.
         </p>
-        <Link href={`/employees/${employee.id}/certificate`} className="mt-3 inline-block text-[13px] font-bold text-primary">
-          Generate certificate →
-        </Link>
+        <div className="mt-3 flex flex-col items-start gap-2">
+          <Link href={`/employees/${employee.id}/certificate`} className="text-[13px] font-bold text-primary">
+            Employment &amp; salary certificate →
+          </Link>
+          <Link href={`/employees/${employee.id}/offer-letter`} className="text-[13px] font-bold text-primary">
+            Offer / confirmation letter →
+          </Link>
+          <Link href={`/employees/${employee.id}/contract`} className="text-[13px] font-bold text-primary">
+            Employment contract →
+          </Link>
+        </div>
       </div>
       {!isTerminated && (
         <div className="rounded-card border border-border bg-surface p-6">
