@@ -2020,6 +2020,60 @@ export type Database = {
           },
         ]
       }
+      vendor_bill_templates: {
+        Row: {
+          id: string
+          org_id: string
+          vendor_id: string
+          description: string
+          amount_kobo: number
+          cadence: string
+          next_bill_date: string
+          active: boolean
+          created_by: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          vendor_id: string
+          description: string
+          amount_kobo: number
+          cadence: string
+          next_bill_date: string
+          active?: boolean
+          created_by: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          vendor_id?: string
+          description?: string
+          amount_kobo?: number
+          cadence?: string
+          next_bill_date?: string
+          active?: boolean
+          created_by?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_bill_templates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_bill_templates_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chart_of_accounts: {
         Row: {
           code: string
@@ -2970,6 +3024,33 @@ export type Database = {
           to: "vendor_bills"
           isOneToOne: true
           isSetofReturn: false
+        }
+      }
+      pay_vendor_bills_batch: {
+        Args: { p_org_id: string; p_bill_ids: string[] }
+        Returns: {
+          amount_kobo: number
+          approved_at: string | null
+          approved_by: string | null
+          bill_date: string
+          bill_number: string | null
+          created_at: string
+          description: string
+          due_date: string | null
+          id: string
+          journal_entry_id: string | null
+          org_id: string
+          paid_at: string | null
+          payment_journal_entry_id: string | null
+          requested_by: string
+          status: string
+          vendor_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "vendor_bills"
+          isOneToOne: false
+          isSetofReturn: true
         }
       }
       issue_customer_invoice: {

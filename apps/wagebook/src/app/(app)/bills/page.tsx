@@ -9,7 +9,8 @@ import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { ConfirmActionButton } from "@/components/ConfirmActionButton";
 import { BillForm } from "./BillForm";
-import { approveVendorBill, rejectVendorBill, payVendorBill } from "./actions";
+import { ApprovedBillsTable } from "./ApprovedBillsTable";
+import { approveVendorBill, rejectVendorBill } from "./actions";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const tdClass = "px-3 py-[10px] text-[13px]";
@@ -100,6 +101,9 @@ export default async function BillsPage({ searchParams }: { searchParams: Promis
           Approving a bill posts the liability to the general ledger immediately; paying it settles that liability
           against cash. Every step is a real, balanced journal entry — see the audit log for the postings.
         </p>
+        <Link href="/bills/recurring" className="mt-1 w-fit text-[12.5px] font-bold text-primary">
+          Manage recurring bills →
+        </Link>
       </header>
 
       {pending.length > 0 && (
@@ -158,42 +162,7 @@ export default async function BillsPage({ searchParams }: { searchParams: Promis
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
             Approved — awaiting payment
           </span>
-          <div className="overflow-x-auto rounded-card border border-border bg-surface">
-            <table className="w-full min-w-[720px] border-collapse">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className={`${thClass} text-left`}>Vendor</th>
-                  <th className={`${thClass} text-left`}>Description</th>
-                  <th className={`${thClass} text-right`}>Amount</th>
-                  <th className={`${thClass} text-left`}>Due date</th>
-                  {canManage && <th className={thClass}></th>}
-                </tr>
-              </thead>
-              <tbody>
-                {approved.map((bill) => (
-                  <tr key={bill.id} className="border-b border-border last:border-b-0">
-                    <td className={`${tdClass} font-bold text-ink`}>{bill.vendors?.name ?? "—"}</td>
-                    <td className={`${tdClass} text-ink-soft`}>{bill.description}</td>
-                    <td className={`${tdClass} text-right text-ink`}>{formatKobo(BigInt(bill.amount_kobo))}</td>
-                    <td className={`${tdClass} text-ink-soft`}>{bill.due_date ?? "—"}</td>
-                    {canManage && (
-                      <td className={`${tdClass} text-right`}>
-                        <ConfirmActionButton
-                          action={payVendorBill.bind(null, bill.id)}
-                          label="Mark as paid"
-                          tone="primary"
-                          className="text-[12px] font-bold text-primary disabled:opacity-50"
-                          confirmTitle="Mark this bill as paid?"
-                          confirmMessage={`"${bill.description}" from ${bill.vendors?.name ?? "this vendor"} (${formatKobo(BigInt(bill.amount_kobo))}) will be marked paid, debiting Accounts Payable and crediting Cash & Bank.`}
-                          confirmLabel="Mark as paid"
-                        />
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ApprovedBillsTable bills={approved} canManage={canManage} />
         </div>
       )}
 

@@ -91,6 +91,7 @@ export default async function VendorsPage({ searchParams }: { searchParams: Prom
               <th className={`${thClass} text-left`}>Vendor</th>
               <th className={`${thClass} text-left`}>Contact</th>
               <th className={`${thClass} text-left`}>Bank details</th>
+              <th className={thClass}></th>
               {canManage && <th className={thClass}></th>}
             </tr>
           </thead>
@@ -102,6 +103,11 @@ export default async function VendorsPage({ searchParams }: { searchParams: Prom
                   <td className={`${tdClass} text-ink-soft`}>{vendor.contact_email ?? vendor.contact_phone ?? "—"}</td>
                   <td className={`${tdClass} text-ink-soft`}>
                     {vendor.bank_name ? `${vendor.bank_name} · ${vendor.bank_account_number ?? "—"}` : "—"}
+                  </td>
+                  <td className={`${tdClass} text-right`}>
+                    <Link href={`/vendors/${vendor.id}/statement`} className="font-bold text-primary">
+                      Statement
+                    </Link>
                   </td>
                   {canManage && (
                     <td className={`${tdClass} text-right`}>
@@ -118,7 +124,7 @@ export default async function VendorsPage({ searchParams }: { searchParams: Prom
               ))
             ) : (
               <tr>
-                <td colSpan={canManage ? 4 : 3} className="px-3 py-10 text-center text-[13px] text-ink-soft">
+                <td colSpan={canManage ? 5 : 4} className="px-3 py-10 text-center text-[13px] text-ink-soft">
                   No vendors yet.
                 </td>
               </tr>

@@ -97,3 +97,26 @@ export async function payVendorBill(billId: string) {
   await supabase.rpc("pay_vendor_bill", { p_bill_id: billId });
   revalidatePath("/bills");
 }
+
+export async function payVendorBillsBatch(billIds: string[]) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const membership = await getMembership(supabase, user.id);
+  if (!membership || (membership.role !== "admin" && membership.role !== "payroll_manager")) {
+    redirect("/bills");
+  }
+
+  if (billIds.length === 0) {
+    return;
+  }
+
+  await supabase.rpc("pay_vendor_bills_batch", { p_org_id: membership.orgId, p_bill_ids: billIds });
+  revalidatePath("/bills");
+}
