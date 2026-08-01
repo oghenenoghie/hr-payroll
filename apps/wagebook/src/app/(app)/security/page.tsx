@@ -121,9 +121,14 @@ export default async function SecurityPage() {
         </table>
       </div>
 
-      <Link href="/security/audit-log" className="w-fit text-[13px] font-bold text-primary">
-        View audit log →
-      </Link>
+      <div className="flex flex-wrap gap-4">
+        <Link href="/security/audit-log" className="w-fit text-[13px] font-bold text-primary">
+          View audit log →
+        </Link>
+        <Link href="/security/modules" className="w-fit text-[13px] font-bold text-primary">
+          Manage module visibility →
+        </Link>
+      </div>
     </div>
   );
 }
