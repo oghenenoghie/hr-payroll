@@ -33,7 +33,10 @@ export default async function ChartOfAccountsPage() {
   const membership = await getMembership(supabase, user.id);
   if (
     !membership ||
-    (membership.role !== "admin" && membership.role !== "payroll_manager" && membership.role !== "accountant")
+    (membership.role !== "admin" &&
+      membership.role !== "payroll_manager" &&
+      membership.role !== "accountant" &&
+      membership.role !== "auditor")
   ) {
     redirect("/dashboard");
   }
