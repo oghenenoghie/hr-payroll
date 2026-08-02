@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { toNaira } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
+import { getMembership } from "@/lib/membership";
 import { formatKobo } from "@/lib/format";
 import { TinBadge } from "@/components/Badge";
 import { toCsv } from "@/lib/csv";
@@ -21,15 +22,33 @@ export default async function TeamPage() {
     redirect("/login");
   }
 
-  const { data: myEmployee } = await supabase.from("employees").select("id").eq("user_id", user.id).maybeSingle();
+  const membership = await getMembership(supabase, user.id);
+  const isDepartmentManager = membership?.role === "department_manager";
 
-  const { data: reports } = myEmployee
-    ? await supabase
-        .from("employees")
-        .select("id, full_name, state_of_residence, basic_kobo, tin, annual_leave_balance_days")
-        .eq("manager_id", myEmployee.id)
-        .order("full_name")
-    : { data: null };
+  const { data: myEmployee } = await supabase
+    .from("employees")
+    .select("id, department_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  // A department manager's scope is their whole department (role_permissions:
+  // "employee.record.view.department"), not who reports to them directly —
+  // they still manage the department with zero direct reports. Everyone else
+  // keeps the existing direct-report roster.
+  const { data: reports } =
+    isDepartmentManager && myEmployee?.department_id
+      ? await supabase
+          .from("employees")
+          .select("id, full_name, state_of_residence, basic_kobo, tin, annual_leave_balance_days")
+          .eq("department_id", myEmployee.department_id)
+          .order("full_name")
+      : myEmployee
+        ? await supabase
+            .from("employees")
+            .select("id, full_name, state_of_residence, basic_kobo, tin, annual_leave_balance_days")
+            .eq("manager_id", myEmployee.id)
+            .order("full_name")
+        : { data: null };
 
   const reportIds = (reports ?? []).map((r) => r.id);
 
@@ -46,13 +65,21 @@ export default async function TeamPage() {
   return (
     <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 px-6 py-10">
       <header className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Manager View</span>
-        <h1 className="text-[22px] font-extrabold text-ink">Team overview and approvals in one place</h1>
+        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
+          {isDepartmentManager ? "Department Manager View" : "Manager View"}
+        </span>
+        <h1 className="text-[22px] font-extrabold text-ink">
+          {isDepartmentManager
+            ? "Department overview and approvals in one place"
+            : "Team overview and approvals in one place"}
+        </h1>
       </header>
 
       {!reports || reports.length === 0 ? (
         <div className="rounded-card border border-border bg-surface px-3 py-10 text-center text-[13px] text-ink-soft">
-          You don&apos;t manage any employees yet.
+          {isDepartmentManager
+            ? "You aren't assigned to a department yet, or it has no employees."
+            : "You don't manage any employees yet."}
         </div>
       ) : (
         <>
