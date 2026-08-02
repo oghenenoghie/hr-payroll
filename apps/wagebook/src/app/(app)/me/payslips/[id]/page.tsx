@@ -35,7 +35,7 @@ export default async function MyPayslipPrintPage({ params }: { params: Promise<{
   return (
     <div className="mx-auto flex w-full max-w-[680px] flex-col gap-4 px-6 py-10 print:px-0 print:py-0">
       <div className="flex items-center justify-between print:hidden">
-        <Link href="/me" className="text-[13px] font-bold text-primary">
+        <Link href="/me/payslips" className="text-[13px] font-bold text-primary">
           ← Back
         </Link>
         <PrintButton>Print / Save as PDF</PrintButton>

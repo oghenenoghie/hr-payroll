@@ -176,7 +176,12 @@ export default async function MePage() {
       </div>
 
       <div className="rounded-card border border-border bg-surface p-6">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Latest payslip</span>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Latest payslip</span>
+          <Link href="/me/payslips" className="text-[12px] font-bold text-primary">
+            View all →
+          </Link>
+        </div>
 
         {latestPayslip ? (
           <div className="mt-3 flex flex-col gap-3">

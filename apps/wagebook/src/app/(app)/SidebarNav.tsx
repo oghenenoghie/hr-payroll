@@ -47,6 +47,7 @@ type NavGroup = { heading?: string; items: NavItem[] };
 
 const OVERVIEW_ITEM: NavItem = { href: "/dashboard", label: "Overview" };
 const EMPLOYEE_OVERVIEW_ITEM: NavItem = { href: "/me", label: "Overview" };
+const PAYSLIPS_NAV_ITEM: NavItem = { href: "/me/payslips", label: "Payslips" };
 
 const WORKFORCE_ITEMS: NavItem[] = [
   { href: "/employees", label: "Employees" },
@@ -137,6 +138,14 @@ export function SidebarNav({
   }
 
   const groups: NavGroup[] = [{ items: [role === "employee" ? EMPLOYEE_OVERVIEW_ITEM : OVERVIEW_ITEM] }];
+
+  // Same tier as Overview, not folded into a "Payslips" heading — this is
+  // one link, and every other role reaches payslips through Payroll Runs
+  // instead, so it's tied to the employee-self-service nav shape the same
+  // way EMPLOYEE_OVERVIEW_ITEM already is, not to a broader section.
+  if (role === "employee") {
+    groups.push({ items: [PAYSLIPS_NAV_ITEM] });
+  }
 
   // Goals and appraisals are self-service for everyone (an employee sets
   // their own goals and acknowledges their own appraisal), and RLS scopes
