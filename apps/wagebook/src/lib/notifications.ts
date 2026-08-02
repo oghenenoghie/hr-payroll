@@ -23,7 +23,10 @@ export type NotificationType =
   | "contract_expiring"
   | "probation_ending"
   | "approval_pending_reminder"
-  | "compensation_updated";
+  | "compensation_updated"
+  | "performance_goal_assigned"
+  | "performance_appraisal_submitted"
+  | "performance_appraisal_acknowledged";
 
 // Fire-and-forget: a notification is a side effect of an already-authorized
 // action, never the thing being authorized, so a failed insert here should
