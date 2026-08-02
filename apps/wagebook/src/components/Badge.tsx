@@ -156,6 +156,43 @@ export function AppraisalStatusBadge({ status }: { status: string }) {
   return <Badge tone={tone}>{status}</Badge>;
 }
 
+const REQUISITION_STATUS_TONE = {
+  open: "good",
+  on_hold: "warn",
+  closed: "neutral",
+  filled: "neutral",
+} as const;
+
+export function RequisitionStatusBadge({ status }: { status: string }) {
+  const tone = REQUISITION_STATUS_TONE[status as keyof typeof REQUISITION_STATUS_TONE] ?? "neutral";
+  return <Badge tone={tone}>{status.replace("_", " ")}</Badge>;
+}
+
+const CANDIDATE_STAGE_TONE = {
+  applied: "neutral",
+  screening: "warn",
+  interviewing: "warn",
+  offer: "good",
+  hired: "good",
+  rejected: "bad",
+} as const;
+
+export function CandidateStageBadge({ stage }: { stage: string }) {
+  const tone = CANDIDATE_STAGE_TONE[stage as keyof typeof CANDIDATE_STAGE_TONE] ?? "neutral";
+  return <Badge tone={tone}>{stage}</Badge>;
+}
+
+const INTERVIEW_OUTCOME_TONE = {
+  pending: "neutral",
+  passed: "good",
+  failed: "bad",
+} as const;
+
+export function InterviewOutcomeBadge({ outcome }: { outcome: string }) {
+  const tone = INTERVIEW_OUTCOME_TONE[outcome as keyof typeof INTERVIEW_OUTCOME_TONE] ?? "neutral";
+  return <Badge tone={tone}>{outcome}</Badge>;
+}
+
 const BENEFIT_ENROLLMENT_STATUS_TONE = {
   active: "good",
   cancelled: "neutral",
