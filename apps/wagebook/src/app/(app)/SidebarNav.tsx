@@ -1,9 +1,24 @@
 "use client";
 
+import { useState } from "react";
 import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { createPortal } from "react-dom";
 import type { SectionKey } from "@/lib/nav-sections";
+
+function ChevronIcon({ collapsed }: { collapsed: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 12 12"
+      aria-hidden
+      className={`h-3 w-3 shrink-0 fill-none stroke-current stroke-2 transition-transform duration-150 ${
+        collapsed ? "-rotate-90" : ""
+      }`}
+    >
+      <path d="M3 4.5 6 7.5 9 4.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 // Must be a descendant of the Link it reports on — useLinkStatus only
 // reflects pending state for the nearest enclosing <Link>. Portals to
@@ -102,6 +117,25 @@ export function SidebarNav({
   const pathname = usePathname();
   const has = (section: SectionKey) => sections.includes(section);
 
+  // Everything starts expanded, same as before this feature existed.
+  // Next.js keeps this layout mounted across client-side navigation, so
+  // collapse state survives moving between pages within the session — it
+  // just doesn't survive a full reload, which is a fine trade for not
+  // needing to sync with localStorage on every render.
+  const [collapsedHeadings, setCollapsedHeadings] = useState<Set<string>>(new Set());
+
+  function toggleGroup(heading: string) {
+    setCollapsedHeadings((prev) => {
+      const next = new Set(prev);
+      if (next.has(heading)) {
+        next.delete(heading);
+      } else {
+        next.add(heading);
+      }
+      return next;
+    });
+  }
+
   const groups: NavGroup[] = [{ items: [role === "employee" ? EMPLOYEE_OVERVIEW_ITEM : OVERVIEW_ITEM] }];
 
   // Goals and appraisals are self-service for everyone (an employee sets
@@ -149,35 +183,52 @@ export function SidebarNav({
 
   return (
     <nav className="flex flex-col gap-4">
-      {groups.map((group, i) => (
-        <div key={group.heading ?? i} className="flex flex-col gap-1">
-          {group.heading && (
-            <span className="px-3 pb-1 text-[11px] font-bold uppercase tracking-[0.03em] text-primary-tint/60">
-              {group.heading}
-            </span>
-          )}
-          {group.items.map((item) => {
-            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center justify-between rounded-control px-3 py-2 text-[13px] font-bold ${
-                  active ? "bg-primary text-white" : "text-primary-tint hover:bg-primary"
-                }`}
+      {groups.map((group, i) => {
+        const groupHasActive = group.items.some(
+          (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
+        );
+        // A manually collapsed group still opens back up while the active
+        // page lives inside it — losing sight of where you are would be a
+        // worse trade than the collapse preference holding perfectly.
+        const isCollapsed = Boolean(group.heading) && collapsedHeadings.has(group.heading!) && !groupHasActive;
+
+        return (
+          <div key={group.heading ?? i} className="flex flex-col gap-1">
+            {group.heading ? (
+              <button
+                type="button"
+                onClick={() => toggleGroup(group.heading!)}
+                aria-expanded={!isCollapsed}
+                className="flex items-center justify-between rounded-control px-3 pb-1 text-[11px] font-bold uppercase tracking-[0.03em] text-primary-tint/60 hover:text-primary-tint"
               >
-                <span>{item.label}</span>
-                {item.href === "/notifications" && unreadNotifications > 0 && (
-                  <span className="rounded-badge bg-white px-[7px] py-[1px] text-[11px] font-extrabold text-primary-dark">
-                    {unreadNotifications}
-                  </span>
-                )}
-                <NavLinkOverlay />
-              </Link>
-            );
-          })}
-        </div>
-      ))}
+                <span>{group.heading}</span>
+                <ChevronIcon collapsed={isCollapsed} />
+              </button>
+            ) : null}
+            {!isCollapsed &&
+              group.items.map((item) => {
+                const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center justify-between rounded-control px-3 py-2 text-[13px] font-bold ${
+                      active ? "bg-primary text-white" : "text-primary-tint hover:bg-primary"
+                    }`}
+                  >
+                    <span>{item.label}</span>
+                    {item.href === "/notifications" && unreadNotifications > 0 && (
+                      <span className="rounded-badge bg-white px-[7px] py-[1px] text-[11px] font-extrabold text-primary-dark">
+                        {unreadNotifications}
+                      </span>
+                    )}
+                    <NavLinkOverlay />
+                  </Link>
+                );
+              })}
+          </div>
+        );
+      })}
     </nav>
   );
 }
