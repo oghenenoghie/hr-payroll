@@ -128,6 +128,9 @@ export default async function SecurityPage() {
         <Link href="/security/modules" className="w-fit text-[13px] font-bold text-primary">
           Manage module visibility →
         </Link>
+        <Link href="/security/dashboards" className="w-fit text-[13px] font-bold text-primary">
+          Manage dashboard visibility →
+        </Link>
       </div>
     </div>
   );

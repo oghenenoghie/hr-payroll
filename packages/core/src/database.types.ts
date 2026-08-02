@@ -3106,6 +3106,45 @@ export type Database = {
           },
         ]
       }
+      dashboard_widget_visibility: {
+        Row: {
+          org_id: string
+          widget_key: string
+          role_key: string
+          created_at: string
+          created_by: string
+        }
+        Insert: {
+          org_id: string
+          widget_key: string
+          role_key: string
+          created_at?: string
+          created_by: string
+        }
+        Update: {
+          org_id?: string
+          widget_key?: string
+          role_key?: string
+          created_at?: string
+          created_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dashboard_widget_visibility_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dashboard_widget_visibility_role_key_fkey"
+            columns: ["role_key"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
     }
     Views: {
       employees_masked: {
