@@ -137,7 +137,7 @@ export function SidebarNav({
     let companyItems = COMPANY_ITEMS;
     if (role === "admin") {
       companyItems = [...COMPANY_ITEMS, INTEGRATIONS_NAV_ITEM, SECURITY_NAV_ITEM, AUDIT_LOG_NAV_ITEM];
-    } else if (role === "auditor") {
+    } else if (role === "auditor" || role === "finance_manager") {
       companyItems = [...COMPANY_ITEMS, AUDIT_LOG_NAV_ITEM];
     }
     groups.push({ heading: "Company", items: companyItems });

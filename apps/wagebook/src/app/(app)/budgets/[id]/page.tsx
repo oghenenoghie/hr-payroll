@@ -33,12 +33,14 @@ export default async function BudgetDetailPage({ params }: { params: Promise<{ i
     (membership.role !== "admin" &&
       membership.role !== "payroll_manager" &&
       membership.role !== "accountant" &&
-      membership.role !== "auditor")
+      membership.role !== "auditor" &&
+      membership.role !== "finance_manager")
   ) {
     redirect("/dashboard");
   }
 
-  const canManage = membership.role === "admin" || membership.role === "payroll_manager";
+  const canManage =
+    membership.role === "admin" || membership.role === "payroll_manager" || membership.role === "finance_manager";
 
   const { data: budgetRow } = await supabase.from("budgets").select("*").eq("id", id).single();
   if (!budgetRow) notFound();
