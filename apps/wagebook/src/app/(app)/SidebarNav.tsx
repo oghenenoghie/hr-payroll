@@ -83,6 +83,7 @@ const MANAGER_NAV_ITEM: NavItem = { href: "/team", label: "My Team" };
 const SECURITY_NAV_ITEM: NavItem = { href: "/security", label: "Security & Access" };
 const INTEGRATIONS_NAV_ITEM: NavItem = { href: "/integrations", label: "Integrations" };
 const AUDIT_LOG_NAV_ITEM: NavItem = { href: "/security/audit-log", label: "Audit Log" };
+const PERFORMANCE_NAV_ITEM: NavItem = { href: "/performance", label: "Performance" };
 
 export function SidebarNav({
   role,
@@ -99,6 +100,13 @@ export function SidebarNav({
   const has = (section: SectionKey) => sections.includes(section);
 
   const groups: NavGroup[] = [{ items: [role === "employee" ? EMPLOYEE_OVERVIEW_ITEM : OVERVIEW_ITEM] }];
+
+  // Goals and appraisals are self-service for everyone (an employee sets
+  // their own goals and acknowledges their own appraisal), and RLS scopes
+  // what a manager/admin/hr_manager additionally sees — so this link stays
+  // outside the section system entirely, alongside Overview and Tools,
+  // rather than tied to any one role's default sections.
+  groups.push({ heading: "Performance", items: [PERFORMANCE_NAV_ITEM] });
 
   if (has("workforce")) {
     groups.push({

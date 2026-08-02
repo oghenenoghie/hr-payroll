@@ -133,6 +133,29 @@ export function LeaveEncashmentStatusBadge({ status }: { status: string }) {
   return <Badge tone={tone}>{status}</Badge>;
 }
 
+const GOAL_STATUS_TONE = {
+  not_started: "neutral",
+  in_progress: "warn",
+  completed: "good",
+  cancelled: "bad",
+} as const;
+
+export function GoalStatusBadge({ status }: { status: string }) {
+  const tone = GOAL_STATUS_TONE[status as keyof typeof GOAL_STATUS_TONE] ?? "neutral";
+  return <Badge tone={tone}>{status.replace("_", " ")}</Badge>;
+}
+
+const APPRAISAL_STATUS_TONE = {
+  draft: "neutral",
+  submitted: "warn",
+  acknowledged: "good",
+} as const;
+
+export function AppraisalStatusBadge({ status }: { status: string }) {
+  const tone = APPRAISAL_STATUS_TONE[status as keyof typeof APPRAISAL_STATUS_TONE] ?? "neutral";
+  return <Badge tone={tone}>{status}</Badge>;
+}
+
 const BENEFIT_ENROLLMENT_STATUS_TONE = {
   active: "good",
   cancelled: "neutral",

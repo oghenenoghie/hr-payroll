@@ -2743,6 +2743,184 @@ export type Database = {
           },
         ]
       }
+      performance_review_cycles: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+          org_id: string
+          period_end: string
+          period_start: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          name: string
+          org_id: string
+          period_end: string
+          period_start: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+          org_id?: string
+          period_end?: string
+          period_start?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_review_cycles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      performance_goals: {
+        Row: {
+          created_at: string
+          created_by: string
+          cycle_id: string
+          description: string | null
+          employee_id: string
+          id: string
+          org_id: string
+          status: string
+          target_date: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          cycle_id: string
+          description?: string | null
+          employee_id: string
+          id?: string
+          org_id: string
+          status?: string
+          target_date?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          cycle_id?: string
+          description?: string | null
+          employee_id?: string
+          id?: string
+          org_id?: string
+          status?: string
+          target_date?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_goals_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "performance_review_cycles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_goals_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_goals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      performance_appraisals: {
+        Row: {
+          acknowledged_at: string | null
+          areas_for_improvement: string | null
+          created_at: string
+          cycle_id: string
+          employee_comments: string | null
+          employee_id: string
+          id: string
+          manager_comments: string | null
+          org_id: string
+          rating: number | null
+          reviewed_by: string | null
+          status: string
+          strengths: string | null
+          submitted_at: string | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          areas_for_improvement?: string | null
+          created_at?: string
+          cycle_id: string
+          employee_comments?: string | null
+          employee_id: string
+          id?: string
+          manager_comments?: string | null
+          org_id: string
+          rating?: number | null
+          reviewed_by?: string | null
+          status?: string
+          strengths?: string | null
+          submitted_at?: string | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          areas_for_improvement?: string | null
+          created_at?: string
+          cycle_id?: string
+          employee_comments?: string | null
+          employee_id?: string
+          id?: string
+          manager_comments?: string | null
+          org_id?: string
+          rating?: number | null
+          reviewed_by?: string | null
+          status?: string
+          strengths?: string | null
+          submitted_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_appraisals_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "performance_review_cycles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_appraisals_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_appraisals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       employees_masked: {
@@ -3474,6 +3652,31 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "fixed_assets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      acknowledge_performance_appraisal: {
+        Args: { p_appraisal_id: string; p_employee_comments?: string }
+        Returns: {
+          acknowledged_at: string | null
+          areas_for_improvement: string | null
+          created_at: string
+          cycle_id: string
+          employee_comments: string | null
+          employee_id: string
+          id: string
+          manager_comments: string | null
+          org_id: string
+          rating: number | null
+          reviewed_by: string | null
+          status: string
+          strengths: string | null
+          submitted_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "performance_appraisals"
           isOneToOne: true
           isSetofReturn: false
         }
