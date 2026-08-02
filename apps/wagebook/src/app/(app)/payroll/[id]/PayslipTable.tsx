@@ -58,11 +58,7 @@ export function PayslipTable({ payslips, ruleVersionId }: { payslips: PayslipRow
                       {formatKobo(BigInt(slip.net_kobo))}
                       <span className="cursor-pointer text-[12px] font-bold text-primary group-open:hidden">· how?</span>
                       <span className="hidden cursor-pointer text-[12px] font-bold text-primary group-open:inline">hide</span>
-                      <a
-                        href={`/payroll/${slip.pay_run_id}/payslips/${slip.id}`}
-                        className="text-[12px] font-bold text-primary"
-                        onClick={(e) => e.stopPropagation()}
-                      >
+                      <a href={`/payroll/${slip.pay_run_id}/payslips/${slip.id}`} className="text-[12px] font-bold text-primary">
                         Print
                       </a>
                     </span>
