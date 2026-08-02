@@ -67,6 +67,7 @@ const REQUESTS_ITEMS: NavItem[] = [
   { href: "/expenses", label: "Expenses" },
   { href: "/leave", label: "Leave & Attendance" },
   { href: "/attendance", label: "Attendance" },
+  { href: "/shifts", label: "Shift Schedule" },
   { href: "/overtime", label: "Overtime" },
   { href: "/benefits", label: "Benefits" },
 ];

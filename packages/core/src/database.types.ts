@@ -2848,6 +2848,93 @@ export type Database = {
           },
         ]
       }
+      shift_templates: {
+        Row: {
+          created_at: string
+          end_time: string
+          id: string
+          name: string
+          org_id: string
+          start_time: string
+        }
+        Insert: {
+          created_at?: string
+          end_time: string
+          id?: string
+          name: string
+          org_id: string
+          start_time: string
+        }
+        Update: {
+          created_at?: string
+          end_time?: string
+          id?: string
+          name?: string
+          org_id?: string
+          start_time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_templates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shift_assignments: {
+        Row: {
+          assigned_by: string
+          created_at: string
+          date: string
+          employee_id: string
+          id: string
+          org_id: string
+          shift_template_id: string
+        }
+        Insert: {
+          assigned_by: string
+          created_at?: string
+          date: string
+          employee_id: string
+          id?: string
+          org_id: string
+          shift_template_id: string
+        }
+        Update: {
+          assigned_by?: string
+          created_at?: string
+          date?: string
+          employee_id?: string
+          id?: string
+          org_id?: string
+          shift_template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_assignments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_assignments_shift_template_id_fkey"
+            columns: ["shift_template_id"]
+            isOneToOne: false
+            referencedRelation: "shift_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_relations_cases: {
         Row: {
           case_type: string
