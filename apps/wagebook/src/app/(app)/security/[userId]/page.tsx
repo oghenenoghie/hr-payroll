@@ -22,22 +22,21 @@ export default async function MemberAccessPage({ params }: { params: Promise<{ u
     redirect("/dashboard");
   }
 
-  const { data: target } = await supabase
-    .from("org_memberships")
-    .select("role")
-    .eq("org_id", membership.orgId)
-    .eq("user_id", userId)
-    .maybeSingle();
+  const admin = createAdminClient();
+
+  const [{ data: target }, { data: authUser }] = await Promise.all([
+    supabase.from("org_memberships").select("role").eq("org_id", membership.orgId).eq("user_id", userId).maybeSingle(),
+    admin.auth.admin.getUserById(userId),
+  ]);
 
   if (!target) notFound();
 
-  const { data: roleRow } = await supabase.from("roles").select("label").eq("key", target.role).maybeSingle();
-
-  const admin = createAdminClient();
-  const { data: authUser } = await admin.auth.admin.getUserById(userId);
   const displayName = (authUser.user?.user_metadata?.full_name as string | undefined) ?? authUser.user?.email ?? "Member";
 
-  const effectiveSections = await resolveNavSections(supabase, membership.orgId, userId, target.role);
+  const [{ data: roleRow }, effectiveSections] = await Promise.all([
+    supabase.from("roles").select("label").eq("key", target.role).maybeSingle(),
+    resolveNavSections(supabase, membership.orgId, userId, target.role),
+  ]);
   const roleDefaults = defaultSectionsForRole(target.role);
 
   return (

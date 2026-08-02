@@ -53,25 +53,23 @@ export default async function TeamPage() {
 
   const reportIds = (reports ?? []).map((r) => r.id);
 
-  const { data: pendingLeave } =
+  const [{ data: pendingLeave }, { data: pendingOvertime }] =
     reportIds.length > 0
-      ? await supabase
-          .from("leave_requests")
-          .select("id, leave_type, start_date, end_date, days, employees(full_name)")
-          .in("employee_id", reportIds)
-          .eq("status", "pending")
-          .order("created_at", { ascending: false })
-      : { data: null };
-
-  const { data: pendingOvertime } =
-    reportIds.length > 0
-      ? await supabase
-          .from("overtime_requests")
-          .select("id, work_date, hours, reason, employees(full_name)")
-          .in("employee_id", reportIds)
-          .eq("status", "pending")
-          .order("created_at", { ascending: false })
-      : { data: null };
+      ? await Promise.all([
+          supabase
+            .from("leave_requests")
+            .select("id, leave_type, start_date, end_date, days, employees(full_name)")
+            .in("employee_id", reportIds)
+            .eq("status", "pending")
+            .order("created_at", { ascending: false }),
+          supabase
+            .from("overtime_requests")
+            .select("id, work_date, hours, reason, employees(full_name)")
+            .in("employee_id", reportIds)
+            .eq("status", "pending")
+            .order("created_at", { ascending: false }),
+        ])
+      : [{ data: null }, { data: null }];
 
   return (
     <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 px-6 py-10">

@@ -34,18 +34,15 @@ export default async function FixedAssetDetailPage({ params }: { params: Promise
 
   const canManage = membership.role === "admin" || membership.role === "payroll_manager";
 
-  const { data: asset } = await supabase.from("fixed_assets").select("*").eq("id", id).single();
+  const [{ data: asset }, { data: lines }] = await Promise.all([
+    supabase.from("fixed_assets").select("*").eq("id", id).single(),
+    supabase.from("depreciation_lines").select("amount_kobo, depreciation_runs(period_end)").eq("asset_id", id).order("created_at"),
+  ]);
   if (!asset) notFound();
 
   const depreciableBase = BigInt(asset.cost_kobo) - BigInt(asset.salvage_value_kobo);
   const bookValue = BigInt(asset.cost_kobo) - BigInt(asset.accumulated_depreciation_kobo);
   const monthlyDepreciation = depreciableBase / BigInt(asset.useful_life_months);
-
-  const { data: lines } = await supabase
-    .from("depreciation_lines")
-    .select("amount_kobo, depreciation_runs(period_end)")
-    .eq("asset_id", id)
-    .order("created_at");
 
   const disposalGainLoss =
     asset.status === "disposed" && asset.disposal_proceeds_kobo !== null

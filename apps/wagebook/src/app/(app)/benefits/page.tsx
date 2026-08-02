@@ -38,18 +38,14 @@ export default async function BenefitsPage() {
     redirect("/me");
   }
 
-  const { data: plans } = await supabase.from("benefit_plans").select("*").order("created_at", { ascending: false });
-
-  const { data: enrollments } = await supabase
-    .from("employee_benefit_enrollments")
-    .select("*, employees(full_name), benefit_plans(name)")
-    .order("enrolled_at", { ascending: false });
-
-  const { data: employees } = await supabase
-    .from("employees")
-    .select("id, full_name")
-    .eq("status", "active")
-    .order("full_name");
+  const [{ data: plans }, { data: enrollments }, { data: employees }] = await Promise.all([
+    supabase.from("benefit_plans").select("*").order("created_at", { ascending: false }),
+    supabase
+      .from("employee_benefit_enrollments")
+      .select("*, employees(full_name), benefit_plans(name)")
+      .order("enrolled_at", { ascending: false }),
+    supabase.from("employees").select("id, full_name").eq("status", "active").order("full_name"),
+  ]);
 
   const activePlans = (plans ?? []).filter((p) => p.active);
   const activeEnrollments = (enrollments ?? []).filter((e) => e.status === "active");

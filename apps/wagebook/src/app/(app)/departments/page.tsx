@@ -25,9 +25,10 @@ export default async function DepartmentsPage() {
     redirect("/me");
   }
 
-  const { data: departments } = await supabase.from("departments").select("*").order("name");
-
-  const { data: employees } = await supabase.from("employees").select("department_id");
+  const [{ data: departments }, { data: employees }] = await Promise.all([
+    supabase.from("departments").select("*").order("name"),
+    supabase.from("employees").select("department_id"),
+  ]);
 
   const employeeCountByDepartment = new Map<string, number>();
   for (const employee of employees ?? []) {

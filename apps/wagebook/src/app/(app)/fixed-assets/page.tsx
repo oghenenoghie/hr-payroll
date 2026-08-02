@@ -11,8 +11,10 @@ import { AssetForm } from "./AssetForm";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const tdClass = "px-3 py-[10px] text-[13px]";
+const PAGE_SIZE = 25;
+const ASSET_COLUMNS = "id, name, category, acquisition_date, cost_kobo, accumulated_depreciation_kobo, status";
 
-export default async function FixedAssetsPage() {
+export default async function FixedAssetsPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -36,11 +38,40 @@ export default async function FixedAssetsPage() {
 
   const canManage = membership.role === "admin" || membership.role === "payroll_manager";
 
-  const { data: assets } = await supabase.from("fixed_assets").select("*").order("acquisition_date", { ascending: false });
+  const { page: pageParam } = await searchParams;
+  const requestedPage = Math.max(1, Number(pageParam) || 1);
+
+  // Active assets are the working register — every depreciation run
+  // needs to see all of them, so that fetch stays unbounded (naturally
+  // bounded by how many assets an org actually owns at once). Disposed
+  // assets are historical and grow without bound over the org's
+  // lifetime, so that's the part that's paginated.
+  const [{ data: activeRaw }, { data: disposedRaw, count }] = await Promise.all([
+    supabase.from("fixed_assets").select(ASSET_COLUMNS).eq("status", "active").order("acquisition_date", { ascending: false }),
+    supabase
+      .from("fixed_assets")
+      .select(ASSET_COLUMNS, { count: "exact" })
+      .eq("status", "disposed")
+      .order("acquisition_date", { ascending: false })
+      .range((requestedPage - 1) * PAGE_SIZE, requestedPage * PAGE_SIZE - 1),
+  ]);
+
+  const active = activeRaw ?? [];
+  const disposed = disposedRaw ?? [];
+
+  const totalDisposed = count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalDisposed / PAGE_SIZE));
+  const currentPage = Math.min(requestedPage, totalPages);
+
+  function pageHref(page: number): string {
+    return `/fixed-assets?page=${page}`;
+  }
+
+  const assets = [...active, ...disposed];
 
   const csv = toCsv(
     ["Asset", "Category", "Acquisition Date", "Cost (NGN)", "Accumulated Depreciation (NGN)", "Book Value (NGN)", "Status"],
-    (assets ?? []).map((asset) => {
+    assets.map((asset) => {
       const bookValue = BigInt(asset.cost_kobo) - BigInt(asset.accumulated_depreciation_kobo);
       return [
         asset.name,
@@ -59,7 +90,7 @@ export default async function FixedAssetsPage() {
       <header className="flex flex-col gap-1">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Accounting</span>
-          {assets && assets.length > 0 && <ExportCsvButton csv={csv} filename="fixed-assets.csv" />}
+          <ExportCsvButton csv={csv} filename="fixed-assets.csv" label="Export this page (CSV)" />
         </div>
         <h1 className="text-[22px] font-extrabold text-ink">Fixed Assets</h1>
         <p className="text-[13px] text-ink-soft">
@@ -83,7 +114,7 @@ export default async function FixedAssetsPage() {
             </tr>
           </thead>
           <tbody>
-            {assets && assets.length > 0 ? (
+            {assets.length > 0 ? (
               assets.map((asset) => {
                 const bookValue = BigInt(asset.cost_kobo) - BigInt(asset.accumulated_depreciation_kobo);
                 return (
@@ -112,6 +143,30 @@ export default async function FixedAssetsPage() {
           </tbody>
         </table>
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <span className="text-[12px] text-ink-soft">
+            Page {currentPage} of {totalPages} · {totalDisposed} disposed asset{totalDisposed === 1 ? "" : "s"} total
+          </span>
+          <div className="flex gap-3">
+            {currentPage > 1 ? (
+              <Link href={pageHref(currentPage - 1)} className="text-[12.5px] font-bold text-primary">
+                ← Previous
+              </Link>
+            ) : (
+              <span className="text-[12.5px] font-bold text-ink-soft">← Previous</span>
+            )}
+            {currentPage < totalPages ? (
+              <Link href={pageHref(currentPage + 1)} className="text-[12.5px] font-bold text-primary">
+                Next →
+              </Link>
+            ) : (
+              <span className="text-[12.5px] font-bold text-ink-soft">Next →</span>
+            )}
+          </div>
+        </div>
+      )}
 
       {canManage && (
         <div className="rounded-card border border-border bg-surface p-6">

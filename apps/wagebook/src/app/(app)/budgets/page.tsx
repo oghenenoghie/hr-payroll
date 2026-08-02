@@ -6,8 +6,9 @@ import { BudgetForm } from "./BudgetForm";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const tdClass = "px-3 py-[10px] text-[13px]";
+const PAGE_SIZE = 25;
 
-export default async function BudgetsPage() {
+export default async function BudgetsPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -32,7 +33,25 @@ export default async function BudgetsPage() {
   const canManage =
     membership.role === "admin" || membership.role === "payroll_manager" || membership.role === "finance_manager";
 
-  const { data: budgets } = await supabase.from("budgets").select("*").order("period_start", { ascending: false });
+  const { page: pageParam } = await searchParams;
+  const requestedPage = Math.max(1, Number(pageParam) || 1);
+
+  const {
+    data: budgets,
+    count,
+  } = await supabase
+    .from("budgets")
+    .select("id, name, period_start, period_end", { count: "exact" })
+    .order("period_start", { ascending: false })
+    .range((requestedPage - 1) * PAGE_SIZE, requestedPage * PAGE_SIZE - 1);
+
+  const totalBudgets = count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalBudgets / PAGE_SIZE));
+  const currentPage = Math.min(requestedPage, totalPages);
+
+  function pageHref(page: number): string {
+    return `/budgets?page=${page}`;
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-[720px] flex-col gap-5 px-6 py-10">
@@ -80,6 +99,30 @@ export default async function BudgetsPage() {
           </tbody>
         </table>
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <span className="text-[12px] text-ink-soft">
+            Page {currentPage} of {totalPages} · {totalBudgets} budget{totalBudgets === 1 ? "" : "s"} total
+          </span>
+          <div className="flex gap-3">
+            {currentPage > 1 ? (
+              <Link href={pageHref(currentPage - 1)} className="text-[12.5px] font-bold text-primary">
+                ← Previous
+              </Link>
+            ) : (
+              <span className="text-[12.5px] font-bold text-ink-soft">← Previous</span>
+            )}
+            {currentPage < totalPages ? (
+              <Link href={pageHref(currentPage + 1)} className="text-[12.5px] font-bold text-primary">
+                Next →
+              </Link>
+            ) : (
+              <span className="text-[12.5px] font-bold text-ink-soft">Next →</span>
+            )}
+          </div>
+        </div>
+      )}
 
       {canManage && (
         <div className="rounded-card border border-border bg-surface p-6">
