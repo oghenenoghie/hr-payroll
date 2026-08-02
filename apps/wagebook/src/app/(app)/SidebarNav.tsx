@@ -82,6 +82,7 @@ const TOOLS_ITEMS: NavItem[] = [
 const MANAGER_NAV_ITEM: NavItem = { href: "/team", label: "My Team" };
 const SECURITY_NAV_ITEM: NavItem = { href: "/security", label: "Security & Access" };
 const INTEGRATIONS_NAV_ITEM: NavItem = { href: "/integrations", label: "Integrations" };
+const AUDIT_LOG_NAV_ITEM: NavItem = { href: "/security/audit-log", label: "Audit Log" };
 
 export function SidebarNav({
   role,
@@ -120,8 +121,16 @@ export function SidebarNav({
     // Security & Access (and Integrations alongside it) stays tied to the
     // actual admin role, not the per-user section toggle — granting it to
     // anyone else would only show a link that redirects them straight back
-    // out, since the page itself checks role, not this nav.
-    const companyItems = role === "admin" ? [...COMPANY_ITEMS, INTEGRATIONS_NAV_ITEM, SECURITY_NAV_ITEM] : COMPANY_ITEMS;
+    // out, since the page itself checks role, not this nav. Audit Log is
+    // its own link rather than folded into Security & Access, since an
+    // auditor can reach that page (read-only) without the member-management
+    // page it normally lives under.
+    let companyItems = COMPANY_ITEMS;
+    if (role === "admin") {
+      companyItems = [...COMPANY_ITEMS, INTEGRATIONS_NAV_ITEM, SECURITY_NAV_ITEM, AUDIT_LOG_NAV_ITEM];
+    } else if (role === "auditor") {
+      companyItems = [...COMPANY_ITEMS, AUDIT_LOG_NAV_ITEM];
+    }
     groups.push({ heading: "Company", items: companyItems });
   }
 
