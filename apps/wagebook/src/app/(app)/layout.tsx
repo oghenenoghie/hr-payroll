@@ -61,7 +61,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         .select("id", { count: "exact", head: true })
         .eq("manager_id", myEmployee.id)
     : { count: 0 };
-  const isManager = (reportCount ?? 0) > 0;
+  // A department manager's scope is their whole department, not direct
+  // reports — they still need the "My Team" link even with zero reports.
+  const isManager = (reportCount ?? 0) > 0 || membership.role === "department_manager";
 
   const { count: unreadNotifications } = await supabase
     .from("notifications")
