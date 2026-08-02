@@ -33,7 +33,11 @@ export default async function AuditLogPage({
   }
 
   const membership = await getMembership(supabase, user.id);
-  if (membership?.role !== "admin" && membership?.role !== "auditor") {
+  if (
+    membership?.role !== "admin" &&
+    membership?.role !== "auditor" &&
+    membership?.role !== "finance_manager"
+  ) {
     redirect("/dashboard");
   }
 

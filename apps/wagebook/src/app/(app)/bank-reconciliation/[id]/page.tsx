@@ -39,7 +39,8 @@ export default async function BankReconciliationDetailPage({ params }: { params:
     (membership.role !== "admin" &&
       membership.role !== "payroll_manager" &&
       membership.role !== "accountant" &&
-      membership.role !== "auditor")
+      membership.role !== "auditor" &&
+      membership.role !== "finance_manager")
   ) {
     redirect("/dashboard");
   }

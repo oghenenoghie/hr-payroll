@@ -23,12 +23,14 @@ export default async function BudgetsPage() {
     (membership.role !== "admin" &&
       membership.role !== "payroll_manager" &&
       membership.role !== "accountant" &&
-      membership.role !== "auditor")
+      membership.role !== "auditor" &&
+      membership.role !== "finance_manager")
   ) {
     redirect("/dashboard");
   }
 
-  const canManage = membership.role === "admin" || membership.role === "payroll_manager";
+  const canManage =
+    membership.role === "admin" || membership.role === "payroll_manager" || membership.role === "finance_manager";
 
   const { data: budgets } = await supabase.from("budgets").select("*").order("period_start", { ascending: false });
 
