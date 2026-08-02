@@ -265,3 +265,43 @@ export function FixedAssetStatusBadge({ status }: { status: string }) {
   const tone = FIXED_ASSET_STATUS_TONE[status as keyof typeof FIXED_ASSET_STATUS_TONE] ?? "neutral";
   return <Badge tone={tone}>{status === "active" ? "Active" : "Disposed"}</Badge>;
 }
+
+const CASE_TYPE_LABEL: Record<string, string> = {
+  grievance: "Grievance",
+  disciplinary: "Disciplinary",
+  investigation: "Investigation",
+};
+
+export function CaseTypeBadge({ caseType }: { caseType: string }) {
+  return <Badge tone="neutral">{CASE_TYPE_LABEL[caseType] ?? caseType}</Badge>;
+}
+
+const CASE_STATUS_TONE = {
+  open: "warn",
+  in_progress: "warn",
+  resolved: "good",
+  closed: "neutral",
+} as const;
+
+const CASE_STATUS_LABEL: Record<string, string> = {
+  open: "Open",
+  in_progress: "In progress",
+  resolved: "Resolved",
+  closed: "Closed",
+};
+
+export function CaseStatusBadge({ status }: { status: string }) {
+  const tone = CASE_STATUS_TONE[status as keyof typeof CASE_STATUS_TONE] ?? "neutral";
+  return <Badge tone={tone}>{CASE_STATUS_LABEL[status] ?? status}</Badge>;
+}
+
+const CASE_SEVERITY_TONE = {
+  low: "neutral",
+  medium: "warn",
+  high: "bad",
+} as const;
+
+export function CaseSeverityBadge({ severity }: { severity: string }) {
+  const tone = CASE_SEVERITY_TONE[severity as keyof typeof CASE_SEVERITY_TONE] ?? "neutral";
+  return <Badge tone={tone}>{severity}</Badge>;
+}

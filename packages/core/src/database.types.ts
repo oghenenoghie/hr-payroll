@@ -2848,6 +2848,120 @@ export type Database = {
           },
         ]
       }
+      employee_relations_cases: {
+        Row: {
+          case_type: string
+          created_at: string
+          created_by: string
+          description: string | null
+          employee_id: string
+          id: string
+          org_id: string
+          raised_by_user_id: string | null
+          resolution: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          case_type: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          employee_id: string
+          id?: string
+          org_id: string
+          raised_by_user_id?: string | null
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          case_type?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          employee_id?: string
+          id?: string
+          org_id?: string
+          raised_by_user_id?: string | null
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_relations_cases_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_relations_cases_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_relations_case_notes: {
+        Row: {
+          action_type: string
+          author_user_id: string
+          case_id: string
+          created_at: string
+          id: string
+          note: string
+          org_id: string
+        }
+        Insert: {
+          action_type?: string
+          author_user_id: string
+          case_id: string
+          created_at?: string
+          id?: string
+          note: string
+          org_id: string
+        }
+        Update: {
+          action_type?: string
+          author_user_id?: string
+          case_id?: string
+          created_at?: string
+          id?: string
+          note?: string
+          org_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_relations_case_notes_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "employee_relations_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_relations_case_notes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       performance_appraisals: {
         Row: {
           acknowledged_at: string | null
@@ -3901,6 +4015,32 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "performance_appraisals"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      resolve_employee_relations_case: {
+        Args: { p_case_id: string; p_resolution: string }
+        Returns: {
+          case_type: string
+          created_at: string
+          created_by: string
+          description: string | null
+          employee_id: string
+          id: string
+          org_id: string
+          raised_by_user_id: string | null
+          resolution: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "employee_relations_cases"
           isOneToOne: true
           isSetofReturn: false
         }

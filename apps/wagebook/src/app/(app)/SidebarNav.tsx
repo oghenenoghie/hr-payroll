@@ -40,6 +40,7 @@ const WORKFORCE_ITEMS: NavItem[] = [
   { href: "/job-grades", label: "Job Grades" },
   { href: "/org-chart", label: "Org Chart" },
   { href: "/recruitment", label: "Recruitment" },
+  { href: "/employee-relations", label: "Employee Relations" },
 ];
 
 const PAYROLL_ITEMS: NavItem[] = [
