@@ -26,7 +26,8 @@ export type NotificationType =
   | "compensation_updated"
   | "performance_goal_assigned"
   | "performance_appraisal_submitted"
-  | "performance_appraisal_acknowledged";
+  | "performance_appraisal_acknowledged"
+  | "interview_scheduled";
 
 // Fire-and-forget: a notification is a side effect of an already-authorized
 // action, never the thing being authorized, so a failed insert here should
