@@ -45,22 +45,13 @@ export default async function PayRunDetailPage({ params }: { params: Promise<{ i
   const { data: payRun } = await supabase.from("pay_runs").select("*").eq("id", id).maybeSingle();
   if (!payRun) notFound();
 
-  const { data: reversal } =
+  const [{ data: reversal }, { data: payslips }, { data: journalEntry }] = await Promise.all([
     payRun.status === "reversed"
-      ? await supabase.from("pay_run_reversals").select("reason, created_at").eq("pay_run_id", id).maybeSingle()
-      : { data: null };
-
-  const { data: payslips } = await supabase
-    .from("payslips")
-    .select("*, employees(full_name)")
-    .eq("pay_run_id", id)
-    .order("created_at", { ascending: true });
-
-  const { data: journalEntry } = await supabase
-    .from("journal_entries")
-    .select("id")
-    .eq("pay_run_id", id)
-    .maybeSingle();
+      ? supabase.from("pay_run_reversals").select("reason, created_at").eq("pay_run_id", id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    supabase.from("payslips").select("*, employees(full_name)").eq("pay_run_id", id).order("created_at", { ascending: true }),
+    supabase.from("journal_entries").select("id").eq("pay_run_id", id).maybeSingle(),
+  ]);
 
   let varianceFlags: VarianceFlag[] = [];
   if (REGULAR_FREQUENCIES.has(payRun.frequency) && payRun.status !== "reversed" && payslips && payslips.length > 0) {

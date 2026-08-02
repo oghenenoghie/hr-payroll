@@ -25,21 +25,14 @@ export default async function PoliciesPage() {
   }
 
   // The full document body is only needed on the edit page — this list
-  // just shows title + acknowledgement stats.
-  const { data: policies } = await supabase
-    .from("company_policies")
-    .select("id, title, updated_at")
-    .order("created_at", { ascending: false });
-
-  const { count: activeEmployeeCount } = await supabase
-    .from("employees")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "active");
-
-  // Only ever non-empty for admin/hr_manager viewers, per this table's RLS.
-  const { data: acknowledgements } = await supabase
-    .from("policy_acknowledgements")
-    .select("policy_id, acknowledged_at");
+  // just shows title + acknowledgement stats. All three queries below are
+  // independent of each other, so they run in parallel.
+  const [{ data: policies }, { count: activeEmployeeCount }, { data: acknowledgements }] = await Promise.all([
+    supabase.from("company_policies").select("id, title, updated_at").order("created_at", { ascending: false }),
+    supabase.from("employees").select("id", { count: "exact", head: true }).eq("status", "active"),
+    // Only ever non-empty for admin/hr_manager viewers, per this table's RLS.
+    supabase.from("policy_acknowledgements").select("policy_id, acknowledged_at"),
+  ]);
 
   const csv = toCsv(
     ["Policy", "Acknowledged", "Total Active Employees"],

@@ -27,9 +27,10 @@ export default async function JobGradesPage() {
     redirect("/me");
   }
 
-  const { data: jobGrades } = await supabase.from("job_grades").select("*").order("min_annual_kobo");
-
-  const { data: employees } = await supabase.from("employees").select("job_grade_id");
+  const [{ data: jobGrades }, { data: employees }] = await Promise.all([
+    supabase.from("job_grades").select("*").order("min_annual_kobo"),
+    supabase.from("employees").select("job_grade_id"),
+  ]);
 
   const employeeCountByGrade = new Map<string, number>();
   for (const employee of employees ?? []) {

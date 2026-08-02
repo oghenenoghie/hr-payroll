@@ -48,17 +48,10 @@ export default async function AttendancePage({
   const weekEnd = addDays(weekStart, 6);
   const dates = Array.from({ length: 7 }, (_, i) => toISODate(addDays(weekStart, i)));
 
-  const { data: employees } = await supabase
-    .from("employees")
-    .select("id, full_name")
-    .eq("status", "active")
-    .order("full_name");
-
-  const { data: records } = await supabase
-    .from("attendance_records")
-    .select("employee_id, date, status")
-    .gte("date", dates[0])
-    .lte("date", dates[6]);
+  const [{ data: employees }, { data: records }] = await Promise.all([
+    supabase.from("employees").select("id, full_name").eq("status", "active").order("full_name"),
+    supabase.from("attendance_records").select("employee_id, date, status").gte("date", dates[0]).lte("date", dates[6]),
+  ]);
 
   const recordsByKey: Record<string, string> = {};
   for (const record of records ?? []) {

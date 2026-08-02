@@ -1,6 +1,3 @@
-"use client";
-
-import { Fragment, useState } from "react";
 import { NG_2026_1, computeAnnualPaye } from "@plutus/compliance";
 import type { Tables } from "@plutus/core";
 import { formatKobo, formatPercent } from "@/lib/format";
@@ -12,10 +9,14 @@ export const RULE_VERSIONS: Record<string, typeof NG_2026_1> = {
 };
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
-const tdClass = "px-3 py-[10px] text-[13px]";
 
+// Server component: no client JS needed at all for expand/collapse — a
+// native <details>/<summary> per row gives that interaction for free,
+// which also keeps computeAnnualPaye (from @plutus/compliance) and the
+// full derivation breakdown out of the client bundle entirely, rather
+// than shipping it for every payslip page view regardless of whether any
+// row is ever expanded.
 export function PayslipTable({ payslips, ruleVersionId }: { payslips: PayslipRow[]; ruleVersionId: string }) {
-  const [expandedId, setExpandedId] = useState<string | null>(null);
   const ruleVersion = RULE_VERSIONS[ruleVersionId];
 
   if (payslips.length === 0) {
@@ -41,50 +42,44 @@ export function PayslipTable({ payslips, ruleVersionId }: { payslips: PayslipRow
           </tr>
         </thead>
         <tbody>
-          {payslips.map((slip) => {
-            const expanded = expandedId === slip.id;
-            return (
-              <Fragment key={slip.id}>
-                <tr className="border-b border-border">
-                  <td className={`${tdClass} font-bold text-ink`}>{slip.employees?.full_name ?? "—"}</td>
-                  <td className={`${tdClass} text-right text-ink`}>{formatKobo(BigInt(slip.gross_kobo))}</td>
-                  <td className={`${tdClass} text-right text-ink-soft`}>
-                    {formatKobo(BigInt(slip.pension_employee_kobo))}
-                  </td>
-                  <td className={`${tdClass} text-right text-ink-soft`}>{formatKobo(BigInt(slip.nhf_kobo))}</td>
-                  <td className={`${tdClass} text-right text-ink-soft`}>{formatKobo(BigInt(slip.paye_kobo))}</td>
-                  <td className={`${tdClass} text-right font-bold text-ink`}>{formatKobo(BigInt(slip.net_kobo))}</td>
-                  <td className={`${tdClass} text-right`}>
-                    <div className="flex items-center justify-end gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setExpandedId(expanded ? null : slip.id)}
+          {payslips.map((slip) => (
+            <tr key={slip.id} className="border-b border-border">
+              <td colSpan={7} className="p-0">
+                <details className="group">
+                  <summary className="grid list-none grid-cols-[1fr_repeat(4,minmax(0,1fr))_auto] items-center gap-0 px-3 py-[10px] marker:hidden [&::-webkit-details-marker]:hidden">
+                    <span className="text-left text-[13px] font-bold text-ink">{slip.employees?.full_name ?? "—"}</span>
+                    <span className="text-right text-[13px] text-ink">{formatKobo(BigInt(slip.gross_kobo))}</span>
+                    <span className="text-right text-[13px] text-ink-soft">
+                      {formatKobo(BigInt(slip.pension_employee_kobo))}
+                    </span>
+                    <span className="text-right text-[13px] text-ink-soft">{formatKobo(BigInt(slip.nhf_kobo))}</span>
+                    <span className="text-right text-[13px] text-ink-soft">{formatKobo(BigInt(slip.paye_kobo))}</span>
+                    <span className="flex items-center justify-end gap-3 text-right text-[13px] font-bold text-ink">
+                      {formatKobo(BigInt(slip.net_kobo))}
+                      <span className="cursor-pointer text-[12px] font-bold text-primary group-open:hidden">· how?</span>
+                      <span className="hidden cursor-pointer text-[12px] font-bold text-primary group-open:inline">hide</span>
+                      <a
+                        href={`/payroll/${slip.pay_run_id}/payslips/${slip.id}`}
                         className="text-[12px] font-bold text-primary"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        {expanded ? "hide" : "· how?"}
-                      </button>
-                      <a href={`/payroll/${slip.pay_run_id}/payslips/${slip.id}`} className="text-[12px] font-bold text-primary">
                         Print
                       </a>
-                    </div>
-                  </td>
-                </tr>
-                {expanded && (
-                  <tr className="border-b border-border bg-bg">
-                    <td colSpan={7} className="px-3 py-4">
-                      {ruleVersion ? (
-                        <DerivationDetail slip={slip} ruleVersion={ruleVersion} />
-                      ) : (
-                        <p className="text-[12.5px] text-ink-soft">
-                          Rule version {ruleVersionId} is not available for re-derivation in this build.
-                        </p>
-                      )}
-                    </td>
-                  </tr>
-                )}
-              </Fragment>
-            );
-          })}
+                    </span>
+                  </summary>
+                  <div className="border-t border-border bg-bg px-3 py-4">
+                    {ruleVersion ? (
+                      <DerivationDetail slip={slip} ruleVersion={ruleVersion} />
+                    ) : (
+                      <p className="text-[12.5px] text-ink-soft">
+                        Rule version {ruleVersionId} is not available for re-derivation in this build.
+                      </p>
+                    )}
+                  </div>
+                </details>
+              </td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>

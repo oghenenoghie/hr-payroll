@@ -25,9 +25,10 @@ export default async function BranchesPage() {
     redirect("/me");
   }
 
-  const { data: branches } = await supabase.from("branches").select("*").order("name");
-
-  const { data: employees } = await supabase.from("employees").select("branch_id");
+  const [{ data: branches }, { data: employees }] = await Promise.all([
+    supabase.from("branches").select("*").order("name"),
+    supabase.from("employees").select("branch_id"),
+  ]);
 
   const employeeCountByBranch = new Map<string, number>();
   for (const employee of employees ?? []) {

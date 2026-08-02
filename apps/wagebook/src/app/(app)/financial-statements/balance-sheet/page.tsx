@@ -46,14 +46,16 @@ export default async function BalanceSheetPage({
   const { as_of: asOfParam } = await searchParams;
   const asOf = asOfParam || todayIso();
 
-  const accounts = await getCachedChartOfAccounts(membership.orgId);
-  const accountByCode = new Map(accounts.map((account) => [account.code, account]));
-  const accountLabel = (code: string) => accountByCode.get(code)?.name ?? ACCOUNT_LABEL[code] ?? code;
-
   // Point-in-time, not a range: every journal entry ever posted on or
   // before this date, since a balance sheet is a cumulative position, not
-  // a period total the way the P&L is.
-  const { data: journalEntries } = await supabase.from("journal_entries").select("id").lte("entry_date", asOf);
+  // a period total the way the P&L is. Independent of the chart-of-accounts
+  // lookup, so both run in parallel.
+  const [accounts, { data: journalEntries }] = await Promise.all([
+    getCachedChartOfAccounts(membership.orgId),
+    supabase.from("journal_entries").select("id").lte("entry_date", asOf),
+  ]);
+  const accountByCode = new Map(accounts.map((account) => [account.code, account]));
+  const accountLabel = (code: string) => accountByCode.get(code)?.name ?? ACCOUNT_LABEL[code] ?? code;
   const journalEntryIds = (journalEntries ?? []).map((entry) => entry.id);
 
   const { data: postings } =

@@ -10,8 +10,9 @@ import { InterviewOutcomeForm } from "./InterviewOutcomeForm";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const tdClass = "px-3 py-[10px] text-[13px]";
+const PAGE_SIZE = 25;
 
-export default async function RecruitmentPage() {
+export default async function RecruitmentPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -28,6 +29,9 @@ export default async function RecruitmentPage() {
 
   const isHrOrAdmin = membership.role === "admin" || membership.role === "hr_manager";
 
+  const { page: pageParam } = await searchParams;
+  const requestedPage = Math.max(1, Number(pageParam) || 1);
+
   // Interviewing is role-agnostic — any employee can be asked to sit in
   // on one — so "your interviews" is fetched for everyone, same as
   // Performance Management's "my goals and appraisals" section.
@@ -37,18 +41,40 @@ export default async function RecruitmentPage() {
     .eq("interviewer_id", user.id)
     .order("scheduled_at", { ascending: false });
 
-  const [requisitionsResult, departments, jobGrades] = isHrOrAdmin
+  // Open/on_hold requisitions are the active work queue — every one
+  // still needs hiring attention, so that fetch stays unbounded
+  // (naturally bounded by how many roles are genuinely open at once).
+  // Closed/filled requisitions are historical and grow without bound
+  // over the org's lifetime, so that's the part that's paginated.
+  const [activeResult, closedResult, departments, jobGrades] = isHrOrAdmin
     ? await Promise.all([
         supabase
           .from("job_requisitions")
           .select("id, title, status, department_id, job_grade_id, candidates(id)")
+          .in("status", ["open", "on_hold"])
           .order("created_at", { ascending: false }),
+        supabase
+          .from("job_requisitions")
+          .select("id, title, status, department_id, job_grade_id, candidates(id)", { count: "exact" })
+          .in("status", ["closed", "filled"])
+          .order("created_at", { ascending: false })
+          .range((requestedPage - 1) * PAGE_SIZE, requestedPage * PAGE_SIZE - 1),
         getCachedDepartments(membership.orgId),
         getCachedJobGrades(membership.orgId),
       ])
-    : [{ data: null }, [], []];
+    : [{ data: null }, { data: null, count: 0 }, [], []];
 
-  const requisitions = requisitionsResult.data;
+  const activeRequisitions = activeResult.data ?? [];
+  const closedRequisitions = closedResult.data ?? [];
+  const requisitions = [...activeRequisitions, ...closedRequisitions];
+
+  const totalClosed = closedResult.count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalClosed / PAGE_SIZE));
+  const currentPage = Math.min(requestedPage, totalPages);
+
+  function pageHref(page: number): string {
+    return `/recruitment?page=${page}`;
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-[960px] flex-col gap-8 px-6 py-10">
@@ -128,6 +154,30 @@ export default async function RecruitmentPage() {
               </tbody>
             </table>
           </div>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between">
+              <span className="text-[12px] text-ink-soft">
+                Page {currentPage} of {totalPages} · {totalClosed} closed/filled requisition
+                {totalClosed === 1 ? "" : "s"}
+              </span>
+              <div className="flex gap-3">
+                {currentPage > 1 ? (
+                  <Link href={pageHref(currentPage - 1)} className="text-[12.5px] font-bold text-primary">
+                    ← Previous
+                  </Link>
+                ) : (
+                  <span className="text-[12.5px] font-bold text-ink-soft">← Previous</span>
+                )}
+                {currentPage < totalPages ? (
+                  <Link href={pageHref(currentPage + 1)} className="text-[12.5px] font-bold text-primary">
+                    Next →
+                  </Link>
+                ) : (
+                  <span className="text-[12.5px] font-bold text-ink-soft">Next →</span>
+                )}
+              </div>
+            </div>
+          )}
           <div className="rounded-card border border-border bg-surface p-6">
             <RequisitionForm departments={departments} jobGrades={jobGrades} />
           </div>

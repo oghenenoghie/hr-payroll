@@ -48,14 +48,15 @@ export default async function VendorStatementPage({
     redirect("/dashboard");
   }
 
-  const { data: vendor } = await supabase.from("vendors").select("*").eq("id", id).maybeSingle();
+  const [{ data: vendor }, { data: bills }] = await Promise.all([
+    supabase.from("vendors").select("*").eq("id", id).maybeSingle(),
+    supabase
+      .from("vendor_bills")
+      .select("id, description, bill_number, amount_kobo, bill_date, due_date, status, approved_at, paid_at")
+      .eq("vendor_id", id)
+      .order("bill_date", { ascending: true }),
+  ]);
   if (!vendor) notFound();
-
-  const { data: bills } = await supabase
-    .from("vendor_bills")
-    .select("id, description, bill_number, amount_kobo, bill_date, due_date, status, approved_at, paid_at")
-    .eq("vendor_id", id)
-    .order("bill_date", { ascending: true });
 
   // A bill only affects what's owed once it's actually posted to the
   // ledger: approval recognizes the liability (a debit-side event from
