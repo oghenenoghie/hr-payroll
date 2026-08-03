@@ -50,7 +50,6 @@ export async function createCourse(_prevState: FormState, formData: FormData): P
 
   if (error) return { error: error.message };
 
-  revalidatePath("/learning/courses");
   revalidatePath("/learning");
   return { success: true };
 }
@@ -75,7 +74,6 @@ export async function deleteCourse(courseId: string) {
 
   await supabase.from("training_courses").delete().eq("id", courseId);
 
-  revalidatePath("/learning/courses");
   revalidatePath("/learning");
 }
 
@@ -127,7 +125,6 @@ export async function uploadCourseMaterial(
     return { error: insertError.message };
   }
 
-  revalidatePath("/learning/courses");
   revalidatePath("/learning");
   return null;
 }
@@ -142,7 +139,6 @@ export async function deleteCourseMaterial(materialId: string, storagePath: stri
   await supabase.storage.from("training-materials").remove([storagePath]);
   await supabase.from("training_course_materials").delete().eq("id", materialId);
 
-  revalidatePath("/learning/courses");
   revalidatePath("/learning");
 }
 
@@ -276,7 +272,6 @@ export async function createQuizQuestion(
     return { error: optionsError.message };
   }
 
-  revalidatePath("/learning/courses");
   revalidatePath("/learning");
   return { success: true };
 }
@@ -290,7 +285,6 @@ export async function deleteQuizQuestion(questionId: string) {
 
   await supabase.from("training_course_quiz_questions").delete().eq("id", questionId);
 
-  revalidatePath("/learning/courses");
   revalidatePath("/learning");
 }
 
