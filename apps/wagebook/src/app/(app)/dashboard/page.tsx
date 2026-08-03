@@ -13,6 +13,7 @@ import {
   CompensationSnapshotWidget,
   RecruitmentSnapshotWidget,
   PerformanceSnapshotWidget,
+  LearningSnapshotWidget,
   MyTeamSnapshotWidget,
 } from "./widgets";
 
@@ -104,6 +105,8 @@ async function WidgetSwitch({ widgetKey, orgId, userId }: { widgetKey: string; o
       return <RecruitmentSnapshotWidget supabase={supabase} orgId={orgId} />;
     case "performance_snapshot":
       return <PerformanceSnapshotWidget supabase={supabase} orgId={orgId} />;
+    case "learning_snapshot":
+      return <LearningSnapshotWidget supabase={supabase} orgId={orgId} />;
     case "my_team_snapshot":
       return <MyTeamSnapshotWidget supabase={supabase} orgId={orgId} userId={userId} />;
     default:

@@ -305,3 +305,25 @@ export function CaseSeverityBadge({ severity }: { severity: string }) {
   const tone = CASE_SEVERITY_TONE[severity as keyof typeof CASE_SEVERITY_TONE] ?? "neutral";
   return <Badge tone={tone}>{severity}</Badge>;
 }
+
+const TRAINING_CATEGORY_LABEL: Record<string, string> = {
+  compliance: "Compliance",
+  onboarding: "Onboarding",
+  skills: "Skills",
+  safety: "Safety",
+  other: "Other",
+};
+
+export function TrainingCategoryBadge({ category }: { category: string }) {
+  return <Badge tone="neutral">{TRAINING_CATEGORY_LABEL[category] ?? category}</Badge>;
+}
+
+const TRAINING_ENROLLMENT_STATUS_TONE = {
+  assigned: "warn",
+  completed: "good",
+} as const;
+
+export function TrainingEnrollmentStatusBadge({ status }: { status: string }) {
+  const tone = TRAINING_ENROLLMENT_STATUS_TONE[status as keyof typeof TRAINING_ENROLLMENT_STATUS_TONE] ?? "neutral";
+  return <Badge tone={tone}>{status}</Badge>;
+}

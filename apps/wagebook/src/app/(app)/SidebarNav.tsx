@@ -104,6 +104,7 @@ const INTEGRATIONS_NAV_ITEM: NavItem = { href: "/integrations", label: "Integrat
 const AUDIT_LOG_NAV_ITEM: NavItem = { href: "/security/audit-log", label: "Audit Log" };
 const PERFORMANCE_NAV_ITEM: NavItem = { href: "/performance", label: "Performance" };
 const EMPLOYEE_RELATIONS_NAV_ITEM: NavItem = { href: "/employee-relations", label: "Employee Relations" };
+const LEARNING_NAV_ITEM: NavItem = { href: "/learning", label: "Learning" };
 
 export function SidebarNav({
   role,
@@ -154,6 +155,12 @@ export function SidebarNav({
   // outside the section system entirely, alongside Overview and Tools,
   // rather than tied to any one role's default sections.
   groups.push({ heading: "Performance", items: [PERFORMANCE_NAV_ITEM] });
+
+  // Same shape as Performance directly above: every role assigns or
+  // completes training within RLS-decided scope (an employee sees their
+  // own, a manager/HR sees more), so this stays outside the section
+  // system too rather than tied to any one role's default sections.
+  groups.push({ heading: "Learning", items: [LEARNING_NAV_ITEM] });
 
   if (has("workforce")) {
     groups.push({
