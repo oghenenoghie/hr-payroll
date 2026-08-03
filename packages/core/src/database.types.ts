@@ -3037,6 +3037,51 @@ export type Database = {
           },
         ]
       }
+      training_course_materials: {
+        Row: {
+          course_id: string
+          file_name: string
+          id: string
+          org_id: string
+          storage_path: string
+          uploaded_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          course_id: string
+          file_name: string
+          id?: string
+          org_id: string
+          storage_path: string
+          uploaded_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          course_id?: string
+          file_name?: string
+          id?: string
+          org_id?: string
+          storage_path?: string
+          uploaded_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_course_materials_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "training_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_course_materials_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_relations_cases: {
         Row: {
           case_type: string
