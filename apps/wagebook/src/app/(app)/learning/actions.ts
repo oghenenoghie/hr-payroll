@@ -28,9 +28,14 @@ export async function createCourse(_prevState: FormState, formData: FormData): P
   const category = String(formData.get("category") ?? "other").trim();
   const isMandatory = formData.get("is_mandatory") === "on";
   const externalUrl = String(formData.get("external_url") ?? "").trim();
+  const quizPassingPercentRaw = String(formData.get("quiz_passing_percent") ?? "").trim();
+  const quizPassingPercent = quizPassingPercentRaw ? Number(quizPassingPercentRaw) : 70;
 
   if (!title) return { error: "Enter a course title." };
   if (!CATEGORIES.includes(category)) return { error: "Pick a category." };
+  if (!Number.isInteger(quizPassingPercent) || quizPassingPercent < 1 || quizPassingPercent > 100) {
+    return { error: "Passing score must be a whole number between 1 and 100." };
+  }
 
   const { error } = await supabase.from("training_courses").insert({
     org_id: membership.orgId,
@@ -40,6 +45,7 @@ export async function createCourse(_prevState: FormState, formData: FormData): P
     is_mandatory: isMandatory,
     external_url: externalUrl || null,
     created_by: user.id,
+    quiz_passing_percent: quizPassingPercent,
   });
 
   if (error) return { error: error.message };
@@ -210,4 +216,120 @@ export async function markEnrollmentComplete(enrollmentId: string) {
 
   revalidatePath("/learning");
   revalidatePath("/me");
+}
+
+export async function createQuizQuestion(
+  courseId: string,
+  _prevState: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const membership = await getMembership(supabase, user.id);
+  if (!membership || !MANAGING_ROLES.includes(membership.role)) {
+    return { error: "You don't have permission to author quiz questions." };
+  }
+
+  const questionText = String(formData.get("question_text") ?? "").trim();
+  if (!questionText) return { error: "Enter the question text." };
+
+  const optionTexts = [1, 2, 3, 4]
+    .map((i) => String(formData.get(`option_${i}`) ?? "").trim())
+    .filter((text) => text.length > 0);
+  if (optionTexts.length < 2) return { error: "Enter at least two answer options." };
+
+  const correctIndex = Number(formData.get("correct_option") ?? "0");
+  if (!Number.isInteger(correctIndex) || correctIndex < 1 || correctIndex > optionTexts.length) {
+    return { error: "Pick which option is correct." };
+  }
+
+  const { data: question, error: questionError } = await supabase
+    .from("training_course_quiz_questions")
+    .insert({
+      org_id: membership.orgId,
+      course_id: courseId,
+      question_text: questionText,
+    })
+    .select("id")
+    .single();
+
+  if (questionError) return { error: questionError.message };
+
+  const { error: optionsError } = await supabase.from("training_course_quiz_options").insert(
+    optionTexts.map((optionText, i) => ({
+      org_id: membership.orgId,
+      question_id: question.id,
+      option_text: optionText,
+      is_correct: i + 1 === correctIndex,
+      sort_order: i + 1,
+    })),
+  );
+
+  if (optionsError) {
+    // Options failed after the question row already landed — remove it
+    // rather than leaving a question with no answer choices at all.
+    await supabase.from("training_course_quiz_questions").delete().eq("id", question.id);
+    return { error: optionsError.message };
+  }
+
+  revalidatePath("/learning/courses");
+  revalidatePath("/learning");
+  return { success: true };
+}
+
+export async function deleteQuizQuestion(questionId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  await supabase.from("training_course_quiz_questions").delete().eq("id", questionId);
+
+  revalidatePath("/learning/courses");
+  revalidatePath("/learning");
+}
+
+export type SubmitQuizState =
+  | { error: string; result?: undefined }
+  | { error?: undefined; result: { scorePercent: number; passed: boolean } }
+  | null;
+
+export async function submitQuizAttempt(
+  enrollmentId: string,
+  _prevState: SubmitQuizState,
+  formData: FormData,
+): Promise<SubmitQuizState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const answers: { question_id: string; option_id: string }[] = [];
+  for (const [key, value] of formData.entries()) {
+    if (key.startsWith("question_")) {
+      answers.push({ question_id: key.slice("question_".length), option_id: String(value) });
+    }
+  }
+
+  if (answers.length === 0) return { error: "Answer every question before submitting." };
+
+  const { data, error } = await supabase.rpc("submit_training_quiz_attempt", {
+    p_enrollment_id: enrollmentId,
+    p_answers: answers,
+  });
+
+  if (error) return { error: error.message };
+
+  const result = Array.isArray(data) ? data[0] : data;
+  if (!result) return { error: "Could not grade this attempt." };
+
+  revalidatePath("/learning");
+  revalidatePath(`/learning/quiz/${enrollmentId}`);
+  return { result: { scorePercent: result.score_percent, passed: result.passed } };
 }

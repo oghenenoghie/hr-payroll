@@ -2942,9 +2942,11 @@ export type Database = {
           created_by: string
           description: string | null
           external_url: string | null
+          has_quiz: boolean
           id: string
           is_mandatory: boolean
           org_id: string
+          quiz_passing_percent: number
           title: string
         }
         Insert: {
@@ -2953,9 +2955,11 @@ export type Database = {
           created_by: string
           description?: string | null
           external_url?: string | null
+          has_quiz?: boolean
           id?: string
           is_mandatory?: boolean
           org_id: string
+          quiz_passing_percent?: number
           title: string
         }
         Update: {
@@ -2964,9 +2968,11 @@ export type Database = {
           created_by?: string
           description?: string | null
           external_url?: string | null
+          has_quiz?: boolean
           id?: string
           is_mandatory?: boolean
           org_id?: string
+          quiz_passing_percent?: number
           title?: string
         }
         Relationships: [
@@ -3030,6 +3036,155 @@ export type Database = {
           },
           {
             foreignKeyName: "training_enrollments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_course_quiz_questions: {
+        Row: {
+          course_id: string
+          created_at: string
+          id: string
+          org_id: string
+          question_text: string
+          sort_order: number
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          id?: string
+          org_id: string
+          question_text: string
+          sort_order?: number
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          id?: string
+          org_id?: string
+          question_text?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_course_quiz_questions_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "training_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_course_quiz_questions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_course_quiz_options: {
+        Row: {
+          created_at: string
+          id: string
+          is_correct: boolean
+          option_text: string
+          org_id: string
+          question_id: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_correct?: boolean
+          option_text: string
+          org_id: string
+          question_id: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_correct?: boolean
+          option_text?: string
+          org_id?: string
+          question_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_course_quiz_options_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "training_course_quiz_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_course_quiz_options_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_quiz_attempts: {
+        Row: {
+          course_id: string
+          employee_id: string
+          enrollment_id: string
+          id: string
+          org_id: string
+          passed: boolean
+          score_percent: number
+          submitted_at: string
+        }
+        Insert: {
+          course_id: string
+          employee_id: string
+          enrollment_id: string
+          id?: string
+          org_id: string
+          passed: boolean
+          score_percent: number
+          submitted_at?: string
+        }
+        Update: {
+          course_id?: string
+          employee_id?: string
+          enrollment_id?: string
+          id?: string
+          org_id?: string
+          passed?: boolean
+          score_percent?: number
+          submitted_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_quiz_attempts_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "training_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_quiz_attempts_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_quiz_attempts_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "training_enrollments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_quiz_attempts_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -4298,6 +4453,25 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      get_training_quiz_questions: {
+        Args: { p_course_id: string }
+        Returns: {
+          question_id: string
+          question_text: string
+          question_sort_order: number
+          option_id: string
+          option_text: string
+          option_sort_order: number
+        }[]
+      }
+      submit_training_quiz_attempt: {
+        Args: { p_enrollment_id: string; p_answers: Json }
+        Returns: {
+          score_percent: number
+          passed: boolean
+          submitted_at: string
+        }[]
       }
     }
     Enums: {

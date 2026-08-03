@@ -49,6 +49,25 @@ export function CourseForm() {
 
       <FormField label="Link to material (optional)" name="external_url" required={false} />
 
+      <div className="flex flex-col gap-2">
+        <label className={labelClass} htmlFor="quiz_passing_percent">
+          Quiz passing score (%)
+        </label>
+        <input
+          id="quiz_passing_percent"
+          name="quiz_passing_percent"
+          type="number"
+          min={1}
+          max={100}
+          defaultValue={70}
+          className={selectClass}
+        />
+        <p className="text-[12px] text-ink-soft">
+          Only used if you add quiz questions to this course after creating it — otherwise employees complete it
+          by self-report.
+        </p>
+      </div>
+
       <SubmitButton>Add course</SubmitButton>
     </form>
   );
