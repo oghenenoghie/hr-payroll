@@ -29,6 +29,8 @@ export const DASHBOARD_WIDGETS: DashboardWidget[] = [
       "auditor",
       "compensation_benefits_manager",
       "finance_manager",
+      "chro",
+      "legal_compliance",
     ],
   },
   {
@@ -47,13 +49,13 @@ export const DASHBOARD_WIDGETS: DashboardWidget[] = [
     key: "workforce_snapshot",
     label: "Workforce",
     description: "Active headcount and contract/probation deadlines coming up.",
-    defaultRoles: ["admin", "hr_manager", "department_manager"],
+    defaultRoles: ["admin", "hr_manager", "department_manager", "chro"],
   },
   {
     key: "compliance_audit",
     label: "Compliance & audit",
     description: "Recent authentication audit activity for the org.",
-    defaultRoles: ["admin", "auditor", "finance_manager"],
+    defaultRoles: ["admin", "auditor", "finance_manager", "legal_compliance"],
   },
   {
     key: "accounts_snapshot",
@@ -71,19 +73,19 @@ export const DASHBOARD_WIDGETS: DashboardWidget[] = [
     key: "compensation_snapshot",
     label: "Compensation & benefits",
     description: "Job grades, benefit plans and active enrollments.",
-    defaultRoles: ["admin", "compensation_benefits_manager", "hr_manager"],
+    defaultRoles: ["admin", "compensation_benefits_manager", "hr_manager", "chro"],
   },
   {
     key: "recruitment_snapshot",
     label: "Recruitment",
     description: "Open requisitions, candidates in the pipeline, upcoming interviews.",
-    defaultRoles: ["admin", "hr_manager"],
+    defaultRoles: ["admin", "hr_manager", "chro"],
   },
   {
     key: "performance_snapshot",
     label: "Performance management",
     description: "The active review cycle, goals in progress, appraisals awaiting acknowledgement.",
-    defaultRoles: ["admin", "hr_manager"],
+    defaultRoles: ["admin", "hr_manager", "chro"],
   },
   {
     key: "my_team_snapshot",

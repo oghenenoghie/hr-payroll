@@ -103,6 +103,7 @@ const SECURITY_NAV_ITEM: NavItem = { href: "/security", label: "Security & Acces
 const INTEGRATIONS_NAV_ITEM: NavItem = { href: "/integrations", label: "Integrations" };
 const AUDIT_LOG_NAV_ITEM: NavItem = { href: "/security/audit-log", label: "Audit Log" };
 const PERFORMANCE_NAV_ITEM: NavItem = { href: "/performance", label: "Performance" };
+const EMPLOYEE_RELATIONS_NAV_ITEM: NavItem = { href: "/employee-relations", label: "Employee Relations" };
 
 export function SidebarNav({
   role,
@@ -161,6 +162,12 @@ export function SidebarNav({
     });
   } else if (isManager) {
     groups.push({ heading: "Team", items: [MANAGER_NAV_ITEM] });
+  } else if (role === "legal_compliance") {
+    // Legal & Compliance has RLS read access to employee relations cases
+    // but doesn't get the broader "workforce" section (recruitment,
+    // departments, etc. aren't its territory) — same shape as Team above,
+    // one targeted link rather than the whole section.
+    groups.push({ heading: "Employee Relations", items: [EMPLOYEE_RELATIONS_NAV_ITEM] });
   }
 
   if (has("payroll")) {
@@ -182,7 +189,7 @@ export function SidebarNav({
     let companyItems = COMPANY_ITEMS;
     if (role === "admin") {
       companyItems = [...COMPANY_ITEMS, INTEGRATIONS_NAV_ITEM, SECURITY_NAV_ITEM, AUDIT_LOG_NAV_ITEM];
-    } else if (role === "auditor" || role === "finance_manager") {
+    } else if (role === "auditor" || role === "finance_manager" || role === "legal_compliance") {
       companyItems = [...COMPANY_ITEMS, AUDIT_LOG_NAV_ITEM];
     }
     groups.push({ heading: "Company", items: companyItems });

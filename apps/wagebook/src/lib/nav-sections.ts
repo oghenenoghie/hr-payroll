@@ -26,6 +26,8 @@ const ROLE_DEFAULT_SECTIONS: Record<string, SectionKey[]> = {
   auditor: ["workforce", "payroll", "requests", "company"],
   compensation_benefits_manager: ["workforce", "requests"],
   finance_manager: ["payroll", "company"],
+  chro: ["workforce", "requests", "company"],
+  legal_compliance: ["company"],
   employee: [],
 };
 
