@@ -5,13 +5,21 @@ import { usePathname } from "next/navigation";
 import type { SectionKey } from "@/lib/nav-sections";
 import { FormSubmitButton } from "@/components/FormSubmitButton";
 import { signOut } from "./dashboard/actions";
-import { SidebarNav } from "./SidebarNav";
+import { SidebarNav, buildNavGroups } from "./SidebarNav";
+import { TopBar } from "./TopBar";
 
 const ROLE_LABEL: Record<string, string> = {
   admin: "Admin",
   payroll_manager: "Payroll Manager",
   hr_manager: "HR Manager",
+  accountant: "Accountant",
+  department_manager: "Department Manager",
   employee: "Employee",
+  auditor: "Auditor",
+  compensation_benefits_manager: "Compensation & Benefits Manager",
+  finance_manager: "Finance Manager / CFO",
+  chro: "CHRO",
+  legal_compliance: "Legal & Compliance",
 };
 
 export function AppShell({
@@ -43,6 +51,18 @@ export function AppShell({
     setRenderedPathname(pathname);
     setOpen(false);
   }
+
+  // Reuses the exact same nav data SidebarNav renders from — a coarse
+  // "which section is this" label for the top bar, not a hardcoded
+  // second copy of every route's title that could drift as nav items are
+  // added. Longest-matching href wins so a nested route (e.g.
+  // /fixed-assets/depreciation) resolves to its own more specific label
+  // rather than its parent's.
+  const navGroups = buildNavGroups(role, sections, isManager);
+  const matchingItems = navGroups
+    .flatMap((group) => group.items)
+    .filter((item) => pathname === item.href || pathname.startsWith(`${item.href}/`));
+  const pageTitle = matchingItems.sort((a, b) => b.href.length - a.href.length)[0]?.label;
 
   return (
     <div className="flex h-screen flex-col overflow-hidden md:flex-row print:block print:h-auto print:overflow-visible">
@@ -116,7 +136,12 @@ export function AppShell({
         </div>
       </aside>
 
-      <main className="flex-1 overflow-y-auto bg-bg print:h-auto print:overflow-visible">{children}</main>
+      <main className="flex-1 overflow-y-auto bg-bg p-0 md:p-4 print:h-auto print:overflow-visible print:bg-transparent print:p-0">
+        <div className="flex min-h-full flex-col rounded-none border-0 bg-bg shadow-none md:rounded-container md:border md:border-border md:bg-surface md:shadow-sm print:rounded-none print:border-0 print:bg-transparent print:shadow-none">
+          <TopBar title={pageTitle} orgName={orgName} role={role} unreadNotifications={unreadNotifications} />
+          <div className="flex-1">{children}</div>
+        </div>
+      </main>
     </div>
   );
 }

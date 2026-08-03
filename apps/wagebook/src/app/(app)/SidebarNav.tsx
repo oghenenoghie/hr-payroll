@@ -5,6 +5,39 @@ import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { createPortal } from "react-dom";
 import type { SectionKey } from "@/lib/nav-sections";
+import {
+  GridIcon,
+  ReceiptIcon,
+  TargetIcon,
+  CapIcon,
+  PeopleIcon,
+  BuildingIcon,
+  LayersIcon,
+  HierarchyIcon,
+  BriefcaseIcon,
+  ShieldIcon,
+  BanknoteIcon,
+  DoorExitIcon,
+  BarChartIcon,
+  SlidersIcon,
+  TruckIcon,
+  PersonCardIcon,
+  ListIcon,
+  BookIcon,
+  ColumnsIcon,
+  BoxIcon,
+  TrendDownIcon,
+  PieChartIcon,
+  CoinsIcon,
+  CalendarIcon,
+  ClockIcon,
+  HeartIcon,
+  BellIcon,
+  CalculatorIcon,
+  MapIcon,
+  PlugIcon,
+  HistoryIcon,
+} from "@/components/icons";
 
 function ChevronIcon({ collapsed }: { collapsed: boolean }) {
   return (
@@ -42,103 +75,77 @@ function NavLinkOverlay() {
   );
 }
 
-type NavItem = { href: string; label: string };
-type NavGroup = { heading?: string; items: NavItem[] };
+export type NavIcon = React.ComponentType<{ className?: string }>;
+export type NavItem = { href: string; label: string; icon: NavIcon };
+export type NavGroup = { heading?: string; items: NavItem[] };
 
-const OVERVIEW_ITEM: NavItem = { href: "/dashboard", label: "Overview" };
-const EMPLOYEE_OVERVIEW_ITEM: NavItem = { href: "/me", label: "Overview" };
-const PAYSLIPS_NAV_ITEM: NavItem = { href: "/me/payslips", label: "Payslips" };
+const OVERVIEW_ITEM: NavItem = { href: "/dashboard", label: "Overview", icon: GridIcon };
+const EMPLOYEE_OVERVIEW_ITEM: NavItem = { href: "/me", label: "Overview", icon: GridIcon };
+const PAYSLIPS_NAV_ITEM: NavItem = { href: "/me/payslips", label: "Payslips", icon: ReceiptIcon };
 
 const WORKFORCE_ITEMS: NavItem[] = [
-  { href: "/employees", label: "Employees" },
-  { href: "/departments", label: "Departments" },
-  { href: "/branches", label: "Branches" },
-  { href: "/job-grades", label: "Job Grades" },
-  { href: "/org-chart", label: "Org Chart" },
-  { href: "/recruitment", label: "Recruitment" },
-  { href: "/employee-relations", label: "Employee Relations" },
+  { href: "/employees", label: "Employees", icon: PeopleIcon },
+  { href: "/departments", label: "Departments", icon: BuildingIcon },
+  { href: "/branches", label: "Branches", icon: BuildingIcon },
+  { href: "/job-grades", label: "Job Grades", icon: LayersIcon },
+  { href: "/org-chart", label: "Org Chart", icon: HierarchyIcon },
+  { href: "/recruitment", label: "Recruitment", icon: BriefcaseIcon },
+  { href: "/employee-relations", label: "Employee Relations", icon: ShieldIcon },
 ];
 
 const PAYROLL_ITEMS: NavItem[] = [
-  { href: "/payroll", label: "Payroll Runs" },
-  { href: "/compliance", label: "Compliance Engine" },
-  { href: "/settlements", label: "Final Settlement" },
-  { href: "/reports", label: "Reports" },
-  { href: "/simulation", label: "Payroll Simulation" },
-  { href: "/vendors", label: "Vendors" },
-  { href: "/bills", label: "Bills (AP)" },
-  { href: "/customers", label: "Customers" },
-  { href: "/invoices", label: "Invoices (AR)" },
-  { href: "/chart-of-accounts", label: "Chart of Accounts" },
-  { href: "/general-ledger", label: "General Ledger" },
-  { href: "/financial-statements", label: "Financial Statements" },
-  { href: "/bank-reconciliation", label: "Bank Reconciliation" },
-  { href: "/fixed-assets", label: "Fixed Assets" },
-  { href: "/fixed-assets/depreciation", label: "Depreciation Runs" },
-  { href: "/budgets", label: "Budgets" },
+  { href: "/payroll", label: "Payroll Runs", icon: BanknoteIcon },
+  { href: "/compliance", label: "Compliance Engine", icon: ShieldIcon },
+  { href: "/settlements", label: "Final Settlement", icon: DoorExitIcon },
+  { href: "/reports", label: "Reports", icon: BarChartIcon },
+  { href: "/simulation", label: "Payroll Simulation", icon: SlidersIcon },
+  { href: "/vendors", label: "Vendors", icon: TruckIcon },
+  { href: "/bills", label: "Bills (AP)", icon: ReceiptIcon },
+  { href: "/customers", label: "Customers", icon: PersonCardIcon },
+  { href: "/invoices", label: "Invoices (AR)", icon: ReceiptIcon },
+  { href: "/chart-of-accounts", label: "Chart of Accounts", icon: ListIcon },
+  { href: "/general-ledger", label: "General Ledger", icon: BookIcon },
+  { href: "/financial-statements", label: "Financial Statements", icon: BarChartIcon },
+  { href: "/bank-reconciliation", label: "Bank Reconciliation", icon: ColumnsIcon },
+  { href: "/fixed-assets", label: "Fixed Assets", icon: BoxIcon },
+  { href: "/fixed-assets/depreciation", label: "Depreciation Runs", icon: TrendDownIcon },
+  { href: "/budgets", label: "Budgets", icon: PieChartIcon },
 ];
 
 const REQUESTS_ITEMS: NavItem[] = [
-  { href: "/loans", label: "Loans & Advances" },
-  { href: "/expenses", label: "Expenses" },
-  { href: "/leave", label: "Leave & Attendance" },
-  { href: "/attendance", label: "Attendance" },
-  { href: "/shifts", label: "Shift Schedule" },
-  { href: "/overtime", label: "Overtime" },
-  { href: "/benefits", label: "Benefits" },
+  { href: "/loans", label: "Loans & Advances", icon: CoinsIcon },
+  { href: "/expenses", label: "Expenses", icon: ReceiptIcon },
+  { href: "/leave", label: "Leave & Attendance", icon: CalendarIcon },
+  { href: "/attendance", label: "Attendance", icon: ClockIcon },
+  { href: "/shifts", label: "Shift Schedule", icon: CalendarIcon },
+  { href: "/overtime", label: "Overtime", icon: ClockIcon },
+  { href: "/benefits", label: "Benefits", icon: HeartIcon },
 ];
 
 const COMPANY_ITEMS: NavItem[] = [
-  { href: "/policies", label: "Company Policies" },
-  { href: "/notifications", label: "Notifications" },
+  { href: "/policies", label: "Company Policies", icon: BookIcon },
+  { href: "/notifications", label: "Notifications", icon: BellIcon },
 ];
 
 const TOOLS_ITEMS: NavItem[] = [
-  { href: "/", label: "PAYE Calculator" },
-  { href: "/featuremap", label: "Full Feature Map" },
+  { href: "/", label: "PAYE Calculator", icon: CalculatorIcon },
+  { href: "/featuremap", label: "Full Feature Map", icon: MapIcon },
 ];
 
-const MANAGER_NAV_ITEM: NavItem = { href: "/team", label: "My Team" };
-const SECURITY_NAV_ITEM: NavItem = { href: "/security", label: "Security & Access" };
-const INTEGRATIONS_NAV_ITEM: NavItem = { href: "/integrations", label: "Integrations" };
-const AUDIT_LOG_NAV_ITEM: NavItem = { href: "/security/audit-log", label: "Audit Log" };
-const PERFORMANCE_NAV_ITEM: NavItem = { href: "/performance", label: "Performance" };
-const EMPLOYEE_RELATIONS_NAV_ITEM: NavItem = { href: "/employee-relations", label: "Employee Relations" };
-const LEARNING_NAV_ITEM: NavItem = { href: "/learning", label: "Learning" };
+const MANAGER_NAV_ITEM: NavItem = { href: "/team", label: "My Team", icon: PeopleIcon };
+const SECURITY_NAV_ITEM: NavItem = { href: "/security", label: "Security & Access", icon: ShieldIcon };
+const INTEGRATIONS_NAV_ITEM: NavItem = { href: "/integrations", label: "Integrations", icon: PlugIcon };
+const AUDIT_LOG_NAV_ITEM: NavItem = { href: "/security/audit-log", label: "Audit Log", icon: HistoryIcon };
+const PERFORMANCE_NAV_ITEM: NavItem = { href: "/performance", label: "Performance", icon: TargetIcon };
+const EMPLOYEE_RELATIONS_NAV_ITEM: NavItem = { href: "/employee-relations", label: "Employee Relations", icon: ShieldIcon };
+const LEARNING_NAV_ITEM: NavItem = { href: "/learning", label: "Learning", icon: CapIcon };
 
-export function SidebarNav({
-  role,
-  sections,
-  isManager = false,
-  unreadNotifications = 0,
-}: {
-  role?: string;
-  sections: SectionKey[];
-  isManager?: boolean;
-  unreadNotifications?: number;
-}) {
-  const pathname = usePathname();
+// Pure — no hooks, no pathname dependency — so it can be called both from
+// this component's render and from AppShell (to derive the current page's
+// section title for the desktop top bar) without duplicating the role/
+// section logic in two places.
+export function buildNavGroups(role: string | undefined, sections: SectionKey[], isManager: boolean): NavGroup[] {
   const has = (section: SectionKey) => sections.includes(section);
-
-  // Everything starts expanded, same as before this feature existed.
-  // Next.js keeps this layout mounted across client-side navigation, so
-  // collapse state survives moving between pages within the session — it
-  // just doesn't survive a full reload, which is a fine trade for not
-  // needing to sync with localStorage on every render.
-  const [collapsedHeadings, setCollapsedHeadings] = useState<Set<string>>(new Set());
-
-  function toggleGroup(heading: string) {
-    setCollapsedHeadings((prev) => {
-      const next = new Set(prev);
-      if (next.has(heading)) {
-        next.delete(heading);
-      } else {
-        next.add(heading);
-      }
-      return next;
-    });
-  }
-
   const groups: NavGroup[] = [{ items: [role === "employee" ? EMPLOYEE_OVERVIEW_ITEM : OVERVIEW_ITEM] }];
 
   // Same tier as Overview, not folded into a "Payslips" heading — this is
@@ -204,6 +211,43 @@ export function SidebarNav({
 
   groups.push({ heading: "Tools", items: TOOLS_ITEMS });
 
+  return groups;
+}
+
+export function SidebarNav({
+  role,
+  sections,
+  isManager = false,
+  unreadNotifications = 0,
+}: {
+  role?: string;
+  sections: SectionKey[];
+  isManager?: boolean;
+  unreadNotifications?: number;
+}) {
+  const pathname = usePathname();
+
+  // Everything starts expanded, same as before this feature existed.
+  // Next.js keeps this layout mounted across client-side navigation, so
+  // collapse state survives moving between pages within the session — it
+  // just doesn't survive a full reload, which is a fine trade for not
+  // needing to sync with localStorage on every render.
+  const [collapsedHeadings, setCollapsedHeadings] = useState<Set<string>>(new Set());
+
+  function toggleGroup(heading: string) {
+    setCollapsedHeadings((prev) => {
+      const next = new Set(prev);
+      if (next.has(heading)) {
+        next.delete(heading);
+      } else {
+        next.add(heading);
+      }
+      return next;
+    });
+  }
+
+  const groups = buildNavGroups(role, sections, isManager);
+
   return (
     <nav className="flex flex-col gap-4">
       {groups.map((group, i) => {
@@ -231,15 +275,17 @@ export function SidebarNav({
             {!isCollapsed &&
               group.items.map((item) => {
                 const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                const ItemIcon = item.icon;
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`flex items-center justify-between rounded-control px-3 py-2 text-[13px] font-bold ${
+                    className={`flex items-center gap-2.5 rounded-control px-3 py-2 text-[13px] font-bold ${
                       active ? "bg-primary text-white" : "text-primary-tint hover:bg-primary"
                     }`}
                   >
-                    <span>{item.label}</span>
+                    <ItemIcon className="h-4 w-4 shrink-0" />
+                    <span className="flex-1">{item.label}</span>
                     {item.href === "/notifications" && unreadNotifications > 0 && (
                       <span className="rounded-badge bg-white px-[7px] py-[1px] text-[11px] font-extrabold text-primary-dark">
                         {unreadNotifications}

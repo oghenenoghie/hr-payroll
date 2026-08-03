@@ -2,13 +2,42 @@ import Link from "next/link";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@plutus/core";
 import { formatKobo } from "@/lib/format";
+import {
+  BuildingIcon,
+  ClockIcon,
+  BanknoteIcon,
+  PeopleIcon,
+  ShieldIcon,
+  ReceiptIcon,
+  PieChartIcon,
+  CoinsIcon,
+  BriefcaseIcon,
+  TargetIcon,
+  CapIcon,
+} from "@/components/icons";
 
 type WidgetProps = { supabase: SupabaseClient<Database>; orgId: string };
+type WidgetIcon = React.ComponentType<{ className?: string }>;
 
 const cardClass = "rounded-card border border-border bg-surface p-6";
 const labelClass = "text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const statClass = "mt-1 text-[22px] font-extrabold text-ink";
 const rowClass = "flex items-center justify-between gap-3 text-[13px]";
+
+// A small leading icon chip beside every widget's label, giving the grid
+// a scannable visual anchor per card the way a plain uppercase label
+// alone didn't — every widget uses this same header shape now, rather
+// than only some of them promoting a hero stat and others not.
+function WidgetHeader({ icon: Icon, label }: { icon: WidgetIcon; label: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-control bg-primary-tint text-primary-dark">
+        <Icon className="h-4 w-4" />
+      </span>
+      <span className={labelClass}>{label}</span>
+    </div>
+  );
+}
 
 export async function OrgSnapshotWidget({ supabase, orgId }: WidgetProps) {
   const { data: org } = await supabase
@@ -19,7 +48,7 @@ export async function OrgSnapshotWidget({ supabase, orgId }: WidgetProps) {
 
   return (
     <div className={cardClass}>
-      <span className={labelClass}>Organization</span>
+      <WidgetHeader icon={BuildingIcon} label="Organization" />
       <p className="mt-1 text-[15px] font-extrabold text-ink">{org?.name ?? "Your organization"}</p>
       <div className="mt-3 flex flex-col gap-2 text-[13px] text-ink-soft">
         <div className={rowClass}>
@@ -51,7 +80,7 @@ export async function PendingApprovalsWidget({ supabase, orgId }: WidgetProps) {
 
   return (
     <div className={cardClass}>
-      <span className={labelClass}>Pending approvals</span>
+      <WidgetHeader icon={ClockIcon} label="Pending approvals" />
       <p className={statClass}>{total}</p>
       <div className="mt-3 flex flex-col gap-2 text-[13px] text-ink-soft">
         <Link href="/leave" className={`${rowClass} hover:text-primary`}>
@@ -87,7 +116,7 @@ export async function PayrollSnapshotWidget({ supabase, orgId }: WidgetProps) {
   return (
     <Link href="/payroll" className="block transition-opacity hover:opacity-80">
       <div className={cardClass}>
-        <span className={labelClass}>Most recent pay run</span>
+        <WidgetHeader icon={BanknoteIcon} label="Most recent pay run" />
         {latestRun ? (
           <>
             <p className="mt-1 text-[15px] font-extrabold text-ink">
@@ -143,7 +172,7 @@ export async function WorkforceSnapshotWidget({ supabase, orgId }: WidgetProps) 
   return (
     <Link href="/employees" className="block transition-opacity hover:opacity-80">
       <div className={cardClass}>
-        <span className={labelClass}>Active employees</span>
+        <WidgetHeader icon={PeopleIcon} label="Active employees" />
         <p className={statClass}>{active ?? 0}</p>
         <div className="mt-3 flex flex-col gap-2 text-[13px] text-ink-soft">
           <div className={rowClass}>
@@ -166,7 +195,7 @@ export async function ComplianceAuditWidget({ supabase, orgId }: WidgetProps) {
   return (
     <Link href="/security/audit-log" className="block transition-opacity hover:opacity-80">
       <div className={cardClass}>
-        <span className={labelClass}>Recent authentication activity</span>
+        <WidgetHeader icon={ShieldIcon} label="Recent authentication activity" />
         {events && events.length > 0 ? (
           <div className="mt-3 flex flex-col gap-2 text-[13px] text-ink-soft">
             {events.slice(0, 5).map((event, i) => (
@@ -194,9 +223,12 @@ export async function AccountsSnapshotWidget({ supabase, orgId }: WidgetProps) {
     supabase.from("customer_invoices").select("id", { count: "exact", head: true }).eq("org_id", orgId).eq("status", "issued"),
   ]);
 
+  const total = (outstandingBills ?? 0) + (outstandingInvoices ?? 0);
+
   return (
     <div className={cardClass}>
-      <span className={labelClass}>Accounts payable &amp; receivable</span>
+      <WidgetHeader icon={ReceiptIcon} label="Accounts payable & receivable" />
+      <p className={statClass}>{total}</p>
       <div className="mt-3 flex flex-col gap-2 text-[13px] text-ink-soft">
         <Link href="/bills" className={`${rowClass} hover:text-primary`}>
           <span>Bills awaiting payment</span>
@@ -228,7 +260,7 @@ export async function BudgetSnapshotWidget({ supabase, orgId }: WidgetProps) {
   return (
     <Link href="/budgets" className="block transition-opacity hover:opacity-80">
       <div className={cardClass}>
-        <span className={labelClass}>Budgets</span>
+        <WidgetHeader icon={PieChartIcon} label="Budgets" />
         <p className={statClass}>{activeCount ?? 0}</p>
         {latestBudget && (
           <p className="mt-2 text-[13px] text-ink-soft">
@@ -250,12 +282,10 @@ export async function CompensationSnapshotWidget({ supabase, orgId }: WidgetProp
 
   return (
     <div className={cardClass}>
-      <span className={labelClass}>Compensation &amp; benefits</span>
+      <WidgetHeader icon={CoinsIcon} label="Compensation & benefits" />
+      <p className={statClass}>{grades ?? 0}</p>
+      <p className="text-[12px] text-ink-soft">Job grades</p>
       <div className="mt-3 flex flex-col gap-2 text-[13px] text-ink-soft">
-        <Link href="/job-grades" className={`${rowClass} hover:text-primary`}>
-          <span>Job grades</span>
-          <span className="font-bold text-ink">{grades ?? 0}</span>
-        </Link>
         <Link href="/benefits" className={`${rowClass} hover:text-primary`}>
           <span>Active benefit plans</span>
           <span className="font-bold text-ink">{plans ?? 0}</span>
@@ -287,12 +317,10 @@ export async function RecruitmentSnapshotWidget({ supabase, orgId }: WidgetProps
 
   return (
     <div className={cardClass}>
-      <span className={labelClass}>Recruitment</span>
+      <WidgetHeader icon={BriefcaseIcon} label="Recruitment" />
+      <p className={statClass}>{openReqs ?? 0}</p>
+      <p className="text-[12px] text-ink-soft">Open requisitions</p>
       <div className="mt-3 flex flex-col gap-2 text-[13px] text-ink-soft">
-        <Link href="/recruitment" className={`${rowClass} hover:text-primary`}>
-          <span>Open requisitions</span>
-          <span className="font-bold text-ink">{openReqs ?? 0}</span>
-        </Link>
         <Link href="/recruitment" className={`${rowClass} hover:text-primary`}>
           <span>Candidates in pipeline</span>
           <span className="font-bold text-ink">{inPipeline ?? 0}</span>
@@ -324,7 +352,7 @@ export async function PerformanceSnapshotWidget({ supabase, orgId }: WidgetProps
   return (
     <Link href="/performance" className="block transition-opacity hover:opacity-80">
       <div className={cardClass}>
-        <span className={labelClass}>Performance management</span>
+        <WidgetHeader icon={TargetIcon} label="Performance management" />
         <p className="mt-1 text-[15px] font-extrabold text-ink">{activeCycle?.name ?? "No active review cycle"}</p>
         <div className="mt-3 flex flex-col gap-2 text-[13px] text-ink-soft">
           <div className={rowClass}>
@@ -362,7 +390,7 @@ export async function LearningSnapshotWidget({ supabase, orgId }: WidgetProps) {
   return (
     <Link href="/learning" className="block transition-opacity hover:opacity-80">
       <div className={cardClass}>
-        <span className={labelClass}>Learning &amp; development</span>
+        <WidgetHeader icon={CapIcon} label="Learning & development" />
         <p className={statClass}>{assigned ?? 0} in progress</p>
         <div className="mt-3 flex flex-col gap-2 text-[13px] text-ink-soft">
           <div className={rowClass}>
@@ -390,7 +418,7 @@ export async function MyTeamSnapshotWidget({ supabase, orgId, userId }: WidgetPr
   if (!myEmployee?.department_id) {
     return (
       <div className={cardClass}>
-        <span className={labelClass}>My department</span>
+        <WidgetHeader icon={PeopleIcon} label="My department" />
         <p className="mt-2 text-[13px] text-ink-soft">You aren&apos;t assigned to a department yet.</p>
       </div>
     );
@@ -414,7 +442,7 @@ export async function MyTeamSnapshotWidget({ supabase, orgId, userId }: WidgetPr
   return (
     <Link href="/team" className="block transition-opacity hover:opacity-80">
       <div className={cardClass}>
-        <span className={labelClass}>{myEmployee.departments?.name ?? "My department"}</span>
+        <WidgetHeader icon={PeopleIcon} label={myEmployee.departments?.name ?? "My department"} />
         <p className={statClass}>{roster ?? 0} active employees</p>
         <div className="mt-3 flex flex-col gap-2 text-[13px] text-ink-soft">
           <div className={rowClass}>
