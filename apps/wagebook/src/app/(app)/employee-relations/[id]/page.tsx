@@ -6,7 +6,8 @@ import { CaseTypeBadge, CaseStatusBadge, CaseSeverityBadge } from "@/components/
 import { CaseNoteForm } from "./CaseNoteForm";
 import { ResolveCaseForm } from "./ResolveCaseForm";
 
-const ALLOWED_ROLES = ["admin", "hr_manager", "department_manager", "auditor"];
+const ALLOWED_ROLES = ["admin", "hr_manager", "department_manager", "auditor", "chro", "legal_compliance"];
+const CAN_ADD_NOTE_ROLES = ["admin", "hr_manager", "department_manager"];
 
 export default async function CaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: caseId } = await params;
@@ -41,7 +42,7 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
     .order("created_at", { ascending: true });
 
   const canResolve = (membership.role === "admin" || membership.role === "hr_manager") && caseRow.status !== "resolved" && caseRow.status !== "closed";
-  const canAddNote = caseRow.status !== "resolved" && caseRow.status !== "closed";
+  const canAddNote = CAN_ADD_NOTE_ROLES.includes(membership.role) && caseRow.status !== "resolved" && caseRow.status !== "closed";
 
   return (
     <div className="mx-auto flex w-full max-w-[720px] flex-col gap-5 px-6 py-10">

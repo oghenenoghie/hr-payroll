@@ -8,7 +8,8 @@ import { CaseForm } from "./CaseForm";
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const tdClass = "px-3 py-[10px] text-[13px]";
 
-const ALLOWED_ROLES = ["admin", "hr_manager", "department_manager", "auditor"];
+const ALLOWED_ROLES = ["admin", "hr_manager", "department_manager", "auditor", "chro", "legal_compliance"];
+const CAN_CREATE_ROLES = ["admin", "hr_manager", "department_manager"];
 
 export default async function EmployeeRelationsPage() {
   const supabase = await createClient();
@@ -25,7 +26,7 @@ export default async function EmployeeRelationsPage() {
     redirect("/dashboard");
   }
 
-  const canCreate = membership.role !== "auditor";
+  const canCreate = CAN_CREATE_ROLES.includes(membership.role);
   const isDepartmentManager = membership.role === "department_manager";
 
   const { data: myEmployee } = isDepartmentManager

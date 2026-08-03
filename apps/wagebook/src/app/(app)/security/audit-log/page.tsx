@@ -36,7 +36,8 @@ export default async function AuditLogPage({
   if (
     membership?.role !== "admin" &&
     membership?.role !== "auditor" &&
-    membership?.role !== "finance_manager"
+    membership?.role !== "finance_manager" &&
+    membership?.role !== "legal_compliance"
   ) {
     redirect("/dashboard");
   }
