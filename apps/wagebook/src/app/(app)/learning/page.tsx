@@ -46,7 +46,7 @@ export default async function LearningPage() {
       myEmployee
         ? supabase
             .from("training_enrollments")
-            .select("id, status, due_date, completed_at, training_courses(title, category, is_mandatory)")
+            .select("id, status, due_date, completed_at, training_courses(id, title, category, is_mandatory)")
             .eq("employee_id", myEmployee.id)
             .order("created_at", { ascending: false })
         : Promise.resolve({ data: null }),
@@ -73,6 +73,32 @@ export default async function LearningPage() {
         : Promise.resolve({ data: null }),
     ]);
 
+  const myCourseIds = [...new Set((myEnrollments ?? []).map((e) => e.training_courses?.id).filter((id): id is string => Boolean(id)))];
+
+  const { data: myMaterialsRaw } =
+    myCourseIds.length > 0
+      ? await supabase
+          .from("training_course_materials")
+          .select("id, course_id, file_name, storage_path")
+          .in("course_id", myCourseIds)
+      : { data: null };
+
+  const myMaterialsWithUrls = await Promise.all(
+    (myMaterialsRaw ?? []).map(async (material) => {
+      const { data: signed } = await supabase.storage
+        .from("training-materials")
+        .createSignedUrl(material.storage_path, 60 * 10);
+      return { ...material, downloadUrl: signed?.signedUrl ?? null };
+    }),
+  );
+
+  const myMaterialsByCourse = new Map<string, typeof myMaterialsWithUrls>();
+  for (const material of myMaterialsWithUrls) {
+    const list = myMaterialsByCourse.get(material.course_id) ?? [];
+    list.push(material);
+    myMaterialsByCourse.set(material.course_id, list);
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-[960px] flex-col gap-8 px-6 py-10">
       <header className="flex flex-col gap-1">
@@ -88,8 +114,9 @@ export default async function LearningPage() {
         </div>
         <h1 className="text-[22px] font-extrabold text-ink">Training courses and completion tracking</h1>
         <p className="text-[13px] text-ink-soft">
-          A course is a catalog entry with an optional link to the actual material — this app assigns and tracks
-          training, it doesn&apos;t host any content itself. Completion is self-reported by the employee.
+          A course catalog entry can carry a link and/or directly attached files (slides, PDFs, short clips) —
+          this isn&apos;t a video-streaming platform, just a place to assign and track training. Completion is
+          self-reported by the employee.
         </p>
       </header>
 
@@ -104,46 +131,77 @@ export default async function LearningPage() {
                   <th className={`${thClass} text-center`}>Category</th>
                   <th className={`${thClass} text-left`}>Due date</th>
                   <th className={`${thClass} text-center`}>Status</th>
+                  <th className={`${thClass} text-left`}>Materials</th>
                   <th className={thClass}></th>
                 </tr>
               </thead>
               <tbody>
                 {myEnrollments && myEnrollments.length > 0 ? (
-                  myEnrollments.map((enrollment) => (
-                    <tr key={enrollment.id} className="border-b border-border last:border-b-0">
-                      <td className={`${tdClass} font-bold text-ink`}>
-                        {enrollment.training_courses?.title ?? "—"}
-                        {enrollment.training_courses?.is_mandatory && (
-                          <span className="ml-2">
-                            <Badge tone="bad">Mandatory</Badge>
-                          </span>
-                        )}
-                      </td>
-                      <td className={`${tdClass} text-center`}>
-                        <TrainingCategoryBadge category={enrollment.training_courses?.category ?? "other"} />
-                      </td>
-                      <td className={`${tdClass} text-ink-soft`}>{formatDate(enrollment.due_date)}</td>
-                      <td className={`${tdClass} text-center`}>
-                        <TrainingEnrollmentStatusBadge status={enrollment.status} />
-                      </td>
-                      <td className={`${tdClass} text-right`}>
-                        {enrollment.status === "assigned" && (
-                          <ConfirmActionButton
-                            action={markEnrollmentComplete.bind(null, enrollment.id)}
-                            label="Mark complete"
-                            tone="primary"
-                            className="text-[12px] font-bold text-primary"
-                            confirmTitle="Mark this course complete?"
-                            confirmMessage="This confirms you've completed the training — it isn't verified against any quiz or certificate."
-                            confirmLabel="Mark complete"
-                          />
-                        )}
-                      </td>
-                    </tr>
-                  ))
+                  myEnrollments.map((enrollment) => {
+                    const materials = enrollment.training_courses?.id
+                      ? (myMaterialsByCourse.get(enrollment.training_courses.id) ?? [])
+                      : [];
+                    return (
+                      <tr key={enrollment.id} className="border-b border-border last:border-b-0">
+                        <td className={`${tdClass} font-bold text-ink`}>
+                          {enrollment.training_courses?.title ?? "—"}
+                          {enrollment.training_courses?.is_mandatory && (
+                            <span className="ml-2">
+                              <Badge tone="bad">Mandatory</Badge>
+                            </span>
+                          )}
+                        </td>
+                        <td className={`${tdClass} text-center`}>
+                          <TrainingCategoryBadge category={enrollment.training_courses?.category ?? "other"} />
+                        </td>
+                        <td className={`${tdClass} text-ink-soft`}>{formatDate(enrollment.due_date)}</td>
+                        <td className={`${tdClass} text-center`}>
+                          <TrainingEnrollmentStatusBadge status={enrollment.status} />
+                        </td>
+                        <td className={tdClass}>
+                          {materials.length > 0 ? (
+                            <div className="flex flex-col gap-1">
+                              {materials.map((material) =>
+                                material.downloadUrl ? (
+                                  <a
+                                    key={material.id}
+                                    href={material.downloadUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="font-bold text-primary"
+                                  >
+                                    {material.file_name}
+                                  </a>
+                                ) : (
+                                  <span key={material.id} className="text-ink-soft">
+                                    {material.file_name}
+                                  </span>
+                                ),
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-ink-soft">—</span>
+                          )}
+                        </td>
+                        <td className={`${tdClass} text-right`}>
+                          {enrollment.status === "assigned" && (
+                            <ConfirmActionButton
+                              action={markEnrollmentComplete.bind(null, enrollment.id)}
+                              label="Mark complete"
+                              tone="primary"
+                              className="text-[12px] font-bold text-primary"
+                              confirmTitle="Mark this course complete?"
+                              confirmMessage="This confirms you've completed the training — it isn't verified against any quiz or certificate."
+                              confirmLabel="Mark complete"
+                            />
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
                 ) : (
                   <tr>
-                    <td colSpan={5} className="px-3 py-10 text-center text-[13px] text-ink-soft">
+                    <td colSpan={6} className="px-3 py-10 text-center text-[13px] text-ink-soft">
                       No training assigned yet.
                     </td>
                   </tr>

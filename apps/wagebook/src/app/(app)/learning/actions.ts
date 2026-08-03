@@ -56,7 +56,85 @@ export async function deleteCourse(courseId: string) {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  // The FK cascade on training_course_materials only removes the metadata
+  // rows, not the underlying Storage objects — clean those up first so
+  // deleting a course never leaves orphaned bytes in the bucket.
+  const { data: materials } = await supabase
+    .from("training_course_materials")
+    .select("storage_path")
+    .eq("course_id", courseId);
+  if (materials && materials.length > 0) {
+    await supabase.storage.from("training-materials").remove(materials.map((m) => m.storage_path));
+  }
+
   await supabase.from("training_courses").delete().eq("id", courseId);
+
+  revalidatePath("/learning/courses");
+  revalidatePath("/learning");
+}
+
+export type UploadCourseMaterialState = { error?: string } | null;
+
+const COURSE_MATERIAL_MAX_BYTES = 20 * 1024 * 1024;
+
+export async function uploadCourseMaterial(
+  courseId: string,
+  _prevState: UploadCourseMaterialState,
+  formData: FormData,
+): Promise<UploadCourseMaterialState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const membership = await getMembership(supabase, user.id);
+  if (!membership || !MANAGING_ROLES.includes(membership.role)) {
+    return { error: "You don't have permission to upload course materials." };
+  }
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: "Choose a file to upload." };
+  }
+  if (file.size > COURSE_MATERIAL_MAX_BYTES) {
+    return { error: "Files must be 20MB or smaller." };
+  }
+
+  const storagePath = `${membership.orgId}/${courseId}/${crypto.randomUUID()}-${file.name}`;
+
+  const { error: uploadError } = await supabase.storage.from("training-materials").upload(storagePath, file);
+  if (uploadError) return { error: uploadError.message };
+
+  const { error: insertError } = await supabase.from("training_course_materials").insert({
+    org_id: membership.orgId,
+    course_id: courseId,
+    uploaded_by: user.id,
+    file_name: file.name,
+    storage_path: storagePath,
+  });
+
+  if (insertError) {
+    // Metadata insert failed after a real upload succeeded — remove the
+    // orphaned object rather than leaving a file with no listing entry.
+    await supabase.storage.from("training-materials").remove([storagePath]);
+    return { error: insertError.message };
+  }
+
+  revalidatePath("/learning/courses");
+  revalidatePath("/learning");
+  return null;
+}
+
+export async function deleteCourseMaterial(materialId: string, storagePath: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  await supabase.storage.from("training-materials").remove([storagePath]);
+  await supabase.from("training_course_materials").delete().eq("id", materialId);
 
   revalidatePath("/learning/courses");
   revalidatePath("/learning");
