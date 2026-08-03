@@ -6,6 +6,7 @@ import { TrainingCategoryBadge, Badge } from "@/components/Badge";
 import { ConfirmActionButton } from "@/components/ConfirmActionButton";
 import { CourseForm } from "./CourseForm";
 import { CourseMaterialsPanel } from "./CourseMaterialsPanel";
+import { QuizPanel } from "./QuizPanel";
 import { deleteCourse } from "../actions";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
@@ -28,13 +29,23 @@ export default async function TrainingCoursesPage() {
 
   const { data: courses } = await supabase
     .from("training_courses")
-    .select("id, title, category, is_mandatory, external_url")
+    .select("id, title, category, is_mandatory, external_url, has_quiz, quiz_passing_percent")
     .order("created_at", { ascending: false });
 
-  const { data: materialsRaw } = await supabase
-    .from("training_course_materials")
-    .select("id, course_id, file_name, storage_path, uploaded_at")
-    .order("uploaded_at", { ascending: false });
+  const [{ data: materialsRaw }, { data: questionsRaw }, { data: optionsRaw }] = await Promise.all([
+    supabase
+      .from("training_course_materials")
+      .select("id, course_id, file_name, storage_path, uploaded_at")
+      .order("uploaded_at", { ascending: false }),
+    supabase
+      .from("training_course_quiz_questions")
+      .select("id, course_id, question_text")
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("training_course_quiz_options")
+      .select("id, question_id, option_text, is_correct")
+      .order("sort_order", { ascending: true }),
+  ]);
 
   const materialsWithUrls = await Promise.all(
     (materialsRaw ?? []).map(async (material) => {
@@ -52,6 +63,23 @@ export default async function TrainingCoursesPage() {
     materialsByCourse.set(material.course_id, list);
   }
 
+  const optionsByQuestion = new Map<string, { id: string; option_text: string; is_correct: boolean }[]>();
+  for (const option of optionsRaw ?? []) {
+    const list = optionsByQuestion.get(option.question_id) ?? [];
+    list.push(option);
+    optionsByQuestion.set(option.question_id, list);
+  }
+
+  const questionsByCourse = new Map<
+    string,
+    { id: string; question_text: string; options: { id: string; option_text: string; is_correct: boolean }[] }[]
+  >();
+  for (const question of questionsRaw ?? []) {
+    const list = questionsByCourse.get(question.course_id) ?? [];
+    list.push({ ...question, options: optionsByQuestion.get(question.id) ?? [] });
+    questionsByCourse.set(question.course_id, list);
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-[720px] flex-col gap-8 px-6 py-10">
       <header className="flex flex-col gap-1">
@@ -62,8 +90,8 @@ export default async function TrainingCoursesPage() {
         <h1 className="text-[22px] font-extrabold text-ink">Course catalog</h1>
         <p className="text-[13px] text-ink-soft">
           Define the courses that can be assigned to employees. Attach slide decks, PDFs or short clips directly
-          (20MB per file) alongside — or instead of — a link to material hosted elsewhere. This isn&apos;t a
-          video-streaming platform: every file is just stored and handed back as a direct download.
+          (20MB per file) alongside — or instead of — a link to material hosted elsewhere. Add quiz questions to
+          require a passing score before a course counts as complete, instead of relying on employee self-report.
         </p>
       </header>
 
@@ -75,6 +103,7 @@ export default async function TrainingCoursesPage() {
               <th className={`${thClass} text-center`}>Category</th>
               <th className={`${thClass} text-center`}>Mandatory</th>
               <th className={`${thClass} text-center`}>Files</th>
+              <th className={`${thClass} text-center`}>Completion</th>
               <th className={thClass}></th>
             </tr>
           </thead>
@@ -100,6 +129,9 @@ export default async function TrainingCoursesPage() {
                   <td className={`${tdClass} text-center text-ink-soft`}>
                     {materialsByCourse.get(course.id)?.length ?? 0}
                   </td>
+                  <td className={`${tdClass} text-center`}>
+                    {course.has_quiz ? <Badge tone="good">Quiz</Badge> : <span className="text-ink-soft">Self-report</span>}
+                  </td>
                   <td className={`${tdClass} text-right`}>
                     <ConfirmActionButton
                       action={deleteCourse.bind(null, course.id)}
@@ -113,7 +145,7 @@ export default async function TrainingCoursesPage() {
               ))
             ) : (
               <tr>
-                <td colSpan={5} className="px-3 py-10 text-center text-[13px] text-ink-soft">
+                <td colSpan={6} className="px-3 py-10 text-center text-[13px] text-ink-soft">
                   No courses yet.
                 </td>
               </tr>
@@ -124,22 +156,33 @@ export default async function TrainingCoursesPage() {
 
       {courses && courses.length > 0 && (
         <div className="flex flex-col gap-2">
-          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Course materials</span>
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Course details</span>
           <div className="flex flex-col gap-2">
-            {courses.map((course) => (
-              <details key={course.id} className="rounded-card border border-border bg-surface">
-                <summary className="cursor-pointer px-4 py-3 text-[13px] font-bold text-ink">
-                  {course.title}{" "}
-                  <span className="font-normal text-ink-soft">
-                    ({materialsByCourse.get(course.id)?.length ?? 0} file
-                    {(materialsByCourse.get(course.id)?.length ?? 0) === 1 ? "" : "s"})
-                  </span>
-                </summary>
-                <div className="border-t border-border p-4">
-                  <CourseMaterialsPanel courseId={course.id} materials={materialsByCourse.get(course.id) ?? []} />
-                </div>
-              </details>
-            ))}
+            {courses.map((course) => {
+              const materials = materialsByCourse.get(course.id) ?? [];
+              const questions = questionsByCourse.get(course.id) ?? [];
+              return (
+                <details key={course.id} className="rounded-card border border-border bg-surface">
+                  <summary className="cursor-pointer px-4 py-3 text-[13px] font-bold text-ink">
+                    {course.title}{" "}
+                    <span className="font-normal text-ink-soft">
+                      ({materials.length} file{materials.length === 1 ? "" : "s"}, {questions.length} quiz question
+                      {questions.length === 1 ? "" : "s"})
+                    </span>
+                  </summary>
+                  <div className="flex flex-col gap-6 border-t border-border p-4">
+                    <div className="flex flex-col gap-2">
+                      <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Files</span>
+                      <CourseMaterialsPanel courseId={course.id} materials={materials} />
+                    </div>
+                    <div className="flex flex-col gap-2 border-t border-border pt-4">
+                      <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Quiz</span>
+                      <QuizPanel courseId={course.id} passingPercent={course.quiz_passing_percent} questions={questions} />
+                    </div>
+                  </div>
+                </details>
+              );
+            })}
           </div>
         </div>
       )}

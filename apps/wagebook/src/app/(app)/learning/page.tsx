@@ -46,7 +46,9 @@ export default async function LearningPage() {
       myEmployee
         ? supabase
             .from("training_enrollments")
-            .select("id, status, due_date, completed_at, training_courses(id, title, category, is_mandatory)")
+            .select(
+              "id, status, due_date, completed_at, training_courses(id, title, category, is_mandatory, has_quiz)",
+            )
             .eq("employee_id", myEmployee.id)
             .order("created_at", { ascending: false })
         : Promise.resolve({ data: null }),
@@ -115,8 +117,8 @@ export default async function LearningPage() {
         <h1 className="text-[22px] font-extrabold text-ink">Training courses and completion tracking</h1>
         <p className="text-[13px] text-ink-soft">
           A course catalog entry can carry a link and/or directly attached files (slides, PDFs, short clips) —
-          this isn&apos;t a video-streaming platform, just a place to assign and track training. Completion is
-          self-reported by the employee.
+          this isn&apos;t a video-streaming platform, just a place to assign and track training. A course with a
+          quiz requires a passing score to complete; otherwise completion is self-reported by the employee.
         </p>
       </header>
 
@@ -184,17 +186,22 @@ export default async function LearningPage() {
                           )}
                         </td>
                         <td className={`${tdClass} text-right`}>
-                          {enrollment.status === "assigned" && (
-                            <ConfirmActionButton
-                              action={markEnrollmentComplete.bind(null, enrollment.id)}
-                              label="Mark complete"
-                              tone="primary"
-                              className="text-[12px] font-bold text-primary"
-                              confirmTitle="Mark this course complete?"
-                              confirmMessage="This confirms you've completed the training — it isn't verified against any quiz or certificate."
-                              confirmLabel="Mark complete"
-                            />
-                          )}
+                          {enrollment.status === "assigned" &&
+                            (enrollment.training_courses?.has_quiz ? (
+                              <Link href={`/learning/quiz/${enrollment.id}`} className="text-[12px] font-bold text-primary">
+                                Take quiz →
+                              </Link>
+                            ) : (
+                              <ConfirmActionButton
+                                action={markEnrollmentComplete.bind(null, enrollment.id)}
+                                label="Mark complete"
+                                tone="primary"
+                                className="text-[12px] font-bold text-primary"
+                                confirmTitle="Mark this course complete?"
+                                confirmMessage="This confirms you've completed the training — it isn't verified against any quiz or certificate."
+                                confirmLabel="Mark complete"
+                              />
+                            ))}
                         </td>
                       </tr>
                     );
