@@ -341,6 +341,44 @@ export async function PerformanceSnapshotWidget({ supabase, orgId }: WidgetProps
   );
 }
 
+export async function LearningSnapshotWidget({ supabase, orgId }: WidgetProps) {
+  const [{ count: assigned }, { count: completed }, { data: mandatoryCourses }] = await Promise.all([
+    supabase.from("training_enrollments").select("id", { count: "exact", head: true }).eq("org_id", orgId).eq("status", "assigned"),
+    supabase.from("training_enrollments").select("id", { count: "exact", head: true }).eq("org_id", orgId).eq("status", "completed"),
+    supabase.from("training_courses").select("id").eq("org_id", orgId).eq("is_mandatory", true),
+  ]);
+
+  const mandatoryCourseIds = (mandatoryCourses ?? []).map((c) => c.id);
+  const { count: mandatoryOutstanding } =
+    mandatoryCourseIds.length > 0
+      ? await supabase
+          .from("training_enrollments")
+          .select("id", { count: "exact", head: true })
+          .eq("org_id", orgId)
+          .eq("status", "assigned")
+          .in("course_id", mandatoryCourseIds)
+      : { count: 0 };
+
+  return (
+    <Link href="/learning" className="block transition-opacity hover:opacity-80">
+      <div className={cardClass}>
+        <span className={labelClass}>Learning &amp; development</span>
+        <p className={statClass}>{assigned ?? 0} in progress</p>
+        <div className="mt-3 flex flex-col gap-2 text-[13px] text-ink-soft">
+          <div className={rowClass}>
+            <span>Mandatory training outstanding</span>
+            <span className="font-bold text-ink">{mandatoryOutstanding ?? 0}</span>
+          </div>
+          <div className={rowClass}>
+            <span>Completed</span>
+            <span className="font-bold text-ink">{completed ?? 0}</span>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
 export async function MyTeamSnapshotWidget({ supabase, orgId, userId }: WidgetProps & { userId: string }) {
   const { data: myEmployee } = await supabase
     .from("employees")

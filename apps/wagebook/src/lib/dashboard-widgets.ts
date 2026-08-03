@@ -88,6 +88,12 @@ export const DASHBOARD_WIDGETS: DashboardWidget[] = [
     defaultRoles: ["admin", "hr_manager", "chro"],
   },
   {
+    key: "learning_snapshot",
+    label: "Learning & development",
+    description: "Assigned training in progress, mandatory training outstanding, and completed courses.",
+    defaultRoles: ["admin", "hr_manager", "department_manager", "chro"],
+  },
+  {
     key: "my_team_snapshot",
     label: "My department",
     description: "Department roster size and pending leave for a department manager's own department.",

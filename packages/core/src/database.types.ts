@@ -2935,6 +2935,108 @@ export type Database = {
           },
         ]
       }
+      training_courses: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string
+          description: string | null
+          external_url: string | null
+          id: string
+          is_mandatory: boolean
+          org_id: string
+          title: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          external_url?: string | null
+          id?: string
+          is_mandatory?: boolean
+          org_id: string
+          title: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          external_url?: string | null
+          id?: string
+          is_mandatory?: boolean
+          org_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_courses_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_enrollments: {
+        Row: {
+          assigned_by: string
+          completed_at: string | null
+          course_id: string
+          created_at: string
+          due_date: string | null
+          employee_id: string
+          id: string
+          org_id: string
+          status: string
+        }
+        Insert: {
+          assigned_by: string
+          completed_at?: string | null
+          course_id: string
+          created_at?: string
+          due_date?: string | null
+          employee_id: string
+          id?: string
+          org_id: string
+          status?: string
+        }
+        Update: {
+          assigned_by?: string
+          completed_at?: string | null
+          course_id?: string
+          created_at?: string
+          due_date?: string | null
+          employee_id?: string
+          id?: string
+          org_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_enrollments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_enrollments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "training_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_enrollments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_relations_cases: {
         Row: {
           case_type: string
@@ -4128,6 +4230,26 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "employee_relations_cases"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      mark_training_enrollment_complete: {
+        Args: { p_enrollment_id: string }
+        Returns: {
+          assigned_by: string
+          completed_at: string | null
+          course_id: string
+          created_at: string
+          due_date: string | null
+          employee_id: string
+          id: string
+          org_id: string
+          status: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "training_enrollments"
           isOneToOne: true
           isSetofReturn: false
         }
