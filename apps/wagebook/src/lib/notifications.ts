@@ -30,7 +30,8 @@ export type NotificationType =
   | "interview_scheduled"
   | "employee_relations_case_opened"
   | "shift_assigned"
-  | "training_assigned";
+  | "training_assigned"
+  | "statutory_deadline_reminder";
 
 // Fire-and-forget: a notification is a side effect of an already-authorized
 // action, never the thing being authorized, so a failed insert here should
