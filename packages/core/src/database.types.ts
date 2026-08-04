@@ -2814,6 +2814,7 @@ export type Database = {
       }
       budgets: {
         Row: {
+          budget_type: string
           created_at: string
           created_by: string
           id: string
@@ -2823,6 +2824,7 @@ export type Database = {
           period_start: string
         }
         Insert: {
+          budget_type?: string
           created_at?: string
           created_by: string
           id?: string
@@ -2832,6 +2834,7 @@ export type Database = {
           period_start: string
         }
         Update: {
+          budget_type?: string
           created_at?: string
           created_by?: string
           id?: string
@@ -2857,6 +2860,8 @@ export type Database = {
           budget_id: string
           created_at: string
           id: string
+          period_end: string
+          period_start: string
         }
         Insert: {
           account_code: string
@@ -2864,6 +2869,8 @@ export type Database = {
           budget_id: string
           created_at?: string
           id?: string
+          period_end: string
+          period_start: string
         }
         Update: {
           account_code?: string
@@ -2871,6 +2878,8 @@ export type Database = {
           budget_id?: string
           created_at?: string
           id?: string
+          period_end?: string
+          period_start?: string
         }
         Relationships: [
           {

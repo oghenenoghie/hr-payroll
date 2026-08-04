@@ -8,6 +8,12 @@ const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em
 const tdClass = "px-3 py-[10px] text-[13px]";
 const PAGE_SIZE = 25;
 
+const BUDGET_TYPE_LABEL: Record<string, string> = {
+  operating: "Operating",
+  capital: "Capital",
+  cash: "Cash",
+};
+
 export default async function BudgetsPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const supabase = await createClient();
   const {
@@ -41,7 +47,7 @@ export default async function BudgetsPage({ searchParams }: { searchParams: Prom
     count,
   } = await supabase
     .from("budgets")
-    .select("id, name, period_start, period_end", { count: "exact" })
+    .select("id, name, period_start, period_end, budget_type", { count: "exact" })
     .order("period_start", { ascending: false })
     .range((requestedPage - 1) * PAGE_SIZE, requestedPage * PAGE_SIZE - 1);
 
@@ -59,9 +65,10 @@ export default async function BudgetsPage({ searchParams }: { searchParams: Prom
         <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Accounting</span>
         <h1 className="text-[22px] font-extrabold text-ink">Budgets</h1>
         <p className="text-[13px] text-ink-soft">
-          Planned vs. actual, by revenue and expense account, for a date range. Actuals are pulled live from the
-          general ledger — there&apos;s nothing to keep in sync by hand. One target amount per account for the whole
-          period; no monthly breakdown yet.
+          Planned vs. actual, for a date range. Operating budgets cover revenue and expense accounts; capital
+          budgets cover planned asset spend; cash budgets cover planned obligations and cash position. Actuals are
+          pulled live from the general ledger — there&apos;s nothing to keep in sync by hand. A budget line can
+          cover the whole period as one figure, or be broken into months/quarters by adding one line per sub-period.
         </p>
       </header>
 
@@ -70,6 +77,7 @@ export default async function BudgetsPage({ searchParams }: { searchParams: Prom
           <thead>
             <tr className="border-b border-border">
               <th className={`${thClass} text-left`}>Budget</th>
+              <th className={`${thClass} text-left`}>Type</th>
               <th className={`${thClass} text-left`}>Period</th>
               <th className={thClass}></th>
             </tr>
@@ -79,6 +87,7 @@ export default async function BudgetsPage({ searchParams }: { searchParams: Prom
               budgets.map((budget) => (
                 <tr key={budget.id} className="border-b border-border last:border-b-0">
                   <td className={`${tdClass} font-bold text-ink`}>{budget.name}</td>
+                  <td className={`${tdClass} text-ink-soft`}>{BUDGET_TYPE_LABEL[budget.budget_type] ?? budget.budget_type}</td>
                   <td className={`${tdClass} text-ink-soft`}>
                     {budget.period_start} – {budget.period_end}
                   </td>
@@ -91,7 +100,7 @@ export default async function BudgetsPage({ searchParams }: { searchParams: Prom
               ))
             ) : (
               <tr>
-                <td colSpan={3} className="px-3 py-10 text-center text-[13px] text-ink-soft">
+                <td colSpan={4} className="px-3 py-10 text-center text-[13px] text-ink-soft">
                   No budgets yet.
                 </td>
               </tr>

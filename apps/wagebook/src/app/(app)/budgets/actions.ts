@@ -17,13 +17,17 @@ export async function createBudget(_prevState: CreateBudgetState, formData: Form
   }
 
   const membership = await getMembership(supabase, user.id);
-  if (!membership || (membership.role !== "admin" && membership.role !== "payroll_manager")) {
+  if (
+    !membership ||
+    (membership.role !== "admin" && membership.role !== "payroll_manager" && membership.role !== "finance_manager")
+  ) {
     return { error: "You don't have permission to create a budget." };
   }
 
   const name = String(formData.get("name") ?? "").trim();
   const periodStart = String(formData.get("period_start") ?? "").trim();
   const periodEnd = String(formData.get("period_end") ?? "").trim();
+  const budgetType = String(formData.get("budget_type") ?? "operating").trim();
 
   if (!name) {
     return { error: "Enter a budget name." };
@@ -34,6 +38,9 @@ export async function createBudget(_prevState: CreateBudgetState, formData: Form
   if (periodEnd < periodStart) {
     return { error: "The end date can't be before the start date." };
   }
+  if (budgetType !== "operating" && budgetType !== "capital" && budgetType !== "cash") {
+    return { error: "Invalid budget type." };
+  }
 
   const { data: budget, error } = await supabase
     .from("budgets")
@@ -42,6 +49,7 @@ export async function createBudget(_prevState: CreateBudgetState, formData: Form
       name,
       period_start: periodStart,
       period_end: periodEnd,
+      budget_type: budgetType,
       created_by: user.id,
     })
     .select("id")
