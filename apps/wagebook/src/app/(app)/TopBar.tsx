@@ -5,20 +5,7 @@ import Link from "next/link";
 import { BellIcon } from "@/components/icons";
 import { FormSubmitButton } from "@/components/FormSubmitButton";
 import { signOut } from "./dashboard/actions";
-
-const ROLE_LABEL: Record<string, string> = {
-  admin: "Admin",
-  payroll_manager: "Payroll Manager",
-  hr_manager: "HR Manager",
-  accountant: "Accountant",
-  department_manager: "Department Manager",
-  employee: "Employee",
-  auditor: "Auditor",
-  compensation_benefits_manager: "Compensation & Benefits Manager",
-  finance_manager: "Finance Manager / CFO",
-  chro: "CHRO",
-  legal_compliance: "Legal & Compliance",
-};
+import { ROLE_LABEL } from "@/lib/roles";
 
 // Desktop-only persistent header, living inside the floating content panel
 // in AppShell — the mobile header (hamburger + brand) is a separate,

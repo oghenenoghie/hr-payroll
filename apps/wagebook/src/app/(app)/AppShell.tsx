@@ -7,20 +7,7 @@ import { FormSubmitButton } from "@/components/FormSubmitButton";
 import { signOut } from "./dashboard/actions";
 import { SidebarNav, buildNavGroups } from "./SidebarNav";
 import { TopBar } from "./TopBar";
-
-const ROLE_LABEL: Record<string, string> = {
-  admin: "Admin",
-  payroll_manager: "Payroll Manager",
-  hr_manager: "HR Manager",
-  accountant: "Accountant",
-  department_manager: "Department Manager",
-  employee: "Employee",
-  auditor: "Auditor",
-  compensation_benefits_manager: "Compensation & Benefits Manager",
-  finance_manager: "Finance Manager / CFO",
-  chro: "CHRO",
-  legal_compliance: "Legal & Compliance",
-};
+import { ROLE_LABEL } from "@/lib/roles";
 
 export function AppShell({
   role,
