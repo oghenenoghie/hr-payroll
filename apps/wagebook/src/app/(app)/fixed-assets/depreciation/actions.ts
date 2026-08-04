@@ -22,13 +22,21 @@ export async function runDepreciation(_prevState: RunDepreciationState, formData
     return { error: "You don't have permission to run depreciation." };
   }
 
+  const periodStart = String(formData.get("period_start") ?? "").trim();
   const periodEnd = String(formData.get("period_end") ?? "").trim();
+  if (!periodStart) {
+    return { error: "Enter a period start date." };
+  }
   if (!periodEnd) {
     return { error: "Enter a period end date." };
+  }
+  if (periodEnd < periodStart) {
+    return { error: "Period end can't be before period start." };
   }
 
   const { data: run, error } = await supabase.rpc("run_depreciation", {
     p_org_id: membership.orgId,
+    p_period_start: periodStart,
     p_period_end: periodEnd,
   });
 

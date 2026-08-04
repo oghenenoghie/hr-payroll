@@ -29,6 +29,9 @@ export async function createAsset(_prevState: CreateAssetState, formData: FormDa
   const costNaira = Number(formData.get("cost") ?? 0);
   const salvageNaira = Number(formData.get("salvage_value") ?? 0);
   const usefulLifeMonths = Number(formData.get("useful_life_months") ?? 0);
+  const depreciationMethod = String(formData.get("depreciation_method") ?? "straight_line").trim();
+  const decliningBalanceRatePercent = Number(formData.get("declining_balance_rate_percent") ?? 0);
+  const departmentId = String(formData.get("department_id") ?? "").trim() || null;
 
   if (!name) {
     return { error: "Enter an asset name." };
@@ -48,6 +51,15 @@ export async function createAsset(_prevState: CreateAssetState, formData: FormDa
   if (!usefulLifeMonths || usefulLifeMonths <= 0) {
     return { error: "Enter a useful life in months greater than zero." };
   }
+  if (depreciationMethod !== "straight_line" && depreciationMethod !== "declining_balance") {
+    return { error: "Invalid depreciation method." };
+  }
+  if (
+    depreciationMethod === "declining_balance" &&
+    (!decliningBalanceRatePercent || decliningBalanceRatePercent <= 0 || decliningBalanceRatePercent > 100)
+  ) {
+    return { error: "Enter a declining-balance rate between 1 and 100." };
+  }
 
   const { error } = await supabase.from("fixed_assets").insert({
     org_id: membership.orgId,
@@ -57,6 +69,9 @@ export async function createAsset(_prevState: CreateAssetState, formData: FormDa
     cost_kobo: Number(naira(costNaira)),
     salvage_value_kobo: Number(naira(salvageNaira)),
     useful_life_months: usefulLifeMonths,
+    depreciation_method: depreciationMethod,
+    declining_balance_rate_percent: depreciationMethod === "declining_balance" ? decliningBalanceRatePercent : null,
+    department_id: departmentId,
     created_by: user.id,
   });
 

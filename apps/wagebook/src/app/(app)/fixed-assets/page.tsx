@@ -7,12 +7,19 @@ import { formatKobo } from "@/lib/format";
 import { FixedAssetStatusBadge } from "@/components/Badge";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { getCachedDepartments } from "@/lib/reference-data";
 import { AssetForm } from "./AssetForm";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const tdClass = "px-3 py-[10px] text-[13px]";
 const PAGE_SIZE = 25;
-const ASSET_COLUMNS = "id, name, category, acquisition_date, cost_kobo, accumulated_depreciation_kobo, status";
+const ASSET_COLUMNS =
+  "id, name, category, acquisition_date, cost_kobo, accumulated_depreciation_kobo, revaluation_adjustment_kobo, depreciation_method, declining_balance_rate_percent, status";
+
+const METHOD_LABEL: Record<string, string> = {
+  straight_line: "Straight-line",
+  declining_balance: "Declining balance",
+};
 
 export default async function FixedAssetsPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const supabase = await createClient();
@@ -46,7 +53,7 @@ export default async function FixedAssetsPage({ searchParams }: { searchParams: 
   // bounded by how many assets an org actually owns at once). Disposed
   // assets are historical and grow without bound over the org's
   // lifetime, so that's the part that's paginated.
-  const [{ data: activeRaw }, { data: disposedRaw, count }] = await Promise.all([
+  const [{ data: activeRaw }, { data: disposedRaw, count }, departments] = await Promise.all([
     supabase.from("fixed_assets").select(ASSET_COLUMNS).eq("status", "active").order("acquisition_date", { ascending: false }),
     supabase
       .from("fixed_assets")
@@ -54,6 +61,7 @@ export default async function FixedAssetsPage({ searchParams }: { searchParams: 
       .eq("status", "disposed")
       .order("acquisition_date", { ascending: false })
       .range((requestedPage - 1) * PAGE_SIZE, requestedPage * PAGE_SIZE - 1),
+    canManage ? getCachedDepartments(membership.orgId) : Promise.resolve([]),
   ]);
 
   const active = activeRaw ?? [];
@@ -70,13 +78,15 @@ export default async function FixedAssetsPage({ searchParams }: { searchParams: 
   const assets = [...active, ...disposed];
 
   const csv = toCsv(
-    ["Asset", "Category", "Acquisition Date", "Cost (NGN)", "Accumulated Depreciation (NGN)", "Book Value (NGN)", "Status"],
+    ["Asset", "Category", "Acquisition Date", "Method", "Cost (NGN)", "Accumulated Depreciation (NGN)", "Book Value (NGN)", "Status"],
     assets.map((asset) => {
-      const bookValue = BigInt(asset.cost_kobo) - BigInt(asset.accumulated_depreciation_kobo);
+      const bookValue =
+        BigInt(asset.cost_kobo) + BigInt(asset.revaluation_adjustment_kobo) - BigInt(asset.accumulated_depreciation_kobo);
       return [
         asset.name,
         asset.category ?? "",
         asset.acquisition_date,
+        METHOD_LABEL[asset.depreciation_method] ?? asset.depreciation_method,
         toNaira(BigInt(asset.cost_kobo)).toFixed(2),
         toNaira(BigInt(asset.accumulated_depreciation_kobo)).toFixed(2),
         toNaira(bookValue).toFixed(2),
@@ -94,7 +104,8 @@ export default async function FixedAssetsPage({ searchParams }: { searchParams: 
         </div>
         <h1 className="text-[22px] font-extrabold text-ink">Fixed Assets</h1>
         <p className="text-[13px] text-ink-soft">
-          The asset register. Straight-line depreciation only, run manually one period at a time from{" "}
+          The asset register. Straight-line or declining-balance depreciation, run manually one period at a time
+          from{" "}
           <Link href="/fixed-assets/depreciation" className="font-bold text-primary">
             Depreciation Runs
           </Link>
@@ -108,6 +119,7 @@ export default async function FixedAssetsPage({ searchParams }: { searchParams: 
             <tr className="border-b border-border">
               <th className={`${thClass} text-left`}>Asset</th>
               <th className={`${thClass} text-left`}>Category</th>
+              <th className={`${thClass} text-left`}>Method</th>
               <th className={`${thClass} text-right`}>Cost</th>
               <th className={`${thClass} text-right`}>Book value</th>
               <th className={`${thClass} text-center`}>Status</th>
@@ -116,7 +128,8 @@ export default async function FixedAssetsPage({ searchParams }: { searchParams: 
           <tbody>
             {assets.length > 0 ? (
               assets.map((asset) => {
-                const bookValue = BigInt(asset.cost_kobo) - BigInt(asset.accumulated_depreciation_kobo);
+                const bookValue =
+                  BigInt(asset.cost_kobo) + BigInt(asset.revaluation_adjustment_kobo) - BigInt(asset.accumulated_depreciation_kobo);
                 return (
                   <tr key={asset.id} className="border-b border-border last:border-b-0">
                     <td className={`${tdClass} font-bold text-ink`}>
@@ -125,6 +138,12 @@ export default async function FixedAssetsPage({ searchParams }: { searchParams: 
                       </Link>
                     </td>
                     <td className={`${tdClass} text-ink-soft`}>{asset.category ?? "—"}</td>
+                    <td className={`${tdClass} text-ink-soft`}>
+                      {METHOD_LABEL[asset.depreciation_method] ?? asset.depreciation_method}
+                      {asset.depreciation_method === "declining_balance" && asset.declining_balance_rate_percent
+                        ? ` (${asset.declining_balance_rate_percent}%)`
+                        : ""}
+                    </td>
                     <td className={`${tdClass} text-right text-ink`}>{formatKobo(BigInt(asset.cost_kobo))}</td>
                     <td className={`${tdClass} text-right text-ink`}>{formatKobo(bookValue)}</td>
                     <td className={`${tdClass} text-center`}>
@@ -135,7 +154,7 @@ export default async function FixedAssetsPage({ searchParams }: { searchParams: 
               })
             ) : (
               <tr>
-                <td colSpan={5} className="px-3 py-10 text-center text-[13px] text-ink-soft">
+                <td colSpan={6} className="px-3 py-10 text-center text-[13px] text-ink-soft">
                   No fixed assets yet.
                 </td>
               </tr>
@@ -172,7 +191,7 @@ export default async function FixedAssetsPage({ searchParams }: { searchParams: 
         <div className="rounded-card border border-border bg-surface p-6">
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Add a fixed asset</span>
           <div className="mt-3">
-            <AssetForm />
+            <AssetForm departments={departments} />
           </div>
         </div>
       )}

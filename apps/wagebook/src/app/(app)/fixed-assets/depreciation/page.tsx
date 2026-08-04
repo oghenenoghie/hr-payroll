@@ -41,8 +41,8 @@ export default async function DepreciationRunsPage() {
     .order("period_end", { ascending: false });
 
   const csv = toCsv(
-    ["Period End", "Total (NGN)"],
-    (runs ?? []).map((run) => [run.period_end, toNaira(BigInt(run.total_amount_kobo)).toFixed(2)]),
+    ["Period Start", "Period End", "Total (NGN)"],
+    (runs ?? []).map((run) => [run.period_start, run.period_end, toNaira(BigInt(run.total_amount_kobo)).toFixed(2)]),
   );
 
   return (
@@ -59,8 +59,9 @@ export default async function DepreciationRunsPage() {
         </div>
         <h1 className="text-[22px] font-extrabold text-ink">Depreciation Runs</h1>
         <p className="text-[13px] text-ink-soft">
-          Straight-line only, one period at a time — like a pay run, each posts a single balanced journal entry
-          covering every active asset that isn&apos;t already fully depreciated.
+          One period at a time — like a pay run, each posts a single balanced journal entry covering every active
+          asset that isn&apos;t already fully depreciated. Straight-line and declining-balance assets are both
+          included, and an asset acquired mid-period is prorated for the days it was actually owned.
         </p>
       </header>
 
@@ -68,7 +69,7 @@ export default async function DepreciationRunsPage() {
         <table className="w-full min-w-[480px] border-collapse">
           <thead>
             <tr className="border-b border-border">
-              <th className={`${thClass} text-left`}>Period end</th>
+              <th className={`${thClass} text-left`}>Period</th>
               <th className={`${thClass} text-right`}>Total</th>
               <th className={thClass}></th>
             </tr>
@@ -77,7 +78,9 @@ export default async function DepreciationRunsPage() {
             {runs && runs.length > 0 ? (
               runs.map((run) => (
                 <tr key={run.id} className="border-b border-border last:border-b-0">
-                  <td className={`${tdClass} font-bold text-ink`}>{run.period_end}</td>
+                  <td className={`${tdClass} font-bold text-ink`}>
+                    {run.period_start} to {run.period_end}
+                  </td>
                   <td className={`${tdClass} text-right text-ink`}>{formatKobo(BigInt(run.total_amount_kobo))}</td>
                   <td className={`${tdClass} text-right`}>
                     <Link href={`/fixed-assets/depreciation/${run.id}`} className="text-[12px] font-bold text-primary">
