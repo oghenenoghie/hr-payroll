@@ -242,14 +242,34 @@ export async function computeSettlementPreview(
   const grossSettlementKobo = finalPeriodGrossKobo + leavePayoutKobo + gratuityKobo;
 
   // Same cumulative carry-forward as a regular pay run — a settlement
-  // isn't taxed as if it were the employee's only income of the year.
-  const { data: recentPayslip } = await supabase
+  // isn't taxed as if it were the employee's only income of the year, but
+  // PAYE still resets at each calendar-year boundary: a payslip from a
+  // prior tax year must never seed this year's cumulative position. Same
+  // two-step, year-filtered lookup as payroll/new/actions.ts, anchored to
+  // the current real-world year since a settlement is processed at the
+  // moment of termination, not backdated to an arbitrary period.
+  const currentTaxYear = new Date().getFullYear();
+
+  const { data: recentPayslips } = await supabase
     .from("posted_payslips")
-    .select("chargeable_income_kobo, cumulative_paye_paid_before_kobo, paye_kobo")
+    .select("pay_run_id, chargeable_income_kobo, cumulative_paye_paid_before_kobo, paye_kobo")
     .eq("employee_id", employeeId)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .order("created_at", { ascending: false });
+
+  const settlementCandidatePayRunIds = [
+    ...new Set((recentPayslips ?? []).map((s) => s.pay_run_id).filter((id): id is string => id !== null)),
+  ];
+  const { data: settlementCandidatePayRuns } =
+    settlementCandidatePayRunIds.length > 0
+      ? await supabase.from("pay_runs").select("id, period_start").in("id", settlementCandidatePayRunIds)
+      : { data: [] };
+  const settlementPayRunYearById = new Map(
+    (settlementCandidatePayRuns ?? []).map((r) => [r.id, Number(r.period_start.slice(0, 4))]),
+  );
+
+  const recentPayslip = (recentPayslips ?? []).find(
+    (slip) => slip.pay_run_id && settlementPayRunYearById.get(slip.pay_run_id) === currentTaxYear,
+  );
 
   const cumulativeChargeableIncomeBeforeKobo = recentPayslip ? BigInt(recentPayslip.chargeable_income_kobo ?? 0) : 0n;
   const cumulativePayePaidBeforeKobo = recentPayslip

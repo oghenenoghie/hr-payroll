@@ -121,27 +121,45 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
   }
 
   // Carry forward cumulative PAYE state from each employee's most recent
-  // payslip — never restart cumulative income at zero for an employee
-  // who's already had pay runs this year. Shared by every run type,
-  // including 13th month: a lump sum is taxed on top of this position too.
-  // Reads posted_payslips, not payslips directly — a still-unapproved
-  // draft's numbers aren't final and could still be discarded, so they
-  // must never seed another run's cumulative position.
+  // payslip within the current tax year — never restart cumulative income
+  // at zero for an employee who's already had pay runs this year, but
+  // never carry a PRIOR year's cumulative position into a new year either:
+  // PAYE resets at each calendar-year boundary, so an employee's first run
+  // of a new year must start from zero regardless of what they earned last
+  // year. Shared by every run type, including 13th month: a lump sum is
+  // taxed on top of this position too. Reads posted_payslips, not payslips
+  // directly — a still-unapproved draft's numbers aren't final and could
+  // still be discarded, so they must never seed another run's cumulative
+  // position. Two-step (posted_payslips, then pay_runs for period_start)
+  // rather than an embedded select, matching the same lookup in
+  // employees/[id]/settle/compute.ts.
+  const currentTaxYear = Number(periodStart.slice(0, 4));
+
   const { data: recentPayslips } = await supabase
     .from("posted_payslips")
-    .select("employee_id, chargeable_income_kobo, cumulative_paye_paid_before_kobo, paye_kobo, created_at")
+    .select("employee_id, pay_run_id, chargeable_income_kobo, cumulative_paye_paid_before_kobo, paye_kobo, created_at")
     .in(
       "employee_id",
       employees.map((e) => e.id),
     )
     .order("created_at", { ascending: false });
 
+  const candidatePayRunIds = [
+    ...new Set((recentPayslips ?? []).map((s) => s.pay_run_id).filter((id): id is string => id !== null)),
+  ];
+  const { data: candidatePayRuns } =
+    candidatePayRunIds.length > 0
+      ? await supabase.from("pay_runs").select("id, period_start").in("id", candidatePayRunIds)
+      : { data: [] };
+  const payRunYearById = new Map((candidatePayRuns ?? []).map((r) => [r.id, Number(r.period_start.slice(0, 4))]));
+
   const priorStateByEmployee = new Map<string, { chargeableIncomeKobo: bigint; payePaidAfterKobo: bigint }>();
   for (const slip of recentPayslips ?? []) {
     // posted_payslips' columns are nullable in the view's inferred type even
     // though the underlying payslips table enforces NOT NULL — a real row
-    // never has a null employee_id.
+    // never has a null employee_id or pay_run_id.
     if (!slip.employee_id || priorStateByEmployee.has(slip.employee_id)) continue; // already have the most recent one
+    if (!slip.pay_run_id || payRunYearById.get(slip.pay_run_id) !== currentTaxYear) continue; // prior tax year — doesn't carry forward
     priorStateByEmployee.set(slip.employee_id, {
       chargeableIncomeKobo: BigInt(slip.chargeable_income_kobo ?? 0),
       payePaidAfterKobo: BigInt(slip.cumulative_paye_paid_before_kobo ?? 0) + BigInt(slip.paye_kobo ?? 0),
