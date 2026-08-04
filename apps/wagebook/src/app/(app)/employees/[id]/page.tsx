@@ -89,8 +89,12 @@ export default async function ViewEmployeePage({ params }: { params: Promise<{ i
       .eq("employee_id", id)
       .order("changed_at", { ascending: false })
       .limit(15),
+    // posted_payslips, not payslips directly — this timeline labels every
+    // row "Paid" with a good/green badge below, which would misrepresent a
+    // still-unapproved draft (nothing has actually been paid yet) or a
+    // reversed run (it was undone) as real, finalized pay.
     supabase
-      .from("payslips")
+      .from("posted_payslips")
       .select("gross_kobo, net_kobo, created_at, pay_runs(period_start, period_end)")
       .eq("employee_id", id)
       .order("created_at", { ascending: false })
@@ -149,12 +153,15 @@ export default async function ViewEmployeePage({ params }: { params: Promise<{ i
         badge: <Badge tone="neutral">Updated</Badge>,
       };
     }),
+    // posted_payslips' columns are nullable in the view's inferred type even
+    // though the underlying payslips table enforces NOT NULL — a real row
+    // never has a null created_at or net_kobo.
     ...(payslips ?? []).map((r) => ({
-      date: r.created_at,
+      date: r.created_at ?? "",
       label: "Paid",
       meta: r.pay_runs
-        ? `${r.pay_runs.period_start} – ${r.pay_runs.period_end} · Net ${formatKobo(BigInt(r.net_kobo))}`
-        : `Net ${formatKobo(BigInt(r.net_kobo))}`,
+        ? `${r.pay_runs.period_start} – ${r.pay_runs.period_end} · Net ${formatKobo(BigInt(r.net_kobo ?? 0))}`
+        : `Net ${formatKobo(BigInt(r.net_kobo ?? 0))}`,
       badge: <Badge tone="good">Paid</Badge>,
     })),
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
