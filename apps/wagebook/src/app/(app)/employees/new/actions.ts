@@ -35,6 +35,7 @@ export async function addEmployee(_prevState: AddEmployeeState, formData: FormDa
 
   const email = String(formData.get("email") ?? "").trim() || null;
   const stateOfResidence = String(formData.get("state_of_residence") ?? "").trim() || null;
+  const residentialAddress = String(formData.get("residential_address") ?? "").trim() || null;
   const hireDate = String(formData.get("hire_date") ?? "").trim() || null;
   const probationEndDate = String(formData.get("probation_end_date") ?? "").trim() || null;
   const employmentType = String(formData.get("employment_type") ?? "permanent").trim() || "permanent";
@@ -74,6 +75,7 @@ export async function addEmployee(_prevState: AddEmployeeState, formData: FormDa
     full_name: fullName,
     email,
     state_of_residence: stateOfResidence,
+    residential_address: residentialAddress,
     hire_date: hireDate,
     probation_end_date: probationEndDate,
     employment_type: employmentType,

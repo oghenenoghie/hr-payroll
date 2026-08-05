@@ -28,6 +28,7 @@ export async function editEmployee(
   }
 
   const stateOfResidence = String(formData.get("state_of_residence") ?? "").trim() || null;
+  const residentialAddress = String(formData.get("residential_address") ?? "").trim() || null;
   const hireDate = String(formData.get("hire_date") ?? "").trim() || null;
   const probationEndDate = String(formData.get("probation_end_date") ?? "").trim() || null;
   const confirmed = formData.get("confirmed") === "true";
@@ -89,6 +90,7 @@ export async function editEmployee(
     .update({
       full_name: fullName,
       state_of_residence: stateOfResidence,
+      residential_address: residentialAddress,
       hire_date: hireDate,
       probation_end_date: probationEndDate,
       confirmed,

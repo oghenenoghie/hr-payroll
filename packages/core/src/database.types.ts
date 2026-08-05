@@ -579,6 +579,7 @@ export type Database = {
           photo_path: string | null
           probation_end_date: string | null
           probation_expiry_notified_at: string | null
+          residential_address: string | null
           salary_masked: boolean
           state_of_residence: string | null
           status: string
@@ -618,6 +619,7 @@ export type Database = {
           photo_path?: string | null
           probation_end_date?: string | null
           probation_expiry_notified_at?: string | null
+          residential_address?: string | null
           salary_masked?: boolean
           state_of_residence?: string | null
           status?: string
@@ -657,6 +659,7 @@ export type Database = {
           photo_path?: string | null
           probation_end_date?: string | null
           probation_expiry_notified_at?: string | null
+          residential_address?: string | null
           salary_masked?: boolean
           state_of_residence?: string | null
           status?: string
@@ -3682,6 +3685,7 @@ export type Database = {
           pfa: string | null
           photo_path: string | null
           probation_end_date: string | null
+          residential_address: string | null
           salary_masked: boolean | null
           state_of_residence: string | null
           status: string | null

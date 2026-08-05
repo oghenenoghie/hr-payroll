@@ -217,6 +217,10 @@ export default async function ViewEmployeePage({ params }: { params: Promise<{ i
             <span className="text-ink-soft">State of residence</span>
             <span className="font-bold text-ink">{employee.state_of_residence ?? "—"}</span>
           </div>
+          <div className={detailRow}>
+            <span className="text-ink-soft">Contact address</span>
+            <span className="max-w-[60%] text-right font-bold text-ink">{employee.residential_address ?? "—"}</span>
+          </div>
         </div>
       </div>
 
