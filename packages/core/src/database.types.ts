@@ -331,6 +331,54 @@ export type Database = {
           },
         ]
       }
+      employment_contract_signatures: {
+        Row: {
+          document_hash: string
+          employee_id: string
+          id: string
+          ip_address: string | null
+          org_id: string
+          party: string
+          signed_at: string
+          signed_by: string
+        }
+        Insert: {
+          document_hash: string
+          employee_id: string
+          id?: string
+          ip_address?: string | null
+          org_id: string
+          party: string
+          signed_at?: string
+          signed_by: string
+        }
+        Update: {
+          document_hash?: string
+          employee_id?: string
+          id?: string
+          ip_address?: string | null
+          org_id?: string
+          party?: string
+          signed_at?: string
+          signed_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employment_contract_signatures_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contract_signatures_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_documents: {
         Row: {
           document_type: string | null
@@ -4592,6 +4640,25 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "fixed_assets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      sign_employment_contract: {
+        Args: { p_employee_id: string; p_party: string; p_document_hash: string; p_ip_address?: string | null }
+        Returns: {
+          document_hash: string
+          employee_id: string
+          id: string
+          ip_address: string | null
+          org_id: string
+          party: string
+          signed_at: string
+          signed_by: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "employment_contract_signatures"
           isOneToOne: true
           isSetofReturn: false
         }

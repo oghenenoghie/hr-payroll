@@ -19,6 +19,10 @@ const clauseBody = "mt-1 text-[13px] leading-relaxed text-ink";
 // number of weeks/months: that's a company-policy and Nigerian Labour Act
 // question this build doesn't have a data field for, so the clause below
 // points at both rather than guessing a figure.
+function formatSignedDate(iso: string): string {
+  return new Date(iso).toLocaleString("en-NG", { dateStyle: "medium", timeStyle: "short" });
+}
+
 export function EmploymentContract({
   orgName,
   fullName,
@@ -33,6 +37,8 @@ export function EmploymentContract({
   basicKobo,
   housingKobo,
   transportKobo,
+  employerSignedAt,
+  employeeSignedAt,
 }: {
   orgName: string;
   fullName: string;
@@ -47,6 +53,14 @@ export function EmploymentContract({
   basicKobo: number | null;
   housingKobo: number | null;
   transportKobo: number | null;
+  // Whichever party has an existing signature whose stored hash still
+  // matches this exact rendering of the contract — null means either
+  // never signed, or signed against a version of the contract that's
+  // since changed (see computeContractHash), in which case this
+  // component prints a blank signature line, same as before e-signature
+  // existed, and the page around it is what offers a fresh signature.
+  employerSignedAt?: string | null;
+  employeeSignedAt?: string | null;
 }) {
   const issuedOn = formatLongDate(new Date().toISOString());
   const annualTotalKobo =
@@ -145,11 +159,19 @@ export function EmploymentContract({
       <div className="mt-6 grid grid-cols-2 gap-8 text-[13px] text-ink">
         <div className="flex flex-col gap-1">
           <span className="border-t border-border pt-1 text-[12px] text-ink-soft">For the Employer</span>
-          <span className="mt-6 text-[11px] text-ink-soft">Signature &amp; date</span>
+          {employerSignedAt ? (
+            <span className="mt-6 text-[11px] font-bold text-good">Signed {formatSignedDate(employerSignedAt)}</span>
+          ) : (
+            <span className="mt-6 text-[11px] text-ink-soft">Signature &amp; date</span>
+          )}
         </div>
         <div className="flex flex-col gap-1">
           <span className="border-t border-border pt-1 text-[12px] text-ink-soft">{fullName}</span>
-          <span className="mt-6 text-[11px] text-ink-soft">Signature &amp; date</span>
+          {employeeSignedAt ? (
+            <span className="mt-6 text-[11px] font-bold text-good">Signed {formatSignedDate(employeeSignedAt)}</span>
+          ) : (
+            <span className="mt-6 text-[11px] text-ink-soft">Signature &amp; date</span>
+          )}
         </div>
       </div>
 
