@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { createPortal } from "react-dom";
+import { AnimatePresence, motion } from "motion/react";
 import type { SectionKey } from "@/lib/nav-sections";
 import {
   GridIcon,
@@ -272,29 +273,47 @@ export function SidebarNav({
                 <ChevronIcon collapsed={isCollapsed} />
               </button>
             ) : null}
-            {!isCollapsed &&
-              group.items.map((item) => {
-                const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-                const ItemIcon = item.icon;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`flex items-center gap-2.5 rounded-control px-3 py-2 text-[13px] font-bold ${
-                      active ? "bg-primary text-white" : "text-primary-tint hover:bg-primary"
-                    }`}
-                  >
-                    <ItemIcon className="h-4 w-4 shrink-0" />
-                    <span className="flex-1">{item.label}</span>
-                    {item.href === "/notifications" && unreadNotifications > 0 && (
-                      <span className="rounded-badge bg-white px-[7px] py-[1px] text-[11px] font-extrabold text-primary-dark">
-                        {unreadNotifications}
-                      </span>
-                    )}
-                    <NavLinkOverlay />
-                  </Link>
-                );
-              })}
+            <AnimatePresence initial={false}>
+              {!isCollapsed && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.15, ease: "easeOut" }}
+                  className="flex flex-col gap-1 overflow-hidden"
+                >
+                  {group.items.map((item) => {
+                    const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                    const ItemIcon = item.icon;
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`relative flex items-center gap-2.5 rounded-control px-3 py-2 text-[13px] font-bold ${
+                          active ? "text-white" : "text-primary-tint hover:bg-primary"
+                        }`}
+                      >
+                        {active && (
+                          <motion.span
+                            layoutId="active-nav-pill"
+                            className="absolute inset-0 rounded-control bg-primary"
+                            transition={{ type: "spring", stiffness: 500, damping: 40 }}
+                          />
+                        )}
+                        <ItemIcon className="relative h-4 w-4 shrink-0" />
+                        <span className="relative flex-1">{item.label}</span>
+                        {item.href === "/notifications" && unreadNotifications > 0 && (
+                          <span className="relative rounded-badge bg-white px-[7px] py-[1px] text-[11px] font-extrabold text-primary-dark">
+                            {unreadNotifications}
+                          </span>
+                        )}
+                        <NavLinkOverlay />
+                      </Link>
+                    );
+                  })}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         );
       })}

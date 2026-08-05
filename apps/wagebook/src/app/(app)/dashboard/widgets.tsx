@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@plutus/core";
 import { formatKobo } from "@/lib/format";
+import { AnimatedCount } from "@/components/AnimatedCount";
 import {
   BuildingIcon,
   ClockIcon,
@@ -19,7 +20,7 @@ import {
 type WidgetProps = { supabase: SupabaseClient<Database>; orgId: string };
 type WidgetIcon = React.ComponentType<{ className?: string }>;
 
-const cardClass = "rounded-card border border-border bg-surface p-6";
+const cardClass = "rounded-card border border-border bg-surface p-6 transition-colors duration-150 group-hover:border-primary";
 const labelClass = "text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const statClass = "mt-1 text-[22px] font-extrabold text-ink";
 const rowClass = "flex items-center justify-between gap-3 text-[13px]";
@@ -81,7 +82,9 @@ export async function PendingApprovalsWidget({ supabase, orgId }: WidgetProps) {
   return (
     <div className={cardClass}>
       <WidgetHeader icon={ClockIcon} label="Pending approvals" />
-      <p className={statClass}>{total}</p>
+      <p className={statClass}>
+        <AnimatedCount value={total} />
+      </p>
       <div className="mt-3 flex flex-col gap-2 text-[13px] text-ink-soft">
         <Link href="/leave" className={`${rowClass} hover:text-primary`}>
           <span>Leave</span>
@@ -173,7 +176,9 @@ export async function WorkforceSnapshotWidget({ supabase, orgId }: WidgetProps) 
     <Link href="/employees" className="block transition-opacity hover:opacity-80">
       <div className={cardClass}>
         <WidgetHeader icon={PeopleIcon} label="Active employees" />
-        <p className={statClass}>{active ?? 0}</p>
+        <p className={statClass}>
+          <AnimatedCount value={active ?? 0} />
+        </p>
         <div className="mt-3 flex flex-col gap-2 text-[13px] text-ink-soft">
           <div className={rowClass}>
             <span>Contracts ending within 30 days</span>
@@ -228,7 +233,9 @@ export async function AccountsSnapshotWidget({ supabase, orgId }: WidgetProps) {
   return (
     <div className={cardClass}>
       <WidgetHeader icon={ReceiptIcon} label="Accounts payable & receivable" />
-      <p className={statClass}>{total}</p>
+      <p className={statClass}>
+        <AnimatedCount value={total} />
+      </p>
       <div className="mt-3 flex flex-col gap-2 text-[13px] text-ink-soft">
         <Link href="/bills" className={`${rowClass} hover:text-primary`}>
           <span>Bills awaiting payment</span>
@@ -261,7 +268,9 @@ export async function BudgetSnapshotWidget({ supabase, orgId }: WidgetProps) {
     <Link href="/budgets" className="block transition-opacity hover:opacity-80">
       <div className={cardClass}>
         <WidgetHeader icon={PieChartIcon} label="Budgets" />
-        <p className={statClass}>{activeCount ?? 0}</p>
+        <p className={statClass}>
+          <AnimatedCount value={activeCount ?? 0} />
+        </p>
         {latestBudget && (
           <p className="mt-2 text-[13px] text-ink-soft">
             Most recent: <span className="font-bold text-ink">{latestBudget.name}</span> ({latestBudget.period_start} –{" "}
@@ -283,7 +292,9 @@ export async function CompensationSnapshotWidget({ supabase, orgId }: WidgetProp
   return (
     <div className={cardClass}>
       <WidgetHeader icon={CoinsIcon} label="Compensation & benefits" />
-      <p className={statClass}>{grades ?? 0}</p>
+      <p className={statClass}>
+        <AnimatedCount value={grades ?? 0} />
+      </p>
       <p className="text-[12px] text-ink-soft">Job grades</p>
       <div className="mt-3 flex flex-col gap-2 text-[13px] text-ink-soft">
         <Link href="/benefits" className={`${rowClass} hover:text-primary`}>
@@ -318,7 +329,9 @@ export async function RecruitmentSnapshotWidget({ supabase, orgId }: WidgetProps
   return (
     <div className={cardClass}>
       <WidgetHeader icon={BriefcaseIcon} label="Recruitment" />
-      <p className={statClass}>{openReqs ?? 0}</p>
+      <p className={statClass}>
+        <AnimatedCount value={openReqs ?? 0} />
+      </p>
       <p className="text-[12px] text-ink-soft">Open requisitions</p>
       <div className="mt-3 flex flex-col gap-2 text-[13px] text-ink-soft">
         <Link href="/recruitment" className={`${rowClass} hover:text-primary`}>
@@ -391,7 +404,9 @@ export async function LearningSnapshotWidget({ supabase, orgId }: WidgetProps) {
     <Link href="/learning" className="block transition-opacity hover:opacity-80">
       <div className={cardClass}>
         <WidgetHeader icon={CapIcon} label="Learning & development" />
-        <p className={statClass}>{assigned ?? 0} in progress</p>
+        <p className={statClass}>
+          <AnimatedCount value={assigned ?? 0} /> in progress
+        </p>
         <div className="mt-3 flex flex-col gap-2 text-[13px] text-ink-soft">
           <div className={rowClass}>
             <span>Mandatory training outstanding</span>
@@ -443,7 +458,9 @@ export async function MyTeamSnapshotWidget({ supabase, orgId, userId }: WidgetPr
     <Link href="/team" className="block transition-opacity hover:opacity-80">
       <div className={cardClass}>
         <WidgetHeader icon={PeopleIcon} label={myEmployee.departments?.name ?? "My department"} />
-        <p className={statClass}>{roster ?? 0} active employees</p>
+        <p className={statClass}>
+          <AnimatedCount value={roster ?? 0} /> active employees
+        </p>
         <div className="mt-3 flex flex-col gap-2 text-[13px] text-ink-soft">
           <div className={rowClass}>
             <span>Pending leave requests</span>

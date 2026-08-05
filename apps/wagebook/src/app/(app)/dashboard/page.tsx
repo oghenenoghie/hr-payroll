@@ -5,6 +5,7 @@ import { getMembership } from "@/lib/membership";
 import { DASHBOARD_WIDGETS } from "@/lib/dashboard-widgets";
 import { ROLE_LABEL, DASHBOARD_ROLES } from "@/lib/roles";
 import { DashboardRoleSwitcher } from "./DashboardRoleSwitcher";
+import { AnimatedWidgetGrid } from "./AnimatedWidgetGrid";
 import {
   OrgSnapshotWidget,
   PendingApprovalsWidget,
@@ -105,11 +106,11 @@ export default async function DashboardPage({
           Nothing configured for your role yet. Ask an admin to check /security/dashboards.
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+        <AnimatedWidgetGrid>
           {visibleWidgets.map((widget) => (
             <WidgetSwitch key={widget.key} widgetKey={widget.key} orgId={membership.orgId} userId={user.id} />
           ))}
-        </div>
+        </AnimatedWidgetGrid>
       )}
     </div>
   );
