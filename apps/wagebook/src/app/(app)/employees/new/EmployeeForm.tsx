@@ -14,6 +14,7 @@ const initialValues = {
   full_name: "",
   email: "",
   state_of_residence: "",
+  residential_address: "",
   hire_date: "",
   probation_end_date: "",
   employment_type: "permanent",
@@ -80,6 +81,13 @@ export function EmployeeForm({
         required={false}
         value={values.state_of_residence}
         onChange={set("state_of_residence")}
+      />
+      <FormField
+        label="Contact address"
+        name="residential_address"
+        required={false}
+        value={values.residential_address}
+        onChange={set("residential_address")}
       />
       <FormField
         label="Hire date"
