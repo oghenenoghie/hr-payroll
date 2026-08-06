@@ -9,6 +9,8 @@ type ApprovedBill = {
   id: string;
   description: string;
   amount_kobo: number;
+  wht_kobo: number;
+  net_payable_kobo: number;
   due_date: string | null;
   vendors: { name: string } | null;
 };
@@ -40,6 +42,8 @@ export function ApprovedBillsTable({ bills, canManage }: { bills: ApprovedBill[]
 
   const selectedBills = bills.filter((bill) => selected.has(bill.id));
   const totalKobo = selectedBills.reduce((sum, bill) => sum + BigInt(bill.amount_kobo), 0n);
+  const totalWhtKobo = selectedBills.reduce((sum, bill) => sum + BigInt(bill.wht_kobo), 0n);
+  const totalNetPayableKobo = selectedBills.reduce((sum, bill) => sum + BigInt(bill.net_payable_kobo), 0n);
 
   function runBatchPay() {
     setConfirming(false);
@@ -59,6 +63,8 @@ export function ApprovedBillsTable({ bills, canManage }: { bills: ApprovedBill[]
               <th className={`${thClass} text-left`}>Vendor</th>
               <th className={`${thClass} text-left`}>Description</th>
               <th className={`${thClass} text-right`}>Amount</th>
+              <th className={`${thClass} text-right`}>WHT</th>
+              <th className={`${thClass} text-right`}>Net payable</th>
               <th className={`${thClass} text-left`}>Due date</th>
             </tr>
           </thead>
@@ -79,6 +85,10 @@ export function ApprovedBillsTable({ bills, canManage }: { bills: ApprovedBill[]
                 <td className={`${tdClass} font-bold text-ink`}>{bill.vendors?.name ?? "—"}</td>
                 <td className={`${tdClass} text-ink-soft`}>{bill.description}</td>
                 <td className={`${tdClass} text-right text-ink`}>{formatKobo(BigInt(bill.amount_kobo))}</td>
+                <td className={`${tdClass} text-right text-ink-soft`}>{formatKobo(BigInt(bill.wht_kobo))}</td>
+                <td className={`${tdClass} text-right font-bold text-ink`}>
+                  {formatKobo(BigInt(bill.net_payable_kobo))}
+                </td>
                 <td className={`${tdClass} text-ink-soft`}>{bill.due_date ?? "—"}</td>
               </tr>
             ))}
@@ -90,6 +100,7 @@ export function ApprovedBillsTable({ bills, canManage }: { bills: ApprovedBill[]
         <div className="flex items-center justify-between rounded-card border border-border bg-surface px-4 py-3">
           <span className="text-[13px] font-bold text-ink">
             {selected.size} bill{selected.size === 1 ? "" : "s"} selected · {formatKobo(totalKobo)}
+            {totalWhtKobo > 0n && <span className="text-ink-soft"> · {formatKobo(totalNetPayableKobo)} net after WHT</span>}
           </span>
           <button
             type="button"
@@ -105,7 +116,11 @@ export function ApprovedBillsTable({ bills, canManage }: { bills: ApprovedBill[]
       {confirming && (
         <ConfirmDialog
           title="Pay the selected bills?"
-          message={`${selected.size} bill${selected.size === 1 ? "" : "s"} totalling ${formatKobo(totalKobo)} will be marked paid in one batch, debiting Accounts Payable and crediting Cash & Bank in a single journal entry.`}
+          message={
+            totalWhtKobo > 0n
+              ? `${selected.size} bill${selected.size === 1 ? "" : "s"} totalling ${formatKobo(totalKobo)} will be marked paid in one batch: Accounts Payable is debited for the full amount, Cash & Bank is credited ${formatKobo(totalNetPayableKobo)}, and WHT Payable is credited ${formatKobo(totalWhtKobo)} to remit separately — all in one balanced journal entry.`
+              : `${selected.size} bill${selected.size === 1 ? "" : "s"} totalling ${formatKobo(totalKobo)} will be marked paid in one batch, debiting Accounts Payable and crediting Cash & Bank in a single journal entry.`
+          }
           confirmLabel="Pay bills"
           tone="primary"
           onConfirm={runBatchPay}

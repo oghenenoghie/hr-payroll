@@ -13,6 +13,7 @@ import {
   WorkforceSnapshotWidget,
   ComplianceAuditWidget,
   AccountsSnapshotWidget,
+  VatWhtSnapshotWidget,
   BudgetSnapshotWidget,
   CompensationSnapshotWidget,
   RecruitmentSnapshotWidget,
@@ -132,6 +133,8 @@ async function WidgetSwitch({ widgetKey, orgId, userId }: { widgetKey: string; o
       return <ComplianceAuditWidget supabase={supabase} orgId={orgId} />;
     case "accounts_snapshot":
       return <AccountsSnapshotWidget supabase={supabase} orgId={orgId} />;
+    case "vat_wht_liability":
+      return <VatWhtSnapshotWidget supabase={supabase} orgId={orgId} />;
     case "budget_snapshot":
       return <BudgetSnapshotWidget supabase={supabase} orgId={orgId} />;
     case "compensation_snapshot":

@@ -25,6 +25,7 @@ export const ACCOUNT_LABEL: Record<string, string> = {
   nsitf_payable: "NSITF payable (due NSITF, before the 16th)",
   vendor_expense: "Vendor expense",
   accounts_payable: "Accounts payable",
+  wht_payable: "WHT payable (due FIRS/State IRS, by the 21st)",
   accounts_receivable: "Accounts receivable",
   sales_revenue: "Sales revenue",
   cash_and_bank: "Cash and bank",
