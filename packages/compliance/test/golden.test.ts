@@ -6,6 +6,8 @@ import { computePension } from "../src/schemes/pension";
 import { computeNhf } from "../src/schemes/nhf";
 import { computeNsitf } from "../src/schemes/nsitf";
 import { computeItf } from "../src/schemes/itf";
+import { UnknownWhtCategoryError } from "../src/schemes/wht";
+import { computeVat, computeVendorInvoiceTotals } from "../src/schemes/vat";
 import { checkTinGate } from "../src/tin-gate";
 import { TinRequiredError } from "../src/errors";
 import { deriveDemoPaye, solveDemoGrossForNet } from "../src/demo";
@@ -176,6 +178,60 @@ describe("Employer-side costs are never in the employee deduction total", () => 
     const qualifyingByHeadcount = computeItf(naira(10_000_000), { employeeCount: 5, annualTurnoverKobo: naira(5_000_000) }, rv);
     expect(qualifyingByHeadcount.qualifies).toBe(true);
     expect(qualifyingByHeadcount.employerKobo).toBe(naira(100_000));
+  });
+});
+
+describe("VAT on vendor invoices (§8)", () => {
+  it("charges the standard rate on a taxable supply", () => {
+    const result = computeVat(naira(1_000_000), "professional_services", rv);
+    expect(result.exempt).toBe(false);
+    expect(result.vatKobo).toBe(naira(75_000)); // 7.5%
+  });
+
+  it("charges zero VAT on an exempt category, never the standard rate", () => {
+    const result = computeVat(naira(1_000_000), "basic_food_items", rv);
+    expect(result.exempt).toBe(true);
+    expect(result.vatKobo).toBe(0n);
+  });
+
+  it("is zero for zero-value supplies", () => {
+    expect(computeVat(0n, "professional_services", rv).vatKobo).toBe(0n);
+  });
+});
+
+describe("Vendor invoice totals — VAT and WHT are independent, never conflated (§8)", () => {
+  it("adds VAT on top of the subtotal and withholds WHT from the VAT-exclusive subtotal", () => {
+    const result = computeVendorInvoiceTotals(
+      { subtotalKobo: naira(1_000_000), vatCategory: "professional_services", whtCategory: "professional_services" },
+      rv,
+    );
+
+    expect(result.vatKobo).toBe(naira(75_000)); // 7.5% of subtotal
+    expect(result.invoiceTotalKobo).toBe(naira(1_075_000)); // subtotal + VAT
+    expect(result.whtKobo).toBe(naira(100_000)); // 10% of the VAT-exclusive subtotal, not the invoice total
+    expect(result.netPayableToVendorKobo).toBe(naira(975_000)); // invoice total − WHT
+  });
+
+  it("an exempt supply still has WHT withheld — VAT exemption doesn't imply a WHT exemption", () => {
+    const result = computeVendorInvoiceTotals(
+      { subtotalKobo: naira(500_000), vatCategory: "basic_food_items", whtCategory: "goods_and_materials" },
+      rv,
+    );
+
+    expect(result.vatExempt).toBe(true);
+    expect(result.vatKobo).toBe(0n);
+    expect(result.invoiceTotalKobo).toBe(naira(500_000));
+    expect(result.whtKobo).toBe(naira(25_000)); // 5% of subtotal
+    expect(result.netPayableToVendorKobo).toBe(naira(475_000));
+  });
+
+  it("rejects an unrecognised WHT category rather than silently applying a flat rate", () => {
+    expect(() =>
+      computeVendorInvoiceTotals(
+        { subtotalKobo: naira(500_000), vatCategory: "professional_services", whtCategory: "not_a_real_category" },
+        rv,
+      ),
+    ).toThrow(UnknownWhtCategoryError);
   });
 });
 

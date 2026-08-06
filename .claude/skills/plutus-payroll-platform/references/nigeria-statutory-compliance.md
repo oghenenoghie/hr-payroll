@@ -18,7 +18,7 @@
 5. NHIS / NHIA health insurance
 6. NSITF (Employee Compensation)
 7. Industrial Training Fund (ITF)
-8. Withholding Tax on contractors
+8. Withholding Tax on contractors, and VAT on vendor invoices
 9. State-level & multi-state PAYE
 10. Quick-reference matrix
 11. Errata — known errors in the prototype
@@ -115,6 +115,15 @@ monthly PAYE   = annual PAYE ÷ 12
 - **Deadline:** by the **21st day** of the month following deduction.
 - Closes a gap most payroll-only tools ignore. Note the reform's penalty exposure for engaging unregistered contractors — validate vendor TIN too.
 
+### VAT on vendor invoices
+- **Standard rate:** **7.5%**, under the VAT Act as amended by the Finance Act 2020. **Not yet re-confirmed against current FIRS/NRS guidance for the 2026 framework** — treat as provisional and re-verify before production use, same as every other figure in this file.
+- **Base:** the VAT-exclusive subtotal of the vendor invoice. VAT is added *on top* — output tax the vendor charges the buyer — never netted against or confused with WHT.
+- **Exempt / zero-rated categories are charged at 0%**, resolved by category — the engine's default rule version lists `basic_food_items`, `medical_and_pharmaceutical`, `educational_materials`, and `exported_goods_and_services` as illustrative starting points, **not a verified exhaustive list.** Confirm the current FIRS exemption schedule before relying on it.
+- **WHT is computed on the same VAT-exclusive subtotal**, never on the VAT-inclusive invoice total — VAT and WHT are two independent taxes on the same transaction and must not be conflated into a single combined rate.
+- **Deadline:** by the **21st day** of the month following the invoice/transaction (aligned with WHT's remittance cadence here for the engine's default rule version — confirm this against current FIRS VAT-filing guidance, which may differ from the WHT deadline).
+- **Authority:** FIRS (Federal Inland Revenue Service) / NRS.
+- Engine implementation: `packages/compliance/src/schemes/vat.ts` (`computeVat`, `computeVendorInvoiceTotals`) — compliance-engine only; no vendor-invoicing UI or storage exists in the product yet (see `feature-backlog.md` §1's "Contractor/gig workforce depth" gap).
+
 ## 9. State-level & multi-state PAYE
 - PAYE is **collected by each state's Internal Revenue Service (SIRS)**, based on **employee state of residence**.
 - Engine must: map every employee to state of residence → generate **state-specific filing schedules** → consolidate remittance evidence across every state the employer operates in.
@@ -133,6 +142,7 @@ monthly PAYE   = annual PAYE ÷ 12
 | NSITF | Total monthly payroll (as defined §6) | 1% | Employer | NSITF | Before 16th of following month |
 | ITF | Annual payroll | 1% (qualifying employers) | Employer | ITF | On/before 1 April annually |
 | WHT (contractors) | Contractor/vendor payment | By service category (e.g. 5%/10%) | Contractor (withheld) | NRS / State IRS | 21st of following month |
+| VAT (vendor invoices) | VAT-exclusive invoice subtotal | 7.5% standard, 0% exempt/zero-rated by category | Vendor charges buyer (output tax) | FIRS / NRS | 21st of following month (provisional — confirm) |
 
 **Engine invariants to enforce:** cumulative-annual PAYE; TIN present before run; correct base per scheme (don't apply pension's base to NHF, or PAYE gross to NSITF); employer-side costs (NSITF, ITF, employer pension) tracked separately from employee deductions; state-of-residence routing for PAYE; every figure resolved from the versioned rule set.
 
