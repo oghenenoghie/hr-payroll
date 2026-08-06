@@ -153,3 +153,15 @@ export function InvoiceStatusBadge({ status }: { status: string }) {
   const tone = INVOICE_STATUS_TONE[status as keyof typeof INVOICE_STATUS_TONE] ?? "neutral";
   return <Badge tone={tone}>{status}</Badge>;
 }
+
+const VENDOR_INVOICE_STATUS_TONE = {
+  draft: "neutral",
+  issued: "warn",
+  paid: "good",
+  void: "bad",
+} as const;
+
+export function VendorInvoiceStatusBadge({ status }: { status: string }) {
+  const tone = VENDOR_INVOICE_STATUS_TONE[status as keyof typeof VENDOR_INVOICE_STATUS_TONE] ?? "neutral";
+  return <Badge tone={tone}>{status}</Badge>;
+}

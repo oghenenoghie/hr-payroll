@@ -10,11 +10,11 @@ const tdClass = "px-3 py-[10px] text-[13px]";
 
 const rv = NG_2026_1;
 
-// "Applied" schemes are wired into real pay-run postings today; "documented"
-// schemes have a versioned, tested calculator in packages/compliance but
-// nothing in the product yet produces the data they need (org turnover/
-// headcount for ITF, a contractor-payments flow for WHT, a per-scheme NHIS
-// config) — so we show the real rule, never a live number we can't back.
+// "Applied" schemes are wired into real pay-run or vendor-invoice postings
+// today; "documented" schemes have a versioned, tested calculator in
+// packages/compliance but nothing in the product yet produces the data
+// they need (org turnover/headcount for ITF, a per-scheme NHIS config) —
+// so we show the real rule, never a live number we can't back.
 const SCHEMES: {
   name: string;
   base: string;
@@ -23,6 +23,7 @@ const SCHEMES: {
   authority: string;
   deadline: string;
   status: "applied" | "documented";
+  appliedLabel?: string;
 }[] = [
   {
     name: "PAYE",
@@ -78,7 +79,18 @@ const SCHEMES: {
     borneBy: "Contractor (withheld)",
     authority: "NRS / State IRS",
     deadline: `By the ${rv.wht.remittance.dueDayOfFollowingMonth}st of the following month`,
-    status: "documented",
+    status: "applied",
+    appliedLabel: "Applied in vendor invoices",
+  },
+  {
+    name: "VAT (vendor invoices)",
+    base: "VAT-exclusive invoice subtotal",
+    rate: `${formatPercent(rv.vat.standardRateScaled)} standard · 0% exempt by category`,
+    borneBy: "Vendor charges buyer (output tax)",
+    authority: rv.vat.remittance.authority,
+    deadline: `By the ${rv.vat.remittance.dueDayOfFollowingMonth}st of the following month (provisional — confirm)`,
+    status: "applied",
+    appliedLabel: "Applied in vendor invoices",
   },
   {
     name: "NHIS / NHIA",
@@ -119,7 +131,7 @@ export default async function CompliancePage() {
       <header className="flex flex-col gap-1">
         <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Compliance Engine</span>
         <h1 className="text-[22px] font-extrabold text-ink">
-          PAYE, pension, NHF, NHIS, NSITF, ITF &amp; WHT — versioned and current
+          PAYE, pension, NHF, NHIS, NSITF, ITF, WHT &amp; VAT — versioned and current
         </h1>
         <p className="text-[13px] text-ink-soft">
           Rule version {rv.id}, effective {rv.effectiveFrom}. Every figure below is read live from this rule set —
@@ -151,7 +163,7 @@ export default async function CompliancePage() {
                 <td className={`${tdClass} text-ink-soft`}>{scheme.deadline}</td>
                 <td className={tdClass}>
                   {scheme.status === "applied" ? (
-                    <Badge tone="good">Applied in pay runs</Badge>
+                    <Badge tone="good">{scheme.appliedLabel ?? "Applied in pay runs"}</Badge>
                   ) : (
                     <Badge tone="neutral">Documented — not yet applied</Badge>
                   )}
