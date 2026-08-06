@@ -1744,6 +1744,131 @@ export type Database = {
           },
         ]
       }
+      vendors: {
+        Row: {
+          bank_account_name: string | null
+          bank_account_number: string | null
+          bank_name: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          org_id: string
+          phone: string | null
+          tin: string | null
+        }
+        Insert: {
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          org_id: string
+          phone?: string | null
+          tin?: string | null
+        }
+        Update: {
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          org_id?: string
+          phone?: string | null
+          tin?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendors_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendor_invoices: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string
+          id: string
+          invoice_date: string
+          invoice_number: string | null
+          invoice_total_kobo: number
+          net_payable_kobo: number
+          org_id: string
+          rule_version_id: string
+          status: string
+          subtotal_kobo: number
+          vat_category: string
+          vat_exempt: boolean
+          vat_kobo: number
+          vendor_id: string
+          wht_category: string
+          wht_kobo: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description: string
+          id?: string
+          invoice_date?: string
+          invoice_number?: string | null
+          invoice_total_kobo: number
+          net_payable_kobo: number
+          org_id: string
+          rule_version_id: string
+          status?: string
+          subtotal_kobo: number
+          vat_category: string
+          vat_exempt?: boolean
+          vat_kobo: number
+          vendor_id: string
+          wht_category: string
+          wht_kobo: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          invoice_date?: string
+          invoice_number?: string | null
+          invoice_total_kobo?: number
+          net_payable_kobo?: number
+          org_id?: string
+          rule_version_id?: string
+          status?: string
+          subtotal_kobo?: number
+          vat_category?: string
+          vat_exempt?: boolean
+          vat_kobo?: number
+          vendor_id?: string
+          wht_category?: string
+          wht_kobo?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_invoices_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       employees_masked: {
