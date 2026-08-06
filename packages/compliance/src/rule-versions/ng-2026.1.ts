@@ -64,5 +64,15 @@ export const NG_2026_1: RuleVersion = {
     remittance: { dueDayOfFollowingMonth: 21 },
   },
 
+  // Rate not yet re-confirmed against current FIRS/NRS guidance for the
+  // 2026 framework — using the VAT Act rate (as amended by the Finance Act
+  // 2020) as the versioned default. Re-verify before production use, same
+  // caveat as the rest of this file (see the module doc comment above).
+  vat: {
+    standardRateScaled: rate(7.5),
+    exemptCategories: ["basic_food_items", "medical_and_pharmaceutical", "educational_materials", "exported_goods_and_services"],
+    remittance: { authority: "FIRS", dueDayOfFollowingMonth: 21 },
+  },
+
   nhis: { resolveByScheme: true },
 };
