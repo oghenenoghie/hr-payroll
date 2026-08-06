@@ -84,6 +84,15 @@ const SCHEMES: {
     status: "documented",
   },
   {
+    name: "VAT (vendor invoices)",
+    base: "VAT-exclusive invoice subtotal",
+    rate: `${formatPercent(rv.vat.standardRateScaled)} standard · 0% exempt by category`,
+    borneBy: "Vendor charges buyer (output tax)",
+    authority: rv.vat.remittance.authority,
+    deadline: `By the ${rv.vat.remittance.dueDayOfFollowingMonth}st of the following month (provisional — confirm)`,
+    status: "documented",
+  },
+  {
     name: "NHIS / NHIA",
     base: "Per applicable scheme",
     rate: "Scheme-defined",
@@ -132,7 +141,7 @@ export default async function CompliancePage() {
           </span>
         </div>
         <h1 className="text-[22px] font-extrabold text-ink">
-          PAYE, pension, NHF, NHIS, NSITF, ITF &amp; WHT — versioned and current
+          PAYE, pension, NHF, NHIS, NSITF, ITF, WHT &amp; VAT — versioned and current
         </h1>
         <p className="text-[13px] text-ink-soft">
           Rule version {rv.id}, effective {rv.effectiveFrom}. Every figure below is read live from this rule set —
