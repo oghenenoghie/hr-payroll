@@ -74,6 +74,16 @@ export interface RuleVersion {
     remittance: { dueDayOfFollowingMonth: number };
   };
 
+  /** Standard VAT rate applied to vendor/contractor invoices, per
+   * nigeria-statutory-compliance.md §8. `exemptCategories` are charged at
+   * 0% (VAT-exempt or zero-rated supplies) — resolved by category, never a
+   * blanket flat rate, same discipline as wht.ratesScaledByCategory. */
+  vat: {
+    standardRateScaled: bigint;
+    exemptCategories: string[];
+    remittance: { authority: "FIRS"; dueDayOfFollowingMonth: number };
+  };
+
   /** NHIS/NHIA rates are scheme-specific, not a single national figure — see
    * nigeria-statutory-compliance.md §5. No default is provided on purpose. */
   nhis: {
