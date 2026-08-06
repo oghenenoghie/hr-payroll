@@ -64,6 +64,12 @@ export const DASHBOARD_WIDGETS: DashboardWidget[] = [
     defaultRoles: ["admin", "payroll_manager", "accountant", "finance_manager"],
   },
   {
+    key: "vat_wht_liability",
+    label: "VAT & WHT liability",
+    description: "VAT and WHT withheld on paid vendor bills, awaiting remittance to FIRS/NRS.",
+    defaultRoles: ["admin", "payroll_manager", "accountant", "finance_manager", "legal_compliance"],
+  },
+  {
     key: "budget_snapshot",
     label: "Budgets",
     description: "Active budgets for the current period.",

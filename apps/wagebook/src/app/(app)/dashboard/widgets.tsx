@@ -15,6 +15,7 @@ import {
   BriefcaseIcon,
   TargetIcon,
   CapIcon,
+  CalculatorIcon,
 } from "@/components/icons";
 
 type WidgetProps = { supabase: SupabaseClient<Database>; orgId: string };
@@ -247,6 +248,45 @@ export async function AccountsSnapshotWidget({ supabase, orgId }: WidgetProps) {
         </Link>
       </div>
     </div>
+  );
+}
+
+// WHT withheld on a paid vendor bill is genuinely this org's obligation
+// to remit — computeVendorInvoiceTotals withholds it from the vendor at
+// payment, and pay_vendor_bill posts it to wht_payable at that point
+// (20260811010000). VAT paid on a purchase is the opposite direction —
+// input tax the vendor charged this org, not something this org owes
+// FIRS on the vendor's behalf — so it's shown as a secondary, clearly-
+// labelled figure rather than folded into the same "liability" framing
+// as WHT. Both figures are lifetime-to-date, scoped to paid bills only
+// (a pending/approved bill hasn't had its WHT actually withheld yet).
+export async function VatWhtSnapshotWidget({ supabase, orgId }: WidgetProps) {
+  const { data: bills } = await supabase
+    .from("vendor_bills")
+    .select("wht_kobo, vat_kobo")
+    .eq("org_id", orgId)
+    .eq("status", "paid");
+
+  const whtWithheldKobo = (bills ?? []).reduce((sum, bill) => sum + BigInt(bill.wht_kobo), 0n);
+  const vatPaidKobo = (bills ?? []).reduce((sum, bill) => sum + BigInt(bill.vat_kobo), 0n);
+
+  return (
+    <Link href="/bills" className="block transition-opacity hover:opacity-80">
+      <div className={cardClass}>
+        <WidgetHeader icon={CalculatorIcon} label="VAT & WHT" />
+        <p className={statClass}>{formatKobo(whtWithheldKobo)}</p>
+        <div className="mt-3 flex flex-col gap-2 text-[13px] text-ink-soft">
+          <div className={rowClass}>
+            <span>WHT withheld — due FIRS/NRS by the 21st</span>
+            <span className="font-bold text-ink">{formatKobo(whtWithheldKobo)}</span>
+          </div>
+          <div className={rowClass}>
+            <span>VAT paid on bills (input, not owed by this org)</span>
+            <span className="font-bold text-ink">{formatKobo(vatPaidKobo)}</span>
+          </div>
+        </div>
+      </div>
+    </Link>
   );
 }
 

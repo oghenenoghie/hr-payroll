@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { naira } from "@plutus/compliance";
+import { NG_2026_1, UnknownWhtCategoryError, computeVendorInvoiceTotals, naira } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 
@@ -27,8 +27,10 @@ export async function createVendorBill(_prevState: CreateBillState, formData: Fo
   const billNumber = String(formData.get("bill_number") ?? "").trim() || null;
   const billDate = String(formData.get("bill_date") ?? "").trim();
   const dueDate = String(formData.get("due_date") ?? "").trim() || null;
-  const amountNaira = Number(formData.get("amount") ?? 0);
+  const subtotalNaira = Number(formData.get("subtotal") ?? 0);
   const description = String(formData.get("description") ?? "").trim();
+  const vatCategory = String(formData.get("vat_category") ?? "standard").trim() || "standard";
+  const whtCategory = String(formData.get("wht_category") ?? "").trim();
 
   if (!vendorId) {
     return { error: "Choose a vendor." };
@@ -39,8 +41,22 @@ export async function createVendorBill(_prevState: CreateBillState, formData: Fo
   if (!description) {
     return { error: "Enter a description." };
   }
-  if (!amountNaira || amountNaira <= 0) {
-    return { error: "Enter an amount greater than zero." };
+  if (!subtotalNaira || subtotalNaira <= 0) {
+    return { error: "Enter a subtotal greater than zero." };
+  }
+  if (!whtCategory) {
+    return { error: "Select a WHT category." };
+  }
+
+  const ruleVersion = NG_2026_1;
+  let totals;
+  try {
+    totals = computeVendorInvoiceTotals({ subtotalKobo: naira(subtotalNaira), vatCategory, whtCategory }, ruleVersion);
+  } catch (err) {
+    if (err instanceof UnknownWhtCategoryError) {
+      return { error: "Unrecognized WHT category." };
+    }
+    throw err;
   }
 
   const { error } = await supabase.from("vendor_bills").insert({
@@ -49,7 +65,15 @@ export async function createVendorBill(_prevState: CreateBillState, formData: Fo
     bill_number: billNumber,
     bill_date: billDate,
     due_date: dueDate,
-    amount_kobo: Number(naira(amountNaira)),
+    amount_kobo: Number(totals.invoiceTotalKobo),
+    subtotal_kobo: Number(totals.subtotalKobo),
+    vat_category: vatCategory,
+    vat_kobo: Number(totals.vatKobo),
+    vat_exempt: totals.vatExempt,
+    wht_category: whtCategory,
+    wht_kobo: Number(totals.whtKobo),
+    net_payable_kobo: Number(totals.netPayableToVendorKobo),
+    rule_version_id: ruleVersion.id,
     description,
     requested_by: user.id,
   });

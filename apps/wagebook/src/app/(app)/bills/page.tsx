@@ -78,12 +78,28 @@ export default async function BillsPage({ searchParams }: { searchParams: Promis
   // matches exactly what's on screen, never a separate full-history
   // re-query.
   const csv = toCsv(
-    ["Vendor", "Description", "Bill Number", "Amount (NGN)", "Bill Date", "Due Date", "Status"],
+    [
+      "Vendor",
+      "Description",
+      "Bill Number",
+      "Subtotal (NGN)",
+      "VAT (NGN)",
+      "Amount (NGN)",
+      "WHT Withheld (NGN)",
+      "Net Payable (NGN)",
+      "Bill Date",
+      "Due Date",
+      "Status",
+    ],
     [...pending, ...approved, ...rest].map((bill) => [
       bill.vendors?.name ?? "—",
       bill.description,
       bill.bill_number ?? "",
+      toNaira(BigInt(bill.subtotal_kobo)).toFixed(2),
+      toNaira(BigInt(bill.vat_kobo)).toFixed(2),
       toNaira(BigInt(bill.amount_kobo)).toFixed(2),
+      toNaira(BigInt(bill.wht_kobo)).toFixed(2),
+      toNaira(BigInt(bill.net_payable_kobo)).toFixed(2),
       bill.bill_date,
       bill.due_date ?? "",
       bill.status,
@@ -119,6 +135,8 @@ export default async function BillsPage({ searchParams }: { searchParams: Promis
                   <th className={`${thClass} text-left`}>Vendor</th>
                   <th className={`${thClass} text-left`}>Description</th>
                   <th className={`${thClass} text-right`}>Amount</th>
+                  <th className={`${thClass} text-right`}>WHT</th>
+                  <th className={`${thClass} text-right`}>Net payable</th>
                   <th className={`${thClass} text-left`}>Bill date</th>
                   {canManage && <th className={thClass}></th>}
                 </tr>
@@ -129,6 +147,10 @@ export default async function BillsPage({ searchParams }: { searchParams: Promis
                     <td className={`${tdClass} font-bold text-ink`}>{bill.vendors?.name ?? "—"}</td>
                     <td className={`${tdClass} text-ink-soft`}>{bill.description}</td>
                     <td className={`${tdClass} text-right text-ink`}>{formatKobo(BigInt(bill.amount_kobo))}</td>
+                    <td className={`${tdClass} text-right text-ink-soft`}>{formatKobo(BigInt(bill.wht_kobo))}</td>
+                    <td className={`${tdClass} text-right font-bold text-ink`}>
+                      {formatKobo(BigInt(bill.net_payable_kobo))}
+                    </td>
                     <td className={`${tdClass} text-ink-soft`}>{bill.bill_date}</td>
                     {canManage && (
                       <td className={`${tdClass} text-right`}>

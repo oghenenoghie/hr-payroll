@@ -1949,12 +1949,20 @@ export type Database = {
           due_date: string | null
           id: string
           journal_entry_id: string | null
+          net_payable_kobo: number
           org_id: string
           paid_at: string | null
           payment_journal_entry_id: string | null
           requested_by: string
+          rule_version_id: string | null
           status: string
+          subtotal_kobo: number
+          vat_category: string | null
+          vat_exempt: boolean
+          vat_kobo: number
           vendor_id: string
+          wht_category: string | null
+          wht_kobo: number
         }
         Insert: {
           amount_kobo: number
@@ -1967,12 +1975,20 @@ export type Database = {
           due_date?: string | null
           id?: string
           journal_entry_id?: string | null
+          net_payable_kobo: number
           org_id: string
           paid_at?: string | null
           payment_journal_entry_id?: string | null
           requested_by: string
+          rule_version_id?: string | null
           status?: string
+          subtotal_kobo: number
+          vat_category?: string | null
+          vat_exempt?: boolean
+          vat_kobo?: number
           vendor_id: string
+          wht_category?: string | null
+          wht_kobo?: number
         }
         Update: {
           amount_kobo?: number
@@ -1985,12 +2001,20 @@ export type Database = {
           due_date?: string | null
           id?: string
           journal_entry_id?: string | null
+          net_payable_kobo?: number
           org_id?: string
           paid_at?: string | null
           payment_journal_entry_id?: string | null
           requested_by?: string
+          rule_version_id?: string | null
           status?: string
+          subtotal_kobo?: number
+          vat_category?: string | null
+          vat_exempt?: boolean
+          vat_kobo?: number
           vendor_id?: string
+          wht_category?: string | null
+          wht_kobo?: number
         }
         Relationships: [
           {
