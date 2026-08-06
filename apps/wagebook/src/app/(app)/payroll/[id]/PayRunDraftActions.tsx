@@ -1,17 +1,14 @@
 "use client";
 
-import { useActionState } from "react";
-import { FormError, SubmitButton } from "@/components/AuthCard";
+import { useActionState, useState } from "react";
+import { FormError } from "@/components/AuthCard";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { approvePayRun, discardPayRunDraft } from "./actions";
 
 export function PayRunDraftActions({ payRunId }: { payRunId: string }) {
-  const [approveState, approveAction] = useActionState(approvePayRun.bind(null, payRunId), null);
-  const [discardState, discardAction] = useActionState(discardPayRunDraft.bind(null, payRunId), null);
-  // approve_pay_run() raises this exact message when the run has
-  // unreviewed variance flags — seeing it once means the reviewer has
-  // been stopped and shown the flags above; submitting again is treated
-  // as the explicit acknowledgment to proceed anyway.
-  const awaitingVarianceAck = Boolean(approveState?.error?.includes("unreviewed variance flag"));
+  const [approveState, approveAction, approvePending] = useActionState(approvePayRun.bind(null, payRunId), null);
+  const [discardState, discardAction, discardPending] = useActionState(discardPayRunDraft.bind(null, payRunId), null);
+  const [confirming, setConfirming] = useState<"approve" | "discard" | null>(null);
 
   return (
     <div className="flex flex-col gap-3">
@@ -24,19 +21,49 @@ export function PayRunDraftActions({ payRunId }: { payRunId: string }) {
       <FormError message={approveState?.error} />
       <FormError message={discardState?.error} />
       <div className="flex gap-3">
-        <form action={approveAction}>
-          <input type="hidden" name="acknowledge_variance" value={awaitingVarianceAck ? "true" : "false"} />
-          <SubmitButton>{awaitingVarianceAck ? "Acknowledge flags & approve anyway" : "Approve & post"}</SubmitButton>
-        </form>
-        <form action={discardAction}>
-          <button
-            type="submit"
-            className="rounded-button border border-border px-[22px] py-[11px] text-[13px] font-extrabold text-bad"
-          >
-            Discard draft
-          </button>
-        </form>
+        <button
+          type="button"
+          onClick={() => setConfirming("approve")}
+          disabled={approvePending || discardPending}
+          className="w-full rounded-button bg-primary px-[22px] py-[11px] text-[13px] font-extrabold text-white disabled:opacity-50"
+        >
+          {approvePending ? "Working…" : "Approve & post"}
+        </button>
+        <button
+          type="button"
+          onClick={() => setConfirming("discard")}
+          disabled={approvePending || discardPending}
+          className="rounded-button border border-border px-[22px] py-[11px] text-[13px] font-extrabold text-bad disabled:opacity-50"
+        >
+          {discardPending ? "Working…" : "Discard draft"}
+        </button>
       </div>
+
+      {confirming === "approve" && (
+        <ConfirmDialog
+          title="Approve and post this run?"
+          message="This posts the run for real — it becomes visible to employees, counted in reports, and carries forward into future cumulative tax calculations. Once posted, correcting it means reversing rather than discarding."
+          tone="primary"
+          confirmLabel="Approve & post"
+          onConfirm={() => {
+            setConfirming(null);
+            approveAction(new FormData());
+          }}
+          onCancel={() => setConfirming(null)}
+        />
+      )}
+      {confirming === "discard" && (
+        <ConfirmDialog
+          title="Discard this draft?"
+          message="Every side effect this run applied (loan repayments, expense/leave/attendance/overtime/encashment consumption) is fully restored, and the run itself is removed. This can't be undone."
+          confirmLabel="Discard draft"
+          onConfirm={() => {
+            setConfirming(null);
+            discardAction(new FormData());
+          }}
+          onCancel={() => setConfirming(null)}
+        />
+      )}
     </div>
   );
 }

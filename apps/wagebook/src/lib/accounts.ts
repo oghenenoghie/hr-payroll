@@ -23,6 +23,11 @@ export const ACCOUNT_LABEL: Record<string, string> = {
   benefits_payable: "Benefits payable",
   nsitf_expense: "NSITF expense",
   nsitf_payable: "NSITF payable (due NSITF, before the 16th)",
+  vendor_expense: "Vendor expense",
+  accounts_payable: "Accounts payable",
+  accounts_receivable: "Accounts receivable",
+  sales_revenue: "Sales revenue",
+  cash_and_bank: "Cash and bank",
 };
 
 // pay_runs.frequency values that don't read cleanly through a plain CSS

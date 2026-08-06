@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { findNubanBankCode, isValidNuban, naira } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { getMembership } from "@/lib/membership";
 
 export type EditEmployeeState = { error?: string } | null;
@@ -29,6 +28,7 @@ export async function editEmployee(
   }
 
   const stateOfResidence = String(formData.get("state_of_residence") ?? "").trim() || null;
+  const residentialAddress = String(formData.get("residential_address") ?? "").trim() || null;
   const hireDate = String(formData.get("hire_date") ?? "").trim() || null;
   const probationEndDate = String(formData.get("probation_end_date") ?? "").trim() || null;
   const confirmed = formData.get("confirmed") === "true";
@@ -72,20 +72,25 @@ export async function editEmployee(
   // this is the actual enforcement), and never controls the mask flag
   // itself, since letting HR unmask their own view would defeat it.
   const membership = await getMembership(supabase, user.id);
-  const isAdminOrPayroll =
-    membership?.role === "admin" || membership?.role === "payroll_manager" || membership?.role === "accountant";
+  const isAdminOrPayroll = membership?.role === "admin" || membership?.role === "payroll_manager";
+  // Compensation & Benefits Manager can always edit salary — masking
+  // exists to keep roles that don't own compensation out of it, and
+  // that's this role's entire job — but still never controls the mask
+  // flag itself, same reasoning as payroll_manager below.
+  const canBypassMasking = isAdminOrPayroll || membership?.role === "compensation_benefits_manager";
   const { data: currentEmployee } = await supabase
     .from("employees")
     .select("salary_masked")
     .eq("id", employeeId)
     .maybeSingle();
-  const canEditSalary = isAdminOrPayroll || !currentEmployee?.salary_masked;
+  const canEditSalary = canBypassMasking || !currentEmployee?.salary_masked;
 
   const { error } = await supabase
     .from("employees")
     .update({
       full_name: fullName,
       state_of_residence: stateOfResidence,
+      residential_address: residentialAddress,
       hire_date: hireDate,
       probation_end_date: probationEndDate,
       confirmed,
@@ -121,74 +126,6 @@ export async function editEmployee(
 
   revalidatePath("/employees");
   redirect("/employees");
-}
-
-export type InviteState = { error?: string; success?: boolean } | null;
-
-// Sends the self-service invite and links the resulting account in one
-// step, using the admin's own authenticated session — never anything the
-// invitee later controls. inviteUserByEmail() returns the new auth user's
-// id synchronously, so link_employee_account() runs right here, before the
-// invitee has done anything at all.
-export async function inviteEmployeeAccount(
-  employeeId: string,
-  _prevState: InviteState,
-  formData: FormData,
-): Promise<InviteState> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  const { data: employee, error: fetchError } = await supabase
-    .from("employees")
-    .select("id, email, user_id")
-    .eq("id", employeeId)
-    .maybeSingle();
-
-  if (fetchError || !employee) {
-    return { error: "Employee not found." };
-  }
-
-  if (employee.user_id) {
-    return { error: "This employee already has a linked account." };
-  }
-
-  let email = employee.email;
-  if (!email) {
-    const submitted = String(formData.get("email") ?? "").trim();
-    if (!submitted) {
-      return { error: "Enter an email address to invite this employee." };
-    }
-    const { error: emailError } = await supabase.from("employees").update({ email: submitted }).eq("id", employeeId);
-    if (emailError) {
-      return { error: emailError.message };
-    }
-    email = submitted;
-  }
-
-  const admin = createAdminClient();
-  const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email);
-
-  if (inviteError || !invited.user) {
-    return { error: inviteError?.message ?? "Failed to send invite." };
-  }
-
-  const { error: linkError } = await supabase.rpc("link_employee_account", {
-    p_employee_id: employeeId,
-    p_user_id: invited.user.id,
-  });
-
-  if (linkError) {
-    return { error: `Invite sent, but linking the account failed: ${linkError.message}` };
-  }
-
-  revalidatePath(`/employees/${employeeId}/edit`);
-  return { success: true };
 }
 
 export type SaveOffboardingChecklistState = { error?: string } | null;
@@ -363,4 +300,82 @@ export async function deleteEmployeeDocument(documentId: string, storagePath: st
   await supabase.from("employee_documents").delete().eq("id", documentId);
 
   revalidatePath("/employees");
+}
+
+const EMPLOYEE_PHOTO_MAX_BYTES = 5 * 1024 * 1024;
+const ALLOWED_PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+export type UploadEmployeePhotoState = { error?: string } | null;
+
+// Fixed path per employee — {org_id}/{employee_id}/photo, no filename or
+// extension — so re-uploading always overwrites the same storage object
+// (upsert) rather than leaving the previous photo orphaned in the bucket
+// every time someone changes it.
+export async function uploadEmployeePhoto(
+  employeeId: string,
+  _prevState: UploadEmployeePhotoState,
+  formData: FormData,
+): Promise<UploadEmployeePhotoState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const membership = await getMembership(supabase, user.id);
+  if (!membership || (membership.role !== "admin" && membership.role !== "hr_manager")) {
+    return { error: "You don't have permission to update employee photos." };
+  }
+
+  const file = formData.get("photo");
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: "Choose an image to upload." };
+  }
+  if (!ALLOWED_PHOTO_TYPES.has(file.type)) {
+    return { error: "Photos must be a JPEG, PNG or WebP image." };
+  }
+  if (file.size > EMPLOYEE_PHOTO_MAX_BYTES) {
+    return { error: "Photos must be 5MB or smaller." };
+  }
+
+  const storagePath = `${membership.orgId}/${employeeId}/photo`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("employee-photos")
+    .upload(storagePath, file, { upsert: true, contentType: file.type });
+  if (uploadError) {
+    return { error: uploadError.message };
+  }
+
+  const { error: updateError } = await supabase
+    .from("employees")
+    .update({ photo_path: storagePath })
+    .eq("id", employeeId);
+  if (updateError) {
+    return { error: updateError.message };
+  }
+
+  revalidatePath(`/employees/${employeeId}`);
+  revalidatePath(`/employees/${employeeId}/edit`);
+  return null;
+}
+
+export async function removeEmployeePhoto(employeeId: string, storagePath: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  await supabase.storage.from("employee-photos").remove([storagePath]);
+  await supabase.from("employees").update({ photo_path: null }).eq("id", employeeId);
+
+  revalidatePath(`/employees/${employeeId}`);
+  revalidatePath(`/employees/${employeeId}/edit`);
 }

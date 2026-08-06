@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
+import { resolveNavSections } from "@/lib/nav-sections";
 import { AppShell } from "./AppShell";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -15,16 +16,21 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const membership = await getMembership(supabase, user.id);
 
-  // MFA is a stated product requirement for Admin, Payroll Manager and
-  // Accountant (full Payroll Manager parity), never optional for those
-  // roles. Gate every (app) route here rather than a single entry-point
-  // page, since any of them could be the first page a session lands on
-  // (deep link, bookmark, browser restore).
-  if (
-    membership?.role === "admin" ||
-    membership?.role === "payroll_manager" ||
-    membership?.role === "accountant"
-  ) {
+  // No org yet: the platform operator's first, manually provisioned login
+  // — every other account is created by an existing admin (see
+  // Security & Access), so this is the one legitimate way to reach org
+  // creation. Onboarding only creates an org for the already-authenticated
+  // user in front of it — it never creates a new login itself.
+  if (!membership) {
+    redirect("/onboarding");
+  }
+
+  // MFA is a stated product requirement for whichever roles `roles.mfa_required`
+  // marks that way (Admin and Payroll Manager today) — a data change, not a
+  // code change, if that set needs to grow. Gate every (app) route here
+  // rather than a single entry-point page, since any of them could be the
+  // first page a session lands on (deep link, bookmark, browser restore).
+  if (membership.mfaRequired) {
     const { data: factorsData } = await supabase.auth.mfa.listFactors();
     const hasVerifiedTotp = (factorsData?.all ?? []).some(
       (factor) => factor.factor_type === "totp" && factor.status === "verified",
@@ -55,7 +61,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         .select("id", { count: "exact", head: true })
         .eq("manager_id", myEmployee.id)
     : { count: 0 };
-  const isManager = (reportCount ?? 0) > 0;
+  // A department manager's scope is their whole department, not direct
+  // reports — they still need the "My Team" link even with zero reports.
+  const isManager = (reportCount ?? 0) > 0 || membership.role === "department_manager";
 
   const { count: unreadNotifications } = await supabase
     .from("notifications")
@@ -63,12 +71,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .eq("recipient_user_id", user.id)
     .is("read_at", null);
 
+  const sections = await resolveNavSections(supabase, membership.orgId, user.id, membership.role);
+
   return (
     <AppShell
-      role={membership?.role}
+      role={membership.role}
+      sections={sections}
       isManager={isManager}
       unreadNotifications={unreadNotifications ?? 0}
-      orgName={membership?.orgName ?? "Your organization"}
+      orgName={membership.orgName ?? "Your organization"}
     >
       {children}
     </AppShell>

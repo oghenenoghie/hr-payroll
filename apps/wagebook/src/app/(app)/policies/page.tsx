@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
+import { toCsv } from "@/lib/csv";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { PolicyForm } from "./PolicyForm";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
@@ -22,25 +24,33 @@ export default async function PoliciesPage() {
     redirect("/me");
   }
 
-  const { data: policies } = await supabase
-    .from("company_policies")
-    .select("*")
-    .order("created_at", { ascending: false });
+  // The full document body is only needed on the edit page — this list
+  // just shows title + acknowledgement stats. All three queries below are
+  // independent of each other, so they run in parallel.
+  const [{ data: policies }, { count: activeEmployeeCount }, { data: acknowledgements }] = await Promise.all([
+    supabase.from("company_policies").select("id, title, updated_at").order("created_at", { ascending: false }),
+    supabase.from("employees").select("id", { count: "exact", head: true }).eq("status", "active"),
+    // Only ever non-empty for admin/hr_manager viewers, per this table's RLS.
+    supabase.from("policy_acknowledgements").select("policy_id, acknowledged_at"),
+  ]);
 
-  const { count: activeEmployeeCount } = await supabase
-    .from("employees")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "active");
-
-  // Only ever non-empty for admin/hr_manager viewers, per this table's RLS.
-  const { data: acknowledgements } = await supabase
-    .from("policy_acknowledgements")
-    .select("policy_id, acknowledged_at");
+  const csv = toCsv(
+    ["Policy", "Acknowledged", "Total Active Employees"],
+    (policies ?? []).map((policy) => {
+      const acknowledgedCount = (acknowledgements ?? []).filter(
+        (a) => a.policy_id === policy.id && a.acknowledged_at >= policy.updated_at,
+      ).length;
+      return [policy.title, acknowledgedCount, activeEmployeeCount ?? 0];
+    }),
+  );
 
   return (
     <div className="mx-auto flex w-full max-w-[720px] flex-col gap-5 px-6 py-10">
       <header className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Company Policies</span>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Company Policies</span>
+          {policies && policies.length > 0 && <ExportCsvButton csv={csv} filename="policy-acknowledgements.csv" />}
+        </div>
         <h1 className="text-[22px] font-extrabold text-ink">Publish policies and track acknowledgement</h1>
         <p className="text-[13px] text-ink-soft">
           Editing a policy doesn&apos;t re-notify anyone or force anything — the completion count below only counts

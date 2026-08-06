@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { FormError, FormField, SubmitButton } from "@/components/AuthCard";
+import { ConfirmActionButton } from "@/components/ConfirmActionButton";
 import { uploadEmployeeDocument, deleteEmployeeDocument, type UploadEmployeeDocumentState } from "./actions";
 
 type Document = {
@@ -52,11 +53,13 @@ export function EmployeeDocumentsPanel({
                 </span>
               </div>
               {canManage && (
-                <form action={deleteEmployeeDocument.bind(null, doc.id, doc.storage_path)}>
-                  <button type="submit" className="text-[12px] font-bold text-bad">
-                    Delete
-                  </button>
-                </form>
+                <ConfirmActionButton
+                  action={deleteEmployeeDocument.bind(null, doc.id, doc.storage_path)}
+                  label="Delete"
+                  confirmTitle="Delete this document?"
+                  confirmMessage={`"${doc.file_name}" will be permanently deleted.`}
+                  confirmLabel="Delete"
+                />
               )}
             </div>
           ))}

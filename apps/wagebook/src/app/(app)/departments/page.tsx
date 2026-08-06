@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
+import { toCsv } from "@/lib/csv";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { ConfirmActionButton } from "@/components/ConfirmActionButton";
 import { DepartmentForm } from "./DepartmentForm";
-import { DepartmentManagerSelect } from "./DepartmentManagerSelect";
 import { deleteDepartment } from "./actions";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
@@ -23,9 +25,10 @@ export default async function DepartmentsPage() {
     redirect("/me");
   }
 
-  const { data: departments } = await supabase.from("departments").select("*").order("name");
-
-  const { data: employees } = await supabase.from("employees").select("id, full_name, department_id").order("full_name");
+  const [{ data: departments }, { data: employees }] = await Promise.all([
+    supabase.from("departments").select("*").order("name"),
+    supabase.from("employees").select("department_id"),
+  ]);
 
   const employeeCountByDepartment = new Map<string, number>();
   for (const employee of employees ?? []) {
@@ -36,13 +39,18 @@ export default async function DepartmentsPage() {
     );
   }
 
-  const employeeNameById = new Map((employees ?? []).map((e) => [e.id, e.full_name]));
-  const isAdmin = membership?.role === "admin";
+  const csv = toCsv(
+    ["Department", "Employees"],
+    (departments ?? []).map((department) => [department.name, employeeCountByDepartment.get(department.id) ?? 0]),
+  );
 
   return (
     <div className="mx-auto flex w-full max-w-[720px] flex-col gap-5 px-6 py-10">
       <header className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Departments</span>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Departments</span>
+          {departments && departments.length > 0 && <ExportCsvButton csv={csv} filename="departments.csv" />}
+        </div>
         <h1 className="text-[22px] font-extrabold text-ink">Cost centres for employee assignment and GL export</h1>
         <p className="text-[13px] text-ink-soft">
           Assign employees to a department on their edit page. The general ledger export attributes each employee&apos;s
@@ -56,7 +64,6 @@ export default async function DepartmentsPage() {
             <tr className="border-b border-border">
               <th className={`${thClass} text-left`}>Department</th>
               <th className={`${thClass} text-center`}>Employees</th>
-              <th className={`${thClass} text-left`}>Manager</th>
               <th className={thClass}></th>
             </tr>
           </thead>
@@ -68,31 +75,20 @@ export default async function DepartmentsPage() {
                   <td className={`${tdClass} text-center text-ink-soft`}>
                     {employeeCountByDepartment.get(department.id) ?? 0}
                   </td>
-                  <td className={tdClass}>
-                    {isAdmin ? (
-                      <DepartmentManagerSelect
-                        departmentId={department.id}
-                        currentManagerId={department.manager_id}
-                        employees={employees ?? []}
-                      />
-                    ) : (
-                      <span className="text-ink-soft">
-                        {department.manager_id ? (employeeNameById.get(department.manager_id) ?? "—") : "—"}
-                      </span>
-                    )}
-                  </td>
                   <td className={`${tdClass} text-right`}>
-                    <form action={deleteDepartment.bind(null, department.id)}>
-                      <button type="submit" className="text-[12px] font-bold text-bad">
-                        Delete
-                      </button>
-                    </form>
+                    <ConfirmActionButton
+                      action={deleteDepartment.bind(null, department.id)}
+                      label="Delete"
+                      confirmTitle="Delete this department?"
+                      confirmMessage={`"${department.name}" will be removed. Employees currently assigned to it keep their record but lose this department assignment.`}
+                      confirmLabel="Delete"
+                    />
                   </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={4} className="px-3 py-10 text-center text-[13px] text-ink-soft">
+                <td colSpan={3} className="px-3 py-10 text-center text-[13px] text-ink-soft">
                   No departments yet.
                 </td>
               </tr>

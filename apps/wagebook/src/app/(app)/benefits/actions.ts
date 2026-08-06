@@ -23,7 +23,12 @@ export async function createBenefitPlan(
   }
 
   const membership = await getMembership(supabase, user.id);
-  if (!membership || (membership.role !== "admin" && membership.role !== "hr_manager")) {
+  if (
+    !membership ||
+    (membership.role !== "admin" &&
+      membership.role !== "hr_manager" &&
+      membership.role !== "compensation_benefits_manager")
+  ) {
     return { error: "You don't have permission to manage benefit plans." };
   }
 
@@ -86,7 +91,12 @@ export async function enrollEmployee(
   }
 
   const membership = await getMembership(supabase, user.id);
-  if (!membership || (membership.role !== "admin" && membership.role !== "hr_manager")) {
+  if (
+    !membership ||
+    (membership.role !== "admin" &&
+      membership.role !== "hr_manager" &&
+      membership.role !== "compensation_benefits_manager")
+  ) {
     return { error: "You don't have permission to enroll employees." };
   }
 

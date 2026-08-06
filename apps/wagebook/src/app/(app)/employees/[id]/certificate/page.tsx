@@ -25,7 +25,13 @@ export default async function EmployeeCertificatePage({ params }: { params: Prom
   // an hr_manager viewer of a salary_masked employee gets null salary
   // columns back, which EmploymentCertificate renders as a restricted note
   // rather than a fabricated figure.
-  const { data: employee } = await supabase.from("employees_masked").select("*").eq("id", id).maybeSingle();
+  const { data: employee } = await supabase
+    .from("employees_masked")
+    .select(
+      "full_name, hire_date, employment_type, status, job_grade_name, department_name, basic_kobo, housing_kobo, transport_kobo",
+    )
+    .eq("id", id)
+    .maybeSingle();
   if (!employee) notFound();
 
   return (

@@ -4,17 +4,20 @@ import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 import { formatKobo, formatPercent } from "@/lib/format";
 import { Badge } from "@/components/Badge";
+import { toCsv } from "@/lib/csv";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { PrintButton } from "@/components/PrintButton";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const tdClass = "px-3 py-[10px] text-[13px]";
 
 const rv = NG_2026_1;
 
-// "Applied" schemes are wired into real pay-run or vendor-invoice postings
-// today; "documented" schemes have a versioned, tested calculator in
-// packages/compliance but nothing in the product yet produces the data
-// they need (org turnover/headcount for ITF, a per-scheme NHIS config) —
-// so we show the real rule, never a live number we can't back.
+// "Applied" schemes are wired into real pay-run postings today; "documented"
+// schemes have a versioned, tested calculator in packages/compliance but
+// nothing in the product yet produces the data they need (org turnover/
+// headcount for ITF, a contractor-payments flow for WHT, a per-scheme NHIS
+// config) — so we show the real rule, never a live number we can't back.
 const SCHEMES: {
   name: string;
   base: string;
@@ -23,7 +26,6 @@ const SCHEMES: {
   authority: string;
   deadline: string;
   status: "applied" | "documented";
-  appliedLabel?: string;
 }[] = [
   {
     name: "PAYE",
@@ -79,8 +81,7 @@ const SCHEMES: {
     borneBy: "Contractor (withheld)",
     authority: "NRS / State IRS",
     deadline: `By the ${rv.wht.remittance.dueDayOfFollowingMonth}st of the following month`,
-    status: "applied",
-    appliedLabel: "Applied in vendor invoices",
+    status: "documented",
   },
   {
     name: "VAT (vendor invoices)",
@@ -89,8 +90,7 @@ const SCHEMES: {
     borneBy: "Vendor charges buyer (output tax)",
     authority: rv.vat.remittance.authority,
     deadline: `By the ${rv.vat.remittance.dueDayOfFollowingMonth}st of the following month (provisional — confirm)`,
-    status: "applied",
-    appliedLabel: "Applied in vendor invoices",
+    status: "documented",
   },
   {
     name: "NHIS / NHIA",
@@ -126,10 +126,20 @@ export default async function CompliancePage() {
 
   const missingTin = (employees ?? []).filter((e) => !e.tin);
 
+  const missingTinCsv = toCsv(
+    ["Employee", "State of Residence"],
+    missingTin.map((e) => [e.full_name, e.state_of_residence ?? ""]),
+  );
+
   return (
-    <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 px-6 py-10">
+    <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 px-6 py-10 print:px-0 print:py-0">
       <header className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Compliance Engine</span>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Compliance Engine</span>
+          <span className="print:hidden">
+            <PrintButton>Print / Save as PDF</PrintButton>
+          </span>
+        </div>
         <h1 className="text-[22px] font-extrabold text-ink">
           PAYE, pension, NHF, NHIS, NSITF, ITF, WHT &amp; VAT — versioned and current
         </h1>
@@ -163,7 +173,7 @@ export default async function CompliancePage() {
                 <td className={`${tdClass} text-ink-soft`}>{scheme.deadline}</td>
                 <td className={tdClass}>
                   {scheme.status === "applied" ? (
-                    <Badge tone="good">{scheme.appliedLabel ?? "Applied in pay runs"}</Badge>
+                    <Badge tone="good">Applied in pay runs</Badge>
                   ) : (
                     <Badge tone="neutral">Documented — not yet applied</Badge>
                   )}
@@ -205,11 +215,18 @@ export default async function CompliancePage() {
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
             TIN registration gate
           </span>
-          {missingTin.length > 0 ? (
-            <Badge tone="bad">{missingTin.length} missing TIN</Badge>
-          ) : (
-            <Badge tone="good">All active employees registered</Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {missingTin.length > 0 && (
+              <span className="print:hidden">
+                <ExportCsvButton csv={missingTinCsv} filename="missing-tin.csv" />
+              </span>
+            )}
+            {missingTin.length > 0 ? (
+              <Badge tone="bad">{missingTin.length} missing TIN</Badge>
+            ) : (
+              <Badge tone="good">All active employees registered</Badge>
+            )}
+          </div>
         </div>
         <p className="text-[12.5px] text-ink-soft">
           Every active employee must hold a valid TIN before payroll can run. This list is what blocks the next run

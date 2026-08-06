@@ -133,6 +133,66 @@ export function LeaveEncashmentStatusBadge({ status }: { status: string }) {
   return <Badge tone={tone}>{status}</Badge>;
 }
 
+const GOAL_STATUS_TONE = {
+  not_started: "neutral",
+  in_progress: "warn",
+  completed: "good",
+  cancelled: "bad",
+} as const;
+
+export function GoalStatusBadge({ status }: { status: string }) {
+  const tone = GOAL_STATUS_TONE[status as keyof typeof GOAL_STATUS_TONE] ?? "neutral";
+  return <Badge tone={tone}>{status.replace("_", " ")}</Badge>;
+}
+
+const APPRAISAL_STATUS_TONE = {
+  draft: "neutral",
+  submitted: "warn",
+  acknowledged: "good",
+} as const;
+
+export function AppraisalStatusBadge({ status }: { status: string }) {
+  const tone = APPRAISAL_STATUS_TONE[status as keyof typeof APPRAISAL_STATUS_TONE] ?? "neutral";
+  return <Badge tone={tone}>{status}</Badge>;
+}
+
+const REQUISITION_STATUS_TONE = {
+  open: "good",
+  on_hold: "warn",
+  closed: "neutral",
+  filled: "neutral",
+} as const;
+
+export function RequisitionStatusBadge({ status }: { status: string }) {
+  const tone = REQUISITION_STATUS_TONE[status as keyof typeof REQUISITION_STATUS_TONE] ?? "neutral";
+  return <Badge tone={tone}>{status.replace("_", " ")}</Badge>;
+}
+
+const CANDIDATE_STAGE_TONE = {
+  applied: "neutral",
+  screening: "warn",
+  interviewing: "warn",
+  offer: "good",
+  hired: "good",
+  rejected: "bad",
+} as const;
+
+export function CandidateStageBadge({ stage }: { stage: string }) {
+  const tone = CANDIDATE_STAGE_TONE[stage as keyof typeof CANDIDATE_STAGE_TONE] ?? "neutral";
+  return <Badge tone={tone}>{stage}</Badge>;
+}
+
+const INTERVIEW_OUTCOME_TONE = {
+  pending: "neutral",
+  passed: "good",
+  failed: "bad",
+} as const;
+
+export function InterviewOutcomeBadge({ outcome }: { outcome: string }) {
+  const tone = INTERVIEW_OUTCOME_TONE[outcome as keyof typeof INTERVIEW_OUTCOME_TONE] ?? "neutral";
+  return <Badge tone={tone}>{outcome}</Badge>;
+}
+
 const BENEFIT_ENROLLMENT_STATUS_TONE = {
   active: "good",
   cancelled: "neutral",
@@ -143,25 +203,127 @@ export function BenefitEnrollmentStatusBadge({ status }: { status: string }) {
   return <Badge tone={tone}>{status}</Badge>;
 }
 
-const INVOICE_STATUS_TONE = {
-  issued: "warn",
-  paid: "good",
-  void: "neutral",
+const VENDOR_BILL_STATUS_TONE = {
+  pending_approval: "warn",
+  approved: "good",
+  rejected: "bad",
+  paid: "neutral",
 } as const;
 
-export function InvoiceStatusBadge({ status }: { status: string }) {
-  const tone = INVOICE_STATUS_TONE[status as keyof typeof INVOICE_STATUS_TONE] ?? "neutral";
-  return <Badge tone={tone}>{status}</Badge>;
+const VENDOR_BILL_STATUS_LABEL: Record<string, string> = {
+  pending_approval: "Pending approval",
+  approved: "Approved",
+  rejected: "Rejected",
+  paid: "Paid",
+};
+
+export function VendorBillStatusBadge({ status }: { status: string }) {
+  const tone = VENDOR_BILL_STATUS_TONE[status as keyof typeof VENDOR_BILL_STATUS_TONE] ?? "neutral";
+  return <Badge tone={tone}>{VENDOR_BILL_STATUS_LABEL[status] ?? status}</Badge>;
 }
 
-const VENDOR_INVOICE_STATUS_TONE = {
+const CUSTOMER_INVOICE_STATUS_TONE = {
   draft: "neutral",
   issued: "warn",
   paid: "good",
   void: "bad",
 } as const;
 
-export function VendorInvoiceStatusBadge({ status }: { status: string }) {
-  const tone = VENDOR_INVOICE_STATUS_TONE[status as keyof typeof VENDOR_INVOICE_STATUS_TONE] ?? "neutral";
+const CUSTOMER_INVOICE_STATUS_LABEL: Record<string, string> = {
+  draft: "Draft",
+  issued: "Issued — awaiting payment",
+  paid: "Paid",
+  void: "Void",
+};
+
+export function CustomerInvoiceStatusBadge({ status }: { status: string }) {
+  const tone = CUSTOMER_INVOICE_STATUS_TONE[status as keyof typeof CUSTOMER_INVOICE_STATUS_TONE] ?? "neutral";
+  return <Badge tone={tone}>{CUSTOMER_INVOICE_STATUS_LABEL[status] ?? status}</Badge>;
+}
+
+const RECONCILIATION_STATUS_TONE = {
+  in_progress: "warn",
+  completed: "good",
+} as const;
+
+const RECONCILIATION_STATUS_LABEL: Record<string, string> = {
+  in_progress: "In progress",
+  completed: "Completed",
+};
+
+export function ReconciliationStatusBadge({ status }: { status: string }) {
+  const tone = RECONCILIATION_STATUS_TONE[status as keyof typeof RECONCILIATION_STATUS_TONE] ?? "neutral";
+  return <Badge tone={tone}>{RECONCILIATION_STATUS_LABEL[status] ?? status}</Badge>;
+}
+
+const FIXED_ASSET_STATUS_TONE = {
+  active: "good",
+  disposed: "neutral",
+} as const;
+
+export function FixedAssetStatusBadge({ status }: { status: string }) {
+  const tone = FIXED_ASSET_STATUS_TONE[status as keyof typeof FIXED_ASSET_STATUS_TONE] ?? "neutral";
+  return <Badge tone={tone}>{status === "active" ? "Active" : "Disposed"}</Badge>;
+}
+
+const CASE_TYPE_LABEL: Record<string, string> = {
+  grievance: "Grievance",
+  disciplinary: "Disciplinary",
+  investigation: "Investigation",
+};
+
+export function CaseTypeBadge({ caseType }: { caseType: string }) {
+  return <Badge tone="neutral">{CASE_TYPE_LABEL[caseType] ?? caseType}</Badge>;
+}
+
+const CASE_STATUS_TONE = {
+  open: "warn",
+  in_progress: "warn",
+  resolved: "good",
+  closed: "neutral",
+} as const;
+
+const CASE_STATUS_LABEL: Record<string, string> = {
+  open: "Open",
+  in_progress: "In progress",
+  resolved: "Resolved",
+  closed: "Closed",
+};
+
+export function CaseStatusBadge({ status }: { status: string }) {
+  const tone = CASE_STATUS_TONE[status as keyof typeof CASE_STATUS_TONE] ?? "neutral";
+  return <Badge tone={tone}>{CASE_STATUS_LABEL[status] ?? status}</Badge>;
+}
+
+const CASE_SEVERITY_TONE = {
+  low: "neutral",
+  medium: "warn",
+  high: "bad",
+} as const;
+
+export function CaseSeverityBadge({ severity }: { severity: string }) {
+  const tone = CASE_SEVERITY_TONE[severity as keyof typeof CASE_SEVERITY_TONE] ?? "neutral";
+  return <Badge tone={tone}>{severity}</Badge>;
+}
+
+const TRAINING_CATEGORY_LABEL: Record<string, string> = {
+  compliance: "Compliance",
+  onboarding: "Onboarding",
+  skills: "Skills",
+  safety: "Safety",
+  other: "Other",
+};
+
+export function TrainingCategoryBadge({ category }: { category: string }) {
+  return <Badge tone="neutral">{TRAINING_CATEGORY_LABEL[category] ?? category}</Badge>;
+}
+
+const TRAINING_ENROLLMENT_STATUS_TONE = {
+  assigned: "warn",
+  completed: "good",
+} as const;
+
+export function TrainingEnrollmentStatusBadge({ status }: { status: string }) {
+  const tone = TRAINING_ENROLLMENT_STATUS_TONE[status as keyof typeof TRAINING_ENROLLMENT_STATUS_TONE] ?? "neutral";
   return <Badge tone={tone}>{status}</Badge>;
 }

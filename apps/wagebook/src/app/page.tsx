@@ -16,14 +16,9 @@ export default async function Home() {
             Dashboard
           </Link>
         ) : (
-          <>
-            <Link href="/login" className="text-[13px] font-bold text-ink-soft">
-              Sign in
-            </Link>
-            <Link href="/signup" className="text-[13px] font-bold text-primary">
-              Get started
-            </Link>
-          </>
+          <Link href="/login" className="text-[13px] font-bold text-primary">
+            Sign in
+          </Link>
         )}
       </div>
       <PayeCalculator />
