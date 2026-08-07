@@ -5,11 +5,16 @@ export type SectionKey = "workforce" | "payroll" | "requests" | "company";
 
 export const ALL_SECTIONS: SectionKey[] = ["workforce", "payroll", "requests", "company"];
 
+// Labels for the per-user access toggle (Security & Access), not the
+// sidebar headings — the sidebar now groups workforce+requests under one
+// "HR" heading and relabels payroll/company as "Accounts"/"Company Info"
+// (see SidebarNav's buildNavGroups), but each key here still toggles
+// independently, so the label spells out which sidebar group it feeds.
 export const SECTION_LABELS: Record<SectionKey, string> = {
-  workforce: "Workforce",
-  payroll: "Payroll",
-  requests: "Requests",
-  company: "Company",
+  workforce: "Workforce (HR)",
+  payroll: "Accounts",
+  requests: "Requests (HR)",
+  company: "Company Info",
 };
 
 // What each role sees before any per-user override. Security & Access

@@ -164,33 +164,39 @@ export function buildNavGroups(role: string | undefined, sections: SectionKey[],
   // rather than tied to any one role's default sections.
   groups.push({ heading: "Performance", items: [PERFORMANCE_NAV_ITEM] });
 
-  // Same shape as Performance directly above: every role assigns or
-  // completes training within RLS-decided scope (an employee sees their
-  // own, a manager/HR sees more), so this stays outside the section
-  // system too rather than tied to any one role's default sections.
-  groups.push({ heading: "Learning", items: [LEARNING_NAV_ITEM] });
-
-  if (has("workforce")) {
-    groups.push({
-      heading: "Workforce",
-      items: isManager ? [...WORKFORCE_ITEMS, MANAGER_NAV_ITEM] : WORKFORCE_ITEMS,
-    });
+  // HR groups the former standalone "Workforce" and "Requests" headings
+  // under one heading, plus Learning (previously always visible to every
+  // role, now gated the same way Workforce/Requests already were — a role
+  // with neither section no longer sees it). The two sections still toggle
+  // independently in Security & Access; this only changes how they render
+  // together, not who has them. My Team is appended whenever the viewer is
+  // a manager, matching the pre-reorg behavior of showing it either inside
+  // Workforce or, for a manager without the workforce section (e.g. a
+  // department manager), as its own fallback below.
+  const hasHr = has("workforce") || has("requests");
+  if (hasHr) {
+    const hrItems: NavItem[] = [];
+    if (has("workforce")) hrItems.push(...WORKFORCE_ITEMS);
+    if (has("requests")) hrItems.push(...REQUESTS_ITEMS);
+    hrItems.push(LEARNING_NAV_ITEM);
+    if (isManager) hrItems.push(MANAGER_NAV_ITEM);
+    groups.push({ heading: "HR", items: hrItems });
   } else if (isManager) {
     groups.push({ heading: "Team", items: [MANAGER_NAV_ITEM] });
   } else if (role === "legal_compliance") {
     // Legal & Compliance has RLS read access to employee relations cases
-    // but doesn't get the broader "workforce" section (recruitment,
-    // departments, etc. aren't its territory) — same shape as Team above,
-    // one targeted link rather than the whole section.
+    // but doesn't get the broader HR section (recruitment, departments,
+    // leave, etc. aren't its territory) — same shape as Team above, one
+    // targeted link rather than the whole section.
     groups.push({ heading: "Employee Relations", items: [EMPLOYEE_RELATIONS_NAV_ITEM] });
   }
 
+  // Accounts is the former "Payroll" heading, renamed — same items
+  // (Payroll Runs through Budgets, including Vendors/Bills/Customers/
+  // Invoices together) and same "payroll" section gate, just relabeled to
+  // match the finance-and-accounting shape those items actually have.
   if (has("payroll")) {
-    groups.push({ heading: "Payroll", items: PAYROLL_ITEMS });
-  }
-
-  if (has("requests")) {
-    groups.push({ heading: "Requests", items: REQUESTS_ITEMS });
+    groups.push({ heading: "Accounts", items: PAYROLL_ITEMS });
   }
 
   if (has("company")) {
@@ -207,7 +213,7 @@ export function buildNavGroups(role: string | undefined, sections: SectionKey[],
     } else if (role === "auditor" || role === "finance_manager" || role === "legal_compliance") {
       companyItems = [...COMPANY_ITEMS, AUDIT_LOG_NAV_ITEM];
     }
-    groups.push({ heading: "Company", items: companyItems });
+    groups.push({ heading: "Company Info", items: companyItems });
   }
 
   groups.push({ heading: "Tools", items: TOOLS_ITEMS });
