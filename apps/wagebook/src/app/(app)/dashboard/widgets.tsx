@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@plutus/core";
 import { formatKobo } from "@/lib/format";
 import { AnimatedCount } from "@/components/AnimatedCount";
+import { PayrollTrendChart } from "@/components/PayrollTrendChart";
 import {
   BuildingIcon,
   ClockIcon,
@@ -24,6 +25,38 @@ const cardClass = "rounded-card border border-border bg-surface p-6 transition-c
 const labelClass = "text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const statClass = "mt-1 text-[22px] font-extrabold text-ink";
 const rowClass = "flex items-center justify-between gap-3 text-[13px]";
+
+// A row that doubles as a single-series magnitude bar: same label/value/
+// link/hover shape every widget row already had, plus a thin fill
+// underneath sized to value/maxValue. One hue (primary) throughout — with
+// every bar directly labeled there's no categorical identity to encode,
+// so no legend or second color is needed (see the dataviz skill).
+function BarRow({
+  href,
+  label,
+  value,
+  maxValue,
+  formattedValue,
+}: {
+  href: string;
+  label: string;
+  value: number;
+  maxValue: number;
+  formattedValue: string;
+}) {
+  const pct = maxValue > 0 ? Math.round((value / maxValue) * 100) : 0;
+  return (
+    <Link href={href} className="flex flex-col gap-1 text-[13px] hover:text-primary">
+      <div className={rowClass}>
+        <span>{label}</span>
+        <span className="font-bold text-ink">{formattedValue}</span>
+      </div>
+      <div className="h-[5px] w-full overflow-hidden rounded-full bg-bg" title={formattedValue}>
+        <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+      </div>
+    </Link>
+  );
+}
 
 // A small leading icon chip beside every widget's label, giving the grid
 // a scannable visual anchor per card the way a plain uppercase label
@@ -78,6 +111,10 @@ export async function PendingApprovalsWidget({ supabase, orgId }: WidgetProps) {
   ]);
 
   const total = (leave ?? 0) + (loans ?? 0) + (expenses ?? 0) + (overtime ?? 0);
+  // The largest single category, not the total — so the biggest category's
+  // bar reaches full width and the others read as "relative to the worst
+  // one," the more legible framing for "what needs attention most."
+  const maxCategory = Math.max(leave ?? 0, loans ?? 0, expenses ?? 0, overtime ?? 0);
 
   return (
     <div className={cardClass}>
@@ -85,36 +122,57 @@ export async function PendingApprovalsWidget({ supabase, orgId }: WidgetProps) {
       <p className={statClass}>
         <AnimatedCount value={total} />
       </p>
-      <div className="mt-3 flex flex-col gap-2 text-[13px] text-ink-soft">
-        <Link href="/leave" className={`${rowClass} hover:text-primary`}>
-          <span>Leave</span>
-          <span className="font-bold text-ink">{leave ?? 0}</span>
-        </Link>
-        <Link href="/loans" className={`${rowClass} hover:text-primary`}>
-          <span>Loans</span>
-          <span className="font-bold text-ink">{loans ?? 0}</span>
-        </Link>
-        <Link href="/expenses" className={`${rowClass} hover:text-primary`}>
-          <span>Expenses</span>
-          <span className="font-bold text-ink">{expenses ?? 0}</span>
-        </Link>
-        <Link href="/overtime" className={`${rowClass} hover:text-primary`}>
-          <span>Overtime</span>
-          <span className="font-bold text-ink">{overtime ?? 0}</span>
-        </Link>
+      <div className="mt-3 flex flex-col gap-3">
+        <BarRow
+          href="/leave"
+          label="Leave"
+          value={leave ?? 0}
+          maxValue={maxCategory}
+          formattedValue={String(leave ?? 0)}
+        />
+        <BarRow
+          href="/loans"
+          label="Loans"
+          value={loans ?? 0}
+          maxValue={maxCategory}
+          formattedValue={String(loans ?? 0)}
+        />
+        <BarRow
+          href="/expenses"
+          label="Expenses"
+          value={expenses ?? 0}
+          maxValue={maxCategory}
+          formattedValue={String(expenses ?? 0)}
+        />
+        <BarRow
+          href="/overtime"
+          label="Overtime"
+          value={overtime ?? 0}
+          maxValue={maxCategory}
+          formattedValue={String(overtime ?? 0)}
+        />
       </div>
     </div>
   );
 }
 
+const RECENT_PAY_RUN_COUNT = 8;
+
 export async function PayrollSnapshotWidget({ supabase, orgId }: WidgetProps) {
-  const { data: latestRun } = await supabase
+  const { data: recentRuns } = await supabase
     .from("pay_runs")
-    .select("period_start, period_end, status, gross_kobo, net_kobo, employee_count")
+    .select("period_start, period_end, status, net_kobo, employee_count")
     .eq("org_id", orgId)
     .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(RECENT_PAY_RUN_COUNT);
+
+  const latestRun = recentRuns?.[0] ?? null;
+  // Oldest-to-newest, left-to-right, matching how every time-series chart
+  // in this app reads — the fetch itself stays newest-first since that's
+  // the cheap index-backed order, so this just reverses the small result.
+  const trendPoints = [...(recentRuns ?? [])]
+    .reverse()
+    .map((run) => ({ label: run.period_start, netKobo: BigInt(run.net_kobo) }));
 
   return (
     <Link href="/payroll" className="block transition-opacity hover:opacity-80">
@@ -139,6 +197,7 @@ export async function PayrollSnapshotWidget({ supabase, orgId }: WidgetProps) {
                 <span className="font-bold text-ink">{formatKobo(BigInt(latestRun.net_kobo))}</span>
               </div>
             </div>
+            <PayrollTrendChart points={trendPoints} />
           </>
         ) : (
           <p className={statClass}>No pay runs yet</p>
@@ -229,6 +288,7 @@ export async function AccountsSnapshotWidget({ supabase, orgId }: WidgetProps) {
   ]);
 
   const total = (outstandingBills ?? 0) + (outstandingInvoices ?? 0);
+  const maxCategory = Math.max(outstandingBills ?? 0, outstandingInvoices ?? 0);
 
   return (
     <div className={cardClass}>
@@ -236,15 +296,21 @@ export async function AccountsSnapshotWidget({ supabase, orgId }: WidgetProps) {
       <p className={statClass}>
         <AnimatedCount value={total} />
       </p>
-      <div className="mt-3 flex flex-col gap-2 text-[13px] text-ink-soft">
-        <Link href="/bills" className={`${rowClass} hover:text-primary`}>
-          <span>Bills awaiting payment</span>
-          <span className="font-bold text-ink">{outstandingBills ?? 0}</span>
-        </Link>
-        <Link href="/invoices" className={`${rowClass} hover:text-primary`}>
-          <span>Invoices awaiting collection</span>
-          <span className="font-bold text-ink">{outstandingInvoices ?? 0}</span>
-        </Link>
+      <div className="mt-3 flex flex-col gap-3">
+        <BarRow
+          href="/bills"
+          label="Bills awaiting payment"
+          value={outstandingBills ?? 0}
+          maxValue={maxCategory}
+          formattedValue={String(outstandingBills ?? 0)}
+        />
+        <BarRow
+          href="/invoices"
+          label="Invoices awaiting collection"
+          value={outstandingInvoices ?? 0}
+          maxValue={maxCategory}
+          formattedValue={String(outstandingInvoices ?? 0)}
+        />
       </div>
     </div>
   );
