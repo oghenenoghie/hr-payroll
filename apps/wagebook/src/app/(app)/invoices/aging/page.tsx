@@ -5,6 +5,7 @@ import { getMembership } from "@/lib/membership";
 import { formatKobo } from "@/lib/format";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { getSettledByInvoice, invoiceOutstandingKobo } from "@/lib/arap";
 import { toNaira } from "@plutus/compliance";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
@@ -48,24 +49,9 @@ export default async function InvoicesAgingPage() {
 
   const invoiceIds = (issuedInvoices ?? []).map((i) => i.id);
 
-  // Outstanding balance per invoice: amount minus every payment and credit
-  // note posted against it — same derivation as the Invoices page itself,
-  // never a stored column (see the partial-payments migration).
-  const [{ data: payments }, { data: creditNotes }] = await Promise.all([
-    invoiceIds.length > 0
-      ? supabase.from("customer_invoice_payments").select("invoice_id, amount_kobo").in("invoice_id", invoiceIds)
-      : Promise.resolve({ data: [] }),
-    invoiceIds.length > 0
-      ? supabase.from("customer_credit_notes").select("invoice_id, amount_kobo").in("invoice_id", invoiceIds)
-      : Promise.resolve({ data: [] }),
-  ]);
-  const settledByInvoice = new Map<string, bigint>();
-  for (const p of payments ?? []) {
-    settledByInvoice.set(p.invoice_id, (settledByInvoice.get(p.invoice_id) ?? 0n) + BigInt(p.amount_kobo));
-  }
-  for (const c of creditNotes ?? []) {
-    settledByInvoice.set(c.invoice_id, (settledByInvoice.get(c.invoice_id) ?? 0n) + BigInt(c.amount_kobo));
-  }
+  // Outstanding balance per invoice — same shared derivation as the
+  // Invoices page itself (see the partial-payments migration).
+  const settledByInvoice = await getSettledByInvoice(supabase, invoiceIds);
 
   const todayTime = new Date().setHours(0, 0, 0, 0);
 
@@ -81,7 +67,7 @@ export default async function InvoicesAgingPage() {
   const rowsByCustomer = new Map<string, CustomerRow>();
 
   for (const invoice of issuedInvoices ?? []) {
-    const outstanding = BigInt(invoice.amount_kobo) - (settledByInvoice.get(invoice.id) ?? 0n);
+    const outstanding = invoiceOutstandingKobo(invoice, settledByInvoice);
     if (outstanding <= 0n) continue;
 
     // due_date falls back to invoice_date — an invoice with no due date

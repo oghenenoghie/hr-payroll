@@ -3,11 +3,20 @@
 import { useActionState } from "react";
 import Link from "next/link";
 import { FormError, FormField, FormNotice, SubmitButton } from "@/components/AuthCard";
+import { LineItemsEditor } from "@/components/LineItemsEditor";
 import { createCustomerInvoice } from "./actions";
 
 type Customer = { id: string; name: string };
 
-export function InvoiceForm({ customers }: { customers: Customer[] }) {
+export function InvoiceForm({
+  customers,
+  vatRateScaled,
+  defaultCustomerId,
+}: {
+  customers: Customer[];
+  vatRateScaled: number;
+  defaultCustomerId?: string;
+}) {
   const [state, formAction] = useActionState(createCustomerInvoice, null);
 
   if (customers.length === 0) {
@@ -22,10 +31,23 @@ export function InvoiceForm({ customers }: { customers: Customer[] }) {
     );
   }
 
+  const preselected = defaultCustomerId ? customers.find((c) => c.id === defaultCustomerId) : undefined;
+
   return (
     <form action={formAction} className="flex flex-col gap-3">
       <FormError message={state?.error} />
-      <FormNotice message={state?.success ? "Invoice created as a draft." : undefined} />
+      <FormNotice
+        message={
+          state?.success
+            ? `Invoice created as a draft — ${state.invoiceNumber} — subtotal, VAT and total were computed automatically.`
+            : undefined
+        }
+      />
+      {preselected && (
+        <div className="rounded-panel border border-primary bg-primary-tint px-3 py-2 text-[12.5px] font-bold text-primary-dark">
+          Creating an invoice for {preselected.name}
+        </div>
+      )}
       <div className="flex flex-col gap-2">
         <label className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft" htmlFor="customer_id">
           Customer
@@ -33,7 +55,7 @@ export function InvoiceForm({ customers }: { customers: Customer[] }) {
         <select
           id="customer_id"
           name="customer_id"
-          defaultValue=""
+          defaultValue={defaultCustomerId ?? ""}
           className="w-full rounded-control border border-border bg-surface px-[13px] py-[11px] text-[13px] text-ink outline-none focus:border-primary"
         >
           <option value="" disabled>
@@ -48,13 +70,13 @@ export function InvoiceForm({ customers }: { customers: Customer[] }) {
       </div>
       <FormField label="Description" name="description" />
       <div className="grid grid-cols-2 gap-3">
-        <FormField label="Invoice number" name="invoice_number" required={false} />
-        <FormField label="Amount (₦)" name="amount" type="number" />
-      </div>
-      <div className="grid grid-cols-2 gap-3">
         <FormField label="Invoice date" name="invoice_date" type="date" />
         <FormField label="Due date" name="due_date" type="date" required={false} />
       </div>
+      <p className="-mt-1 text-[12px] text-ink-soft">
+        The invoice number is generated automatically once this invoice is created.
+      </p>
+      <LineItemsEditor fieldName="lines" vatRateScaled={vatRateScaled} />
       <SubmitButton>Create draft invoice</SubmitButton>
     </form>
   );

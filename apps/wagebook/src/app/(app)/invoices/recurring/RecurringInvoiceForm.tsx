@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import Link from "next/link";
 import { FormError, FormField, FormNotice, SubmitButton } from "@/components/AuthCard";
 import { createRecurringInvoice } from "./actions";
 
@@ -13,9 +14,9 @@ export function RecurringInvoiceForm({ customers }: { customers: Customer[] }) {
     return (
       <p className="text-[13px] text-ink-soft">
         Add a customer from{" "}
-        <a href="/customers" className="font-bold text-primary">
+        <Link href="/customers" className="font-bold text-primary">
           Customers
-        </a>{" "}
+        </Link>{" "}
         first, then come back here to set up a recurring invoice.
       </p>
     );

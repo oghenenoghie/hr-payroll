@@ -3,10 +3,13 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { naira } from "@plutus/compliance";
+import type { Json } from "@plutus/core";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 
-export type CreateInvoiceState = { error?: string; success?: boolean } | null;
+export type CreateInvoiceState = { error?: string; success?: boolean; invoiceNumber?: string } | null;
+
+type DraftLine = { description?: unknown; quantity?: unknown; unit_price_kobo?: unknown; discount_kobo?: unknown };
 
 export async function createCustomerInvoice(
   _prevState: CreateInvoiceState,
@@ -27,10 +30,8 @@ export async function createCustomerInvoice(
   }
 
   const customerId = String(formData.get("customer_id") ?? "").trim();
-  const invoiceNumber = String(formData.get("invoice_number") ?? "").trim() || null;
   const invoiceDate = String(formData.get("invoice_date") ?? "").trim();
   const dueDate = String(formData.get("due_date") ?? "").trim() || null;
-  const amountNaira = Number(formData.get("amount") ?? 0);
   const description = String(formData.get("description") ?? "").trim();
 
   if (!customerId) {
@@ -42,19 +43,34 @@ export async function createCustomerInvoice(
   if (!description) {
     return { error: "Enter a description." };
   }
-  if (!amountNaira || amountNaira <= 0) {
-    return { error: "Enter an amount greater than zero." };
+
+  // The line-item editor serializes its rows as JSON into this hidden
+  // field — real validation and every total (subtotal/VAT/amount) happen
+  // server-side in create_customer_invoice_with_lines, which never trusts
+  // a client-submitted total; this is just enough of a client-side shape
+  // check to fail with a clean message rather than a raw Postgres error.
+  let lines: DraftLine[];
+  try {
+    const parsed: unknown = JSON.parse(String(formData.get("lines") ?? "[]"));
+    if (!Array.isArray(parsed)) throw new Error("not an array");
+    lines = parsed;
+  } catch {
+    return { error: "Line items are malformed." };
+  }
+  if (lines.length === 0) {
+    return { error: "Add at least one line item." };
+  }
+  if (lines.some((line) => !String(line?.description ?? "").trim())) {
+    return { error: "Every line item needs a description." };
   }
 
-  const { error } = await supabase.from("customer_invoices").insert({
-    org_id: membership.orgId,
-    customer_id: customerId,
-    invoice_number: invoiceNumber,
-    invoice_date: invoiceDate,
-    due_date: dueDate,
-    amount_kobo: Number(naira(amountNaira)),
-    description,
-    created_by: user.id,
+  const { data, error } = await supabase.rpc("create_customer_invoice_with_lines", {
+    p_org_id: membership.orgId,
+    p_customer_id: customerId,
+    p_invoice_date: invoiceDate,
+    p_due_date: dueDate,
+    p_description: description,
+    p_lines: lines as unknown as Json,
   });
 
   if (error) {
@@ -62,7 +78,8 @@ export async function createCustomerInvoice(
   }
 
   revalidatePath("/invoices");
-  return { success: true };
+  revalidatePath("/customers");
+  return { success: true, invoiceNumber: data?.invoice_number };
 }
 
 async function requireApprover() {

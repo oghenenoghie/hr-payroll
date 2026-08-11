@@ -2,11 +2,13 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { naira } from "@plutus/compliance";
+import type { Json } from "@plutus/core";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 
-export type CreateBillState = { error?: string; success?: boolean } | null;
+export type CreateBillState = { error?: string; success?: boolean; billNumber?: string } | null;
+
+type DraftLine = { description?: unknown; quantity?: unknown; unit_price_kobo?: unknown; discount_kobo?: unknown };
 
 export async function createVendorBill(_prevState: CreateBillState, formData: FormData): Promise<CreateBillState> {
   const supabase = await createClient();
@@ -24,10 +26,8 @@ export async function createVendorBill(_prevState: CreateBillState, formData: Fo
   }
 
   const vendorId = String(formData.get("vendor_id") ?? "").trim();
-  const billNumber = String(formData.get("bill_number") ?? "").trim() || null;
   const billDate = String(formData.get("bill_date") ?? "").trim();
   const dueDate = String(formData.get("due_date") ?? "").trim() || null;
-  const amountNaira = Number(formData.get("amount") ?? 0);
   const description = String(formData.get("description") ?? "").trim();
 
   if (!vendorId) {
@@ -39,19 +39,34 @@ export async function createVendorBill(_prevState: CreateBillState, formData: Fo
   if (!description) {
     return { error: "Enter a description." };
   }
-  if (!amountNaira || amountNaira <= 0) {
-    return { error: "Enter an amount greater than zero." };
+
+  // The line-item editor serializes its rows as JSON into this hidden
+  // field — real validation and every total (subtotal/VAT/amount) happen
+  // server-side in create_vendor_bill_with_lines, which never trusts a
+  // client-submitted total; this is just enough of a client-side shape
+  // check to fail with a clean message rather than a raw Postgres error.
+  let lines: DraftLine[];
+  try {
+    const parsed: unknown = JSON.parse(String(formData.get("lines") ?? "[]"));
+    if (!Array.isArray(parsed)) throw new Error("not an array");
+    lines = parsed;
+  } catch {
+    return { error: "Line items are malformed." };
+  }
+  if (lines.length === 0) {
+    return { error: "Add at least one line item." };
+  }
+  if (lines.some((line) => !String(line?.description ?? "").trim())) {
+    return { error: "Every line item needs a description." };
   }
 
-  const { error } = await supabase.from("vendor_bills").insert({
-    org_id: membership.orgId,
-    vendor_id: vendorId,
-    bill_number: billNumber,
-    bill_date: billDate,
-    due_date: dueDate,
-    amount_kobo: Number(naira(amountNaira)),
-    description,
-    requested_by: user.id,
+  const { data, error } = await supabase.rpc("create_vendor_bill_with_lines", {
+    p_org_id: membership.orgId,
+    p_vendor_id: vendorId,
+    p_bill_date: billDate,
+    p_due_date: dueDate,
+    p_description: description,
+    p_lines: lines as unknown as Json,
   });
 
   if (error) {
@@ -59,7 +74,8 @@ export async function createVendorBill(_prevState: CreateBillState, formData: Fo
   }
 
   revalidatePath("/bills");
-  return { success: true };
+  revalidatePath("/vendors");
+  return { success: true, billNumber: data?.bill_number };
 }
 
 async function requireApprover() {

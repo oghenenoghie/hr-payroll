@@ -99,20 +99,29 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
             {customers && customers.length > 0 ? (
               customers.map((customer) => (
                 <tr key={customer.id} className="border-b border-border last:border-b-0">
-                  <td className={`${tdClass} font-bold text-ink`}>{customer.name}</td>
+                  <td className={`${tdClass} font-bold text-ink`}>
+                    <Link href={`/customers/${customer.id}`} className="text-primary">
+                      {customer.name}
+                    </Link>
+                  </td>
                   <td className={`${tdClass} text-ink-soft`}>
                     {customer.contact_email ?? customer.contact_phone ?? "—"}
                   </td>
                   <td className={`${tdClass} text-ink-soft`}>{customer.billing_address ?? "—"}</td>
                   {canManage && (
                     <td className={`${tdClass} text-right`}>
-                      <ConfirmActionButton
-                        action={deleteCustomer.bind(null, customer.id)}
-                        label="Delete"
-                        confirmTitle="Delete this customer?"
-                        confirmMessage={`"${customer.name}" will be removed. This can't be undone.`}
-                        confirmLabel="Delete"
-                      />
+                      <div className="flex justify-end gap-3">
+                        <Link href={`/invoices?customer_id=${customer.id}#raise-invoice`} className="text-[12.5px] font-bold text-primary">
+                          + Invoice
+                        </Link>
+                        <ConfirmActionButton
+                          action={deleteCustomer.bind(null, customer.id)}
+                          label="Delete"
+                          confirmTitle="Delete this customer?"
+                          confirmMessage={`"${customer.name}" will be removed. This can't be undone.`}
+                          confirmLabel="Delete"
+                        />
+                      </div>
                     </td>
                   )}
                 </tr>

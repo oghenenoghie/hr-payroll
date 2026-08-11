@@ -8,6 +8,7 @@ import { VendorBillStatusBadge } from "@/components/Badge";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { ConfirmActionButton } from "@/components/ConfirmActionButton";
+import { VatRateCard } from "@/components/VatRateCard";
 import { BillForm } from "./BillForm";
 import { ApprovedBillsTable } from "./ApprovedBillsTable";
 import { approveVendorBill, rejectVendorBill } from "./actions";
@@ -16,7 +17,11 @@ const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em
 const tdClass = "px-3 py-[10px] text-[13px]";
 const PAGE_SIZE = 25;
 
-export default async function BillsPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
+export default async function BillsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string; vendor_id?: string }>;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -39,7 +44,7 @@ export default async function BillsPage({ searchParams }: { searchParams: Promis
 
   const canManage = membership.role === "admin" || membership.role === "payroll_manager";
 
-  const { page: pageParam } = await searchParams;
+  const { page: pageParam, vendor_id: defaultVendorId } = await searchParams;
   const requestedPage = Math.max(1, Number(pageParam) || 1);
 
   // Pending/approved are an actionable work queue — every item needs to
@@ -47,7 +52,7 @@ export default async function BillsPage({ searchParams }: { searchParams: Promis
   // capped by how many bills are actually mid-workflow at once). Only the
   // settled history (rejected/paid) grows without bound over the org's
   // lifetime, so that's the part that's actually paginated.
-  const [{ data: queue }, { data: settled, count }, { data: vendors }] = await Promise.all([
+  const [{ data: queue }, { data: settled, count }, { data: vendors }, { data: org }] = await Promise.all([
     supabase
       .from("vendor_bills")
       .select("*, vendors(name)")
@@ -60,7 +65,10 @@ export default async function BillsPage({ searchParams }: { searchParams: Promis
       .order("created_at", { ascending: false })
       .range((requestedPage - 1) * PAGE_SIZE, requestedPage * PAGE_SIZE - 1),
     supabase.from("vendors").select("id, name").eq("status", "active").order("name"),
+    supabase.from("organizations").select("vat_rate_scaled").eq("id", membership.orgId).maybeSingle(),
   ]);
+
+  const vatRateScaled = org?.vat_rate_scaled ?? 0;
 
   const pending = (queue ?? []).filter((b) => b.status === "pending_approval");
   const approved = (queue ?? []).filter((b) => b.status === "approved");
@@ -109,6 +117,8 @@ export default async function BillsPage({ searchParams }: { searchParams: Promis
         </Link>
       </header>
 
+      <VatRateCard vatRateScaled={vatRateScaled} canEdit={membership.role === "admin"} />
+
       {pending.length > 0 && (
         <div className="flex flex-col gap-2">
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Pending approval</span>
@@ -116,6 +126,7 @@ export default async function BillsPage({ searchParams }: { searchParams: Promis
             <table className="w-full min-w-[720px] border-collapse">
               <thead>
                 <tr className="border-b border-border">
+                  <th className={`${thClass} text-left`}>Bill #</th>
                   <th className={`${thClass} text-left`}>Vendor</th>
                   <th className={`${thClass} text-left`}>Description</th>
                   <th className={`${thClass} text-right`}>Amount</th>
@@ -126,6 +137,7 @@ export default async function BillsPage({ searchParams }: { searchParams: Promis
               <tbody>
                 {pending.map((bill) => (
                   <tr key={bill.id} className="border-b border-border last:border-b-0">
+                    <td className={`${tdClass} font-bold text-ink`}>{bill.bill_number}</td>
                     <td className={`${tdClass} font-bold text-ink`}>{bill.vendors?.name ?? "—"}</td>
                     <td className={`${tdClass} text-ink-soft`}>{bill.description}</td>
                     <td className={`${tdClass} text-right text-ink`}>{formatKobo(BigInt(bill.amount_kobo))}</td>
@@ -177,6 +189,7 @@ export default async function BillsPage({ searchParams }: { searchParams: Promis
           <table className="w-full min-w-[720px] border-collapse">
             <thead>
               <tr className="border-b border-border">
+                <th className={`${thClass} text-left`}>Bill #</th>
                 <th className={`${thClass} text-left`}>Vendor</th>
                 <th className={`${thClass} text-left`}>Description</th>
                 <th className={`${thClass} text-right`}>Amount</th>
@@ -187,6 +200,7 @@ export default async function BillsPage({ searchParams }: { searchParams: Promis
               {rest.length > 0 ? (
                 rest.map((bill) => (
                   <tr key={bill.id} className="border-b border-border last:border-b-0">
+                    <td className={`${tdClass} font-bold text-ink`}>{bill.bill_number}</td>
                     <td className={`${tdClass} font-bold text-ink`}>{bill.vendors?.name ?? "—"}</td>
                     <td className={`${tdClass} text-ink-soft`}>{bill.description}</td>
                     <td className={`${tdClass} text-right text-ink`}>{formatKobo(BigInt(bill.amount_kobo))}</td>
@@ -197,7 +211,7 @@ export default async function BillsPage({ searchParams }: { searchParams: Promis
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4} className="px-3 py-10 text-center text-[13px] text-ink-soft">
+                  <td colSpan={5} className="px-3 py-10 text-center text-[13px] text-ink-soft">
                     No settled bills yet.
                   </td>
                 </tr>
@@ -231,10 +245,10 @@ export default async function BillsPage({ searchParams }: { searchParams: Promis
       </div>
 
       {canManage && (
-        <div className="rounded-card border border-border bg-surface p-6">
+        <div id="raise-bill" className="scroll-mt-4 rounded-card border border-border bg-surface p-6">
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Raise a bill</span>
           <div className="mt-3">
-            <BillForm vendors={vendors ?? []} />
+            <BillForm vendors={vendors ?? []} vatRateScaled={vatRateScaled} defaultVendorId={defaultVendorId} />
           </div>
         </div>
       )}

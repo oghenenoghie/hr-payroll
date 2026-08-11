@@ -102,7 +102,11 @@ export default async function VendorsPage({ searchParams }: { searchParams: Prom
             {vendors && vendors.length > 0 ? (
               vendors.map((vendor) => (
                 <tr key={vendor.id} className="border-b border-border last:border-b-0">
-                  <td className={`${tdClass} font-bold text-ink`}>{vendor.name}</td>
+                  <td className={`${tdClass} font-bold text-ink`}>
+                    <Link href={`/vendors/${vendor.id}`} className="text-primary">
+                      {vendor.name}
+                    </Link>
+                  </td>
                   <td className={`${tdClass} text-ink-soft`}>{vendor.contact_email ?? vendor.contact_phone ?? "—"}</td>
                   <td className={`${tdClass} text-ink-soft`}>
                     {vendor.bank_name ? `${vendor.bank_name} · ${vendor.bank_account_number ?? "—"}` : "—"}
@@ -114,13 +118,18 @@ export default async function VendorsPage({ searchParams }: { searchParams: Prom
                   </td>
                   {canManage && (
                     <td className={`${tdClass} text-right`}>
-                      <ConfirmActionButton
-                        action={deleteVendor.bind(null, vendor.id)}
-                        label="Delete"
-                        confirmTitle="Delete this vendor?"
-                        confirmMessage={`"${vendor.name}" will be removed. This can't be undone.`}
-                        confirmLabel="Delete"
-                      />
+                      <div className="flex justify-end gap-3">
+                        <Link href={`/bills?vendor_id=${vendor.id}#raise-bill`} className="text-[12.5px] font-bold text-primary">
+                          + Bill
+                        </Link>
+                        <ConfirmActionButton
+                          action={deleteVendor.bind(null, vendor.id)}
+                          label="Delete"
+                          confirmTitle="Delete this vendor?"
+                          confirmMessage={`"${vendor.name}" will be removed. This can't be undone.`}
+                          confirmLabel="Delete"
+                        />
+                      </div>
                     </td>
                   )}
                 </tr>

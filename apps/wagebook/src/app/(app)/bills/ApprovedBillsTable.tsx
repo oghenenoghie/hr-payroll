@@ -10,6 +10,7 @@ type ApprovedBill = {
   description: string;
   amount_kobo: number;
   due_date: string | null;
+  bill_number: string;
   vendors: { name: string } | null;
 };
 
@@ -56,6 +57,7 @@ export function ApprovedBillsTable({ bills, canManage }: { bills: ApprovedBill[]
           <thead>
             <tr className="border-b border-border">
               {canManage && <th className={thClass}></th>}
+              <th className={`${thClass} text-left`}>Bill #</th>
               <th className={`${thClass} text-left`}>Vendor</th>
               <th className={`${thClass} text-left`}>Description</th>
               <th className={`${thClass} text-right`}>Amount</th>
@@ -76,6 +78,7 @@ export function ApprovedBillsTable({ bills, canManage }: { bills: ApprovedBill[]
                     />
                   </td>
                 )}
+                <td className={`${tdClass} font-bold text-ink`}>{bill.bill_number}</td>
                 <td className={`${tdClass} font-bold text-ink`}>{bill.vendors?.name ?? "—"}</td>
                 <td className={`${tdClass} text-ink-soft`}>{bill.description}</td>
                 <td className={`${tdClass} text-right text-ink`}>{formatKobo(BigInt(bill.amount_kobo))}</td>

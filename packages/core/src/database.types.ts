@@ -1371,6 +1371,7 @@ export type Database = {
           name: string
           rc_number: string | null
           states_of_operation: string[]
+          vat_rate_scaled: number
         }
         Insert: {
           company_tin?: string | null
@@ -1381,6 +1382,7 @@ export type Database = {
           name: string
           rc_number?: string | null
           states_of_operation?: string[]
+          vat_rate_scaled?: number
         }
         Update: {
           company_tin?: string | null
@@ -1391,8 +1393,38 @@ export type Database = {
           name?: string
           rc_number?: string | null
           states_of_operation?: string[]
+          vat_rate_scaled?: number
         }
         Relationships: []
+      }
+      document_number_counters: {
+        Row: {
+          org_id: string
+          doc_type: string
+          year: number
+          last_number: number
+        }
+        Insert: {
+          org_id: string
+          doc_type: string
+          year: number
+          last_number?: number
+        }
+        Update: {
+          org_id?: string
+          doc_type?: string
+          year?: number
+          last_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_number_counters_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       overtime_requests: {
         Row: {
@@ -1943,7 +1975,7 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           bill_date: string
-          bill_number: string | null
+          bill_number: string
           created_at: string
           description: string
           due_date: string | null
@@ -1954,6 +1986,9 @@ export type Database = {
           payment_journal_entry_id: string | null
           requested_by: string
           status: string
+          subtotal_kobo: number
+          vat_kobo: number
+          vat_rate_scaled: number
           vendor_id: string
         }
         Insert: {
@@ -1972,6 +2007,9 @@ export type Database = {
           payment_journal_entry_id?: string | null
           requested_by: string
           status?: string
+          subtotal_kobo?: number
+          vat_kobo?: number
+          vat_rate_scaled?: number
           vendor_id: string
         }
         Update: {
@@ -1990,6 +2028,9 @@ export type Database = {
           payment_journal_entry_id?: string | null
           requested_by?: string
           status?: string
+          subtotal_kobo?: number
+          vat_kobo?: number
+          vat_rate_scaled?: number
           vendor_id?: string
         }
         Relationships: [
@@ -2019,6 +2060,60 @@ export type Database = {
             columns: ["payment_journal_entry_id"]
             isOneToOne: false
             referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendor_bill_lines: {
+        Row: {
+          id: string
+          org_id: string
+          bill_id: string
+          description: string
+          quantity: number
+          unit_price_kobo: number
+          discount_kobo: number
+          line_total_kobo: number
+          sort_order: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          bill_id: string
+          description: string
+          quantity: number
+          unit_price_kobo: number
+          discount_kobo?: number
+          line_total_kobo: number
+          sort_order?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          bill_id?: string
+          description?: string
+          quantity?: number
+          unit_price_kobo?: number
+          discount_kobo?: number
+          line_total_kobo?: number
+          sort_order?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_bill_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_bill_lines_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_bills"
             referencedColumns: ["id"]
           },
         ]
@@ -2172,7 +2267,7 @@ export type Database = {
           due_date: string | null
           id: string
           invoice_date: string
-          invoice_number: string | null
+          invoice_number: string
           issued_at: string | null
           issued_by: string | null
           journal_entry_id: string | null
@@ -2180,6 +2275,9 @@ export type Database = {
           paid_at: string | null
           payment_journal_entry_id: string | null
           status: string
+          subtotal_kobo: number
+          vat_kobo: number
+          vat_rate_scaled: number
         }
         Insert: {
           amount_kobo: number
@@ -2190,7 +2288,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           invoice_date: string
-          invoice_number?: string | null
+          invoice_number?: string
           issued_at?: string | null
           issued_by?: string | null
           journal_entry_id?: string | null
@@ -2198,6 +2296,9 @@ export type Database = {
           paid_at?: string | null
           payment_journal_entry_id?: string | null
           status?: string
+          subtotal_kobo?: number
+          vat_kobo?: number
+          vat_rate_scaled?: number
         }
         Update: {
           amount_kobo?: number
@@ -2208,7 +2309,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           invoice_date?: string
-          invoice_number?: string | null
+          invoice_number?: string
           issued_at?: string | null
           issued_by?: string | null
           journal_entry_id?: string | null
@@ -2216,6 +2317,9 @@ export type Database = {
           paid_at?: string | null
           payment_journal_entry_id?: string | null
           status?: string
+          subtotal_kobo?: number
+          vat_kobo?: number
+          vat_rate_scaled?: number
         }
         Relationships: [
           {
@@ -2244,6 +2348,60 @@ export type Database = {
             columns: ["payment_journal_entry_id"]
             isOneToOne: false
             referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_invoice_lines: {
+        Row: {
+          id: string
+          org_id: string
+          invoice_id: string
+          description: string
+          quantity: number
+          unit_price_kobo: number
+          discount_kobo: number
+          line_total_kobo: number
+          sort_order: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          invoice_id: string
+          description: string
+          quantity: number
+          unit_price_kobo: number
+          discount_kobo?: number
+          line_total_kobo: number
+          sort_order?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          invoice_id?: string
+          description?: string
+          quantity?: number
+          unit_price_kobo?: number
+          discount_kobo?: number
+          line_total_kobo?: number
+          sort_order?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_invoice_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_invoice_lines_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "customer_invoices"
             referencedColumns: ["id"]
           },
         ]
@@ -4025,7 +4183,7 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           bill_date: string
-          bill_number: string | null
+          bill_number: string
           created_at: string
           description: string
           due_date: string | null
@@ -4052,7 +4210,7 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           bill_date: string
-          bill_number: string | null
+          bill_number: string
           created_at: string
           description: string
           due_date: string | null
@@ -4079,7 +4237,7 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           bill_date: string
-          bill_number: string | null
+          bill_number: string
           created_at: string
           description: string
           due_date: string | null
@@ -4106,7 +4264,7 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           bill_date: string
-          bill_number: string | null
+          bill_number: string
           created_at: string
           description: string
           due_date: string | null
@@ -4137,7 +4295,7 @@ export type Database = {
           due_date: string | null
           id: string
           invoice_date: string
-          invoice_number: string | null
+          invoice_number: string
           issued_at: string | null
           issued_by: string | null
           journal_entry_id: string | null
@@ -4164,7 +4322,7 @@ export type Database = {
           due_date: string | null
           id: string
           invoice_date: string
-          invoice_number: string | null
+          invoice_number: string
           issued_at: string | null
           issued_by: string | null
           journal_entry_id: string | null
@@ -4191,7 +4349,7 @@ export type Database = {
           due_date: string | null
           id: string
           invoice_date: string
-          invoice_number: string | null
+          invoice_number: string
           issued_at: string | null
           issued_by: string | null
           journal_entry_id: string | null
@@ -4218,7 +4376,7 @@ export type Database = {
           due_date: string | null
           id: string
           invoice_date: string
-          invoice_number: string | null
+          invoice_number: string
           issued_at: string | null
           issued_by: string | null
           journal_entry_id: string | null
@@ -4230,6 +4388,100 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "customer_invoices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_customer_invoice_with_lines: {
+        Args: {
+          p_org_id: string
+          p_customer_id: string
+          p_invoice_date: string
+          p_due_date: string | null
+          p_description: string
+          p_lines: Json
+        }
+        Returns: {
+          amount_kobo: number
+          created_at: string
+          created_by: string
+          customer_id: string
+          description: string
+          due_date: string | null
+          id: string
+          invoice_date: string
+          invoice_number: string
+          issued_at: string | null
+          issued_by: string | null
+          journal_entry_id: string | null
+          org_id: string
+          paid_at: string | null
+          payment_journal_entry_id: string | null
+          status: string
+          subtotal_kobo: number
+          vat_kobo: number
+          vat_rate_scaled: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "customer_invoices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_vendor_bill_with_lines: {
+        Args: {
+          p_org_id: string
+          p_vendor_id: string
+          p_bill_date: string
+          p_due_date: string | null
+          p_description: string
+          p_lines: Json
+        }
+        Returns: {
+          amount_kobo: number
+          approved_at: string | null
+          approved_by: string | null
+          bill_date: string
+          bill_number: string
+          created_at: string
+          description: string
+          due_date: string | null
+          id: string
+          journal_entry_id: string | null
+          org_id: string
+          paid_at: string | null
+          payment_journal_entry_id: string | null
+          requested_by: string
+          status: string
+          subtotal_kobo: number
+          vat_kobo: number
+          vat_rate_scaled: number
+          vendor_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "vendor_bills"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      update_vat_rate: {
+        Args: { p_org_id: string; p_vat_rate_scaled: number }
+        Returns: {
+          company_tin: string | null
+          created_at: string
+          default_pay_frequency: string
+          default_pfa: string | null
+          id: string
+          name: string
+          rc_number: string | null
+          states_of_operation: string[]
+          vat_rate_scaled: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "organizations"
           isOneToOne: true
           isSetofReturn: false
         }
