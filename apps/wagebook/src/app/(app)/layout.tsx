@@ -26,10 +26,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   // MFA is a stated product requirement for whichever roles `roles.mfa_required`
-  // marks that way (Admin and Payroll Manager today) — a data change, not a
-  // code change, if that set needs to grow. Gate every (app) route here
-  // rather than a single entry-point page, since any of them could be the
-  // first page a session lands on (deep link, bookmark, browser restore).
+  // marks that way (Admin, Payroll Manager and Accountant today — full
+  // Payroll Manager parity for Accountant) — a data change, not a code
+  // change, if that set needs to grow. Gate every (app) route here rather
+  // than a single entry-point page, since any of them could be the first
+  // page a session lands on (deep link, bookmark, browser restore).
   if (membership.mfaRequired) {
     const { data: factorsData } = await supabase.auth.mfa.listFactors();
     const hasVerifiedTotp = (factorsData?.all ?? []).some(

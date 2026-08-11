@@ -40,12 +40,18 @@ export async function approveLeave(leaveId: string) {
     redirect("/login");
   }
 
+  // review_leave_request() only finalizes (and only then decrements the
+  // balance) on the last approval step — a multi-step workflow's
+  // intermediate approvals leave status 'pending'. Only notify the
+  // employee once it's genuinely decided, not on every step along the way.
   const { data: leaveRequest } = await supabase.rpc("review_leave_request", {
     p_leave_request_id: leaveId,
     p_approve: true,
   });
 
-  await notifyLeaveDecision(supabase, leaveRequest, "approved");
+  if (leaveRequest?.status === "approved") {
+    await notifyLeaveDecision(supabase, leaveRequest, "approved");
+  }
 
   revalidatePath("/leave");
   revalidatePath("/team");
@@ -111,13 +117,16 @@ export async function approveLeaveEncashment(requestId: string) {
 
   // Silently no-ops on failure (e.g. insufficient balance at approval time)
   // — same pattern as every other approve/reject action in this file, none
-  // of which surface RPC errors back to these bind-style buttons.
+  // of which surface RPC errors back to these bind-style buttons. Only
+  // notifies once genuinely decided, not on an intermediate workflow step.
   const { data: request } = await supabase.rpc("review_leave_encashment_request", {
     p_request_id: requestId,
     p_approve: true,
   });
 
-  await notifyLeaveEncashmentDecision(supabase, request, "approved");
+  if (request?.status === "approved") {
+    await notifyLeaveEncashmentDecision(supabase, request, "approved");
+  }
 
   revalidatePath("/leave");
 }

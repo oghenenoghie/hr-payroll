@@ -13,4 +13,5 @@ export * from "./schemes/nhf";
 export * from "./schemes/nsitf";
 export * from "./schemes/itf";
 export * from "./schemes/wht";
+export * from "./schemes/vat";
 export * from "./schemes/nhis";

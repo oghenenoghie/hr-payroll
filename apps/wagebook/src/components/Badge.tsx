@@ -222,7 +222,25 @@ export function VendorBillStatusBadge({ status }: { status: string }) {
   return <Badge tone={tone}>{VENDOR_BILL_STATUS_LABEL[status] ?? status}</Badge>;
 }
 
+const INVOICE_STATUS_TONE = {
+  issued: "warn",
+  paid: "good",
+  void: "neutral",
+} as const;
+
+export function InvoiceStatusBadge({ status }: { status: string }) {
+  const tone = INVOICE_STATUS_TONE[status as keyof typeof INVOICE_STATUS_TONE] ?? "neutral";
+  return <Badge tone={tone}>{status}</Badge>;
+}
+
 const CUSTOMER_INVOICE_STATUS_TONE = {
+  draft: "neutral",
+  issued: "warn",
+  paid: "good",
+  void: "bad",
+} as const;
+
+const VENDOR_INVOICE_STATUS_TONE = {
   draft: "neutral",
   issued: "warn",
   paid: "good",
@@ -325,5 +343,10 @@ const TRAINING_ENROLLMENT_STATUS_TONE = {
 
 export function TrainingEnrollmentStatusBadge({ status }: { status: string }) {
   const tone = TRAINING_ENROLLMENT_STATUS_TONE[status as keyof typeof TRAINING_ENROLLMENT_STATUS_TONE] ?? "neutral";
+  return <Badge tone={tone}>{status}</Badge>;
+}
+
+export function VendorInvoiceStatusBadge({ status }: { status: string }) {
+  const tone = VENDOR_INVOICE_STATUS_TONE[status as keyof typeof VENDOR_INVOICE_STATUS_TONE] ?? "neutral";
   return <Badge tone={tone}>{status}</Badge>;
 }

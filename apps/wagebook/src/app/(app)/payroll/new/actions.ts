@@ -8,6 +8,7 @@ import {
   clampNonNegative,
   computeCumulativePeriodPaye,
   computeNsitf,
+  deriveGrossedUpLumpSumPayslip,
   deriveLumpSumPayslip,
   derivePeriodPayslip,
   type PayComponent,
@@ -33,7 +34,7 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
     .from("org_memberships")
     .select("org_id")
     .eq("user_id", user.id)
-    .in("role", ["admin", "payroll_manager"]);
+    .in("role", ["admin", "payroll_manager", "accountant"]);
 
   const membership = memberships?.[0];
   if (!membership) {
@@ -67,6 +68,13 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
   // nonzero entered amount are processed (and TIN-gated) at all.
   let employees = activeEmployees;
   const bonusAmountByEmployee = new Map<string, bigint>();
+  // Gross-up: the entered amount is what the employee should actually
+  // receive, employer bears the PAYE — solved via
+  // deriveGrossedUpLumpSumPayslip's iterative net-to-gross search rather
+  // than treated as gross (feature-backlog.md §1's net-to-gross gap,
+  // scoped to lump-sum bonus payments — see payslip.ts's own scope note
+  // on why the regular annual package isn't covered here).
+  const isGrossUp = frequency === "bonus" && formData.get("gross_up") === "true";
   if (frequency === "bonus") {
     for (const employee of activeEmployees) {
       const raw = formData.get(`bonus_amount_${employee.id}`);
@@ -264,16 +272,28 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
     payslipsPayload = employees.map((employee) => {
       const prior = priorStateByEmployee.get(employee.id);
       const amountKobo = bonusAmountByEmployee.get(employee.id)!;
+      const cumulativeChargeableIncomeBeforeKobo = prior?.chargeableIncomeKobo ?? 0n;
+      const cumulativePayePaidBeforeKobo = prior?.payePaidAfterKobo ?? 0n;
 
-      const result = deriveLumpSumPayslip(
-        {
-          kind: "bonus",
-          amountKobo,
-          cumulativeChargeableIncomeBeforeKobo: prior?.chargeableIncomeKobo ?? 0n,
-          cumulativePayePaidBeforeKobo: prior?.payePaidAfterKobo ?? 0n,
-        },
-        NG_2026_1,
-      );
+      const result = isGrossUp
+        ? deriveGrossedUpLumpSumPayslip(
+            {
+              kind: "bonus",
+              targetNetKobo: amountKobo,
+              cumulativeChargeableIncomeBeforeKobo,
+              cumulativePayePaidBeforeKobo,
+            },
+            NG_2026_1,
+          )
+        : deriveLumpSumPayslip(
+            {
+              kind: "bonus",
+              amountKobo,
+              cumulativeChargeableIncomeBeforeKobo,
+              cumulativePayePaidBeforeKobo,
+            },
+            NG_2026_1,
+          );
 
       allPeriodComponents.push(result.periodComponents);
       totalGrossKobo += result.grossKobo;
@@ -297,8 +317,8 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
         paye_kobo: Number(result.payeKobo),
         employee_deductions_kobo: Number(result.payeKobo),
         net_kobo: Number(result.netKobo),
-        cumulative_chargeable_income_before_kobo: Number(prior?.chargeableIncomeKobo ?? 0n),
-        cumulative_paye_paid_before_kobo: Number(prior?.payePaidAfterKobo ?? 0n),
+        cumulative_chargeable_income_before_kobo: Number(cumulativeChargeableIncomeBeforeKobo),
+        cumulative_paye_paid_before_kobo: Number(cumulativePayePaidBeforeKobo),
         postings: postings.map((posting) => ({ ...posting, amount_kobo: Number(posting.amount_kobo) })),
       };
     });
@@ -809,7 +829,7 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
     return { error: rpcError?.message ?? "Failed to create the pay run." };
   }
 
-  const approverIds = await getOrgRoleUserIds(supabase, membership.org_id, ["admin", "payroll_manager"]);
+  const approverIds = await getOrgRoleUserIds(supabase, membership.org_id, ["admin", "payroll_manager", "accountant"]);
   await notifyUsers(supabase, {
     orgId: membership.org_id,
     recipientUserIds: approverIds.filter((id) => id !== user.id),

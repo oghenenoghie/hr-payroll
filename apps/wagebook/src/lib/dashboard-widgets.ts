@@ -99,4 +99,48 @@ export const DASHBOARD_WIDGETS: DashboardWidget[] = [
     description: "Department roster size and pending leave for a department manager's own department.",
     defaultRoles: ["department_manager"],
   },
+  {
+    key: "org_kpi_snapshot",
+    label: "Organization KPIs",
+    description: "Total employees, new hires, pending approvals and TIN-missing counts as a KPI strip.",
+    defaultRoles: [
+      "admin",
+      "payroll_manager",
+      "hr_manager",
+      "accountant",
+      "auditor",
+      "finance_manager",
+      "chro",
+    ],
+  },
+  {
+    key: "approvals_breakdown",
+    label: "Approvals breakdown",
+    description: "A donut chart of approved, pending and rejected requests across loans, expenses, overtime and leave.",
+    defaultRoles: ["admin", "payroll_manager", "hr_manager", "department_manager"],
+  },
+  {
+    key: "payroll_cost_trend",
+    label: "Payroll cost trend",
+    description: "Net pay across the last 6 months, charted.",
+    defaultRoles: ["admin", "payroll_manager", "finance_manager"],
+  },
+  {
+    key: "recent_pay_runs",
+    label: "Recent pay runs",
+    description: "The 5 most recent pay runs with status and net pay.",
+    defaultRoles: ["admin", "payroll_manager", "finance_manager"],
+  },
+  {
+    key: "employee_directory",
+    label: "Employee directory",
+    description: "A quick-glance list of recently added employees.",
+    defaultRoles: ["admin", "hr_manager", "department_manager", "chro"],
+  },
+  {
+    key: "upcoming_filings",
+    label: "Upcoming filings",
+    description: "The next PAYE, NSITF, WHT/VAT and ITF statutory deadlines.",
+    defaultRoles: ["admin", "payroll_manager", "finance_manager", "legal_compliance"],
+  },
 ];

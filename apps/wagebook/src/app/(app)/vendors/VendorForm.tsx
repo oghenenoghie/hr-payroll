@@ -13,9 +13,10 @@ export function VendorForm() {
       <FormNotice message={state?.success ? "Vendor added." : undefined} />
       <FormField label="Vendor name" name="name" />
       <div className="grid grid-cols-2 gap-3">
+        <FormField label="TIN" name="tin" required={false} />
         <FormField label="Contact email" name="contact_email" type="email" required={false} />
-        <FormField label="Contact phone" name="contact_phone" required={false} />
       </div>
+      <FormField label="Contact phone" name="contact_phone" required={false} />
       <FormField label="Bank name" name="bank_name" required={false} />
       <div className="grid grid-cols-2 gap-3">
         <FormField label="Bank account number" name="bank_account_number" required={false} />

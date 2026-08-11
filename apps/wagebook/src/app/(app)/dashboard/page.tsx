@@ -18,6 +18,12 @@ import {
   PerformanceSnapshotWidget,
   LearningSnapshotWidget,
   MyTeamSnapshotWidget,
+  OrgKpiSnapshotWidget,
+  ApprovalsBreakdownWidget,
+  PayrollCostTrendWidget,
+  RecentPayRunsWidget,
+  EmployeeDirectoryWidget,
+  UpcomingFilingsWidget,
 } from "./widgets";
 
 export default async function DashboardPage({
@@ -143,6 +149,18 @@ async function WidgetSwitch({ widgetKey, orgId, userId }: { widgetKey: string; o
       return <LearningSnapshotWidget supabase={supabase} orgId={orgId} />;
     case "my_team_snapshot":
       return <MyTeamSnapshotWidget supabase={supabase} orgId={orgId} userId={userId} />;
+    case "org_kpi_snapshot":
+      return <OrgKpiSnapshotWidget supabase={supabase} orgId={orgId} />;
+    case "approvals_breakdown":
+      return <ApprovalsBreakdownWidget supabase={supabase} orgId={orgId} />;
+    case "payroll_cost_trend":
+      return <PayrollCostTrendWidget supabase={supabase} orgId={orgId} />;
+    case "recent_pay_runs":
+      return <RecentPayRunsWidget supabase={supabase} orgId={orgId} />;
+    case "employee_directory":
+      return <EmployeeDirectoryWidget supabase={supabase} orgId={orgId} />;
+    case "upcoming_filings":
+      return <UpcomingFilingsWidget supabase={supabase} orgId={orgId} />;
     default:
       return null;
   }

@@ -100,6 +100,7 @@ const PAYROLL_ITEMS: NavItem[] = [
   { href: "/reports", label: "Reports", icon: BarChartIcon },
   { href: "/simulation", label: "Payroll Simulation", icon: SlidersIcon },
   { href: "/vendors", label: "Vendors", icon: TruckIcon },
+  { href: "/vendor-invoices", label: "Vendor Invoices", icon: ReceiptIcon },
   { href: "/bills", label: "Bills (AP)", icon: ReceiptIcon },
   { href: "/customers", label: "Customers", icon: PersonCardIcon },
   { href: "/invoices", label: "Invoices (AR)", icon: ReceiptIcon },
@@ -139,12 +140,33 @@ const AUDIT_LOG_NAV_ITEM: NavItem = { href: "/security/audit-log", label: "Audit
 const PERFORMANCE_NAV_ITEM: NavItem = { href: "/performance", label: "Performance", icon: TargetIcon };
 const EMPLOYEE_RELATIONS_NAV_ITEM: NavItem = { href: "/employee-relations", label: "Employee Relations", icon: ShieldIcon };
 const LEARNING_NAV_ITEM: NavItem = { href: "/learning", label: "Learning", icon: CapIcon };
+const BILLING_NAV_ITEM: NavItem = { href: "/billing", label: "Billing & Subscription", icon: ReceiptIcon };
+const WORKFLOWS_NAV_ITEM: NavItem = { href: "/workflows", label: "Approval Workflows", icon: SlidersIcon };
+
+// Department Manager is scoped to their own department (enforced in RLS,
+// not just here) — Employees is dept-filtered by the database, Leave &
+// Attendance only shows what review_leave_request()'s department-manager
+// branch actually lets them act on. No Payroll, Company or Tools —
+// there's nothing behind those pages they have access to. Bypasses the
+// section/override system entirely (unlike every other role) since this
+// restriction is about what the role fundamentally has RLS access to, not
+// a per-user nav preference.
+const DEPARTMENT_MANAGER_NAV_ITEMS: NavItem[] = [
+  { href: "/dashboard", label: "Overview", icon: GridIcon },
+  { href: "/employees", label: "Employees", icon: PeopleIcon },
+  { href: "/org-chart", label: "Org Chart", icon: HierarchyIcon },
+  { href: "/leave", label: "Leave & Attendance", icon: CalendarIcon },
+];
 
 // Pure — no hooks, no pathname dependency — so it can be called both from
 // this component's render and from AppShell (to derive the current page's
 // section title for the desktop top bar) without duplicating the role/
 // section logic in two places.
 export function buildNavGroups(role: string | undefined, sections: SectionKey[], isManager: boolean): NavGroup[] {
+  if (role === "department_manager") {
+    return [{ items: DEPARTMENT_MANAGER_NAV_ITEMS }];
+  }
+
   const has = (section: SectionKey) => sections.includes(section);
   const groups: NavGroup[] = [{ items: [role === "employee" ? EMPLOYEE_OVERVIEW_ITEM : OVERVIEW_ITEM] }];
 
@@ -202,7 +224,14 @@ export function buildNavGroups(role: string | undefined, sections: SectionKey[],
     // page it normally lives under.
     let companyItems = COMPANY_ITEMS;
     if (role === "admin") {
-      companyItems = [...COMPANY_ITEMS, INTEGRATIONS_NAV_ITEM, SECURITY_NAV_ITEM, AUDIT_LOG_NAV_ITEM];
+      companyItems = [
+        ...COMPANY_ITEMS,
+        INTEGRATIONS_NAV_ITEM,
+        BILLING_NAV_ITEM,
+        WORKFLOWS_NAV_ITEM,
+        SECURITY_NAV_ITEM,
+        AUDIT_LOG_NAV_ITEM,
+      ];
     } else if (role === "auditor" || role === "finance_manager" || role === "legal_compliance") {
       companyItems = [...COMPANY_ITEMS, AUDIT_LOG_NAV_ITEM];
     }

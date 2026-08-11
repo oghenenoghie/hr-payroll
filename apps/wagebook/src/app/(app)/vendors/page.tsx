@@ -5,12 +5,16 @@ import { getMembership } from "@/lib/membership";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { ConfirmActionButton } from "@/components/ConfirmActionButton";
+import { TinBadge } from "@/components/Badge";
 import { VendorForm } from "./VendorForm";
 import { deleteVendor } from "./actions";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const tdClass = "px-3 py-[10px] text-[13px]";
 const PAGE_SIZE = 50;
+
+const MANAGE_ROLES = ["admin", "payroll_manager", "accountant"];
+const VIEW_ROLES = [...MANAGE_ROLES, "auditor"];
 
 export default async function VendorsPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const supabase = await createClient();
@@ -23,17 +27,11 @@ export default async function VendorsPage({ searchParams }: { searchParams: Prom
   }
 
   const membership = await getMembership(supabase, user.id);
-  if (
-    !membership ||
-    (membership.role !== "admin" &&
-      membership.role !== "payroll_manager" &&
-      membership.role !== "accountant" &&
-      membership.role !== "auditor")
-  ) {
+  if (!membership || !VIEW_ROLES.includes(membership.role)) {
     redirect("/dashboard");
   }
 
-  const canManage = membership.role === "admin" || membership.role === "payroll_manager";
+  const canManage = MANAGE_ROLES.includes(membership.role);
 
   const { page: pageParam } = await searchParams;
   const requestedPage = Math.max(1, Number(pageParam) || 1);
@@ -56,9 +54,10 @@ export default async function VendorsPage({ searchParams }: { searchParams: Prom
   }
 
   const csv = toCsv(
-    ["Vendor", "Contact Email", "Contact Phone", "Bank Name", "Bank Account Number", "Bank Account Name", "Status"],
+    ["Vendor", "TIN", "Contact Email", "Contact Phone", "Bank Name", "Bank Account Number", "Bank Account Name", "Status"],
     (vendors ?? []).map((vendor) => [
       vendor.name,
+      vendor.tin ?? "",
       vendor.contact_email ?? "",
       vendor.contact_phone ?? "",
       vendor.bank_name ?? "",
@@ -69,7 +68,7 @@ export default async function VendorsPage({ searchParams }: { searchParams: Prom
   );
 
   return (
-    <div className="mx-auto flex w-full max-w-[720px] flex-col gap-5 px-6 py-10">
+    <div className="mx-auto flex w-full max-w-[860px] flex-col gap-5 px-6 py-10">
       <header className="flex flex-col gap-1">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Accounts Payable</span>
@@ -79,19 +78,25 @@ export default async function VendorsPage({ searchParams }: { searchParams: Prom
         </div>
         <h1 className="text-[22px] font-extrabold text-ink">Vendors</h1>
         <p className="text-[13px] text-ink-soft">
-          Suppliers you owe bills to. Add a vendor here first, then raise bills against them from{" "}
+          Suppliers you owe bills to, or bill VAT/WHT-computed invoices against. Add a vendor here first, then raise
+          a bill from{" "}
           <a href="/bills" className="font-bold text-primary">
             Bills
+          </a>{" "}
+          or an invoice from{" "}
+          <a href="/vendor-invoices" className="font-bold text-primary">
+            Vendor Invoices
           </a>
           .
         </p>
       </header>
 
       <div className="overflow-x-auto rounded-card border border-border bg-surface">
-        <table className="w-full min-w-[560px] border-collapse">
+        <table className="w-full min-w-[640px] border-collapse">
           <thead>
             <tr className="border-b border-border">
               <th className={`${thClass} text-left`}>Vendor</th>
+              <th className={`${thClass} text-left`}>TIN</th>
               <th className={`${thClass} text-left`}>Contact</th>
               <th className={`${thClass} text-left`}>Bank details</th>
               <th className={thClass}></th>
@@ -103,6 +108,9 @@ export default async function VendorsPage({ searchParams }: { searchParams: Prom
               vendors.map((vendor) => (
                 <tr key={vendor.id} className="border-b border-border last:border-b-0">
                   <td className={`${tdClass} font-bold text-ink`}>{vendor.name}</td>
+                  <td className={tdClass}>
+                    <TinBadge tin={vendor.tin} />
+                  </td>
                   <td className={`${tdClass} text-ink-soft`}>{vendor.contact_email ?? vendor.contact_phone ?? "—"}</td>
                   <td className={`${tdClass} text-ink-soft`}>
                     {vendor.bank_name ? `${vendor.bank_name} · ${vendor.bank_account_number ?? "—"}` : "—"}
@@ -127,7 +135,7 @@ export default async function VendorsPage({ searchParams }: { searchParams: Prom
               ))
             ) : (
               <tr>
-                <td colSpan={canManage ? 5 : 4} className="px-3 py-10 text-center text-[13px] text-ink-soft">
+                <td colSpan={canManage ? 6 : 5} className="px-3 py-10 text-center text-[13px] text-ink-soft">
                   No vendors yet.
                 </td>
               </tr>

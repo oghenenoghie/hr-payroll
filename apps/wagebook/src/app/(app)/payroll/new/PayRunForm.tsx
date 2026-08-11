@@ -10,6 +10,7 @@ type Frequency = "weekly" | "biweekly" | "monthly" | "thirteenth_month" | "bonus
 export function PayRunForm({ employees }: { employees: { id: string; full_name: string }[] }) {
   const [state, formAction] = useActionState(createPayRun, null);
   const [frequency, setFrequency] = useState<Frequency>("monthly");
+  const [grossUp, setGrossUp] = useState(false);
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -63,8 +64,24 @@ export function PayRunForm({ employees }: { employees: { id: string; full_name: 
 
       {frequency === "bonus" && (
         <div className="flex flex-col gap-2">
+          <label className="flex items-center gap-2 text-[12.5px] text-ink">
+            <input
+              type="checkbox"
+              name="gross_up"
+              value="true"
+              checked={grossUp}
+              onChange={(e) => setGrossUp(e.target.checked)}
+              className="h-4 w-4 rounded border-border accent-primary"
+            />
+            Gross-up — employer bears the tax
+          </label>
+          <p className="text-[11.5px] text-ink-soft">
+            {grossUp
+              ? "Amounts below are what each employee actually receives — PAYE is calculated on top and added to gross, so net pay lands exactly on the figure you enter (to the nearest kobo)."
+              : "Amounts below are gross, before tax."}
+          </p>
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
-            Bonus amount per employee (₦)
+            {grossUp ? "Target net pay per employee (₦)" : "Bonus amount per employee (₦)"}
           </span>
           {employees.length === 0 ? (
             <p className="text-[13px] text-ink-soft">No active employees.</p>

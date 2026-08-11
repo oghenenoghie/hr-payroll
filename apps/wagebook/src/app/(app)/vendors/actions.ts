@@ -5,9 +5,14 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 
+const MANAGE_ROLES = ["admin", "payroll_manager", "accountant"];
+
 export type CreateVendorState = { error?: string; success?: boolean } | null;
 
-export async function createVendor(_prevState: CreateVendorState, formData: FormData): Promise<CreateVendorState> {
+export async function createVendor(
+  _prevState: CreateVendorState,
+  formData: FormData,
+): Promise<CreateVendorState> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -18,7 +23,7 @@ export async function createVendor(_prevState: CreateVendorState, formData: Form
   }
 
   const membership = await getMembership(supabase, user.id);
-  if (!membership || (membership.role !== "admin" && membership.role !== "payroll_manager")) {
+  if (!membership || !MANAGE_ROLES.includes(membership.role)) {
     return { error: "You don't have permission to manage vendors." };
   }
 
@@ -27,6 +32,7 @@ export async function createVendor(_prevState: CreateVendorState, formData: Form
     return { error: "Enter a vendor name." };
   }
 
+  const tin = String(formData.get("tin") ?? "").trim() || null;
   const contactEmail = String(formData.get("contact_email") ?? "").trim() || null;
   const contactPhone = String(formData.get("contact_phone") ?? "").trim() || null;
   const bankName = String(formData.get("bank_name") ?? "").trim() || null;
@@ -36,6 +42,7 @@ export async function createVendor(_prevState: CreateVendorState, formData: Form
   const { error } = await supabase.from("vendors").insert({
     org_id: membership.orgId,
     name,
+    tin,
     contact_email: contactEmail,
     contact_phone: contactPhone,
     bank_name: bankName,
@@ -44,11 +51,15 @@ export async function createVendor(_prevState: CreateVendorState, formData: Form
   });
 
   if (error) {
-    return { error: error.message };
+    return {
+      error: error.code === "23505" ? "A vendor with this name already exists." : error.message,
+    };
   }
 
   revalidatePath("/vendors");
   revalidatePath("/bills");
+  revalidatePath("/vendor-invoices");
+  revalidatePath("/vendor-invoices/new");
   return { success: true };
 }
 
@@ -60,6 +71,11 @@ export async function deleteVendor(vendorId: string) {
 
   if (!user) {
     redirect("/login");
+  }
+
+  const membership = await getMembership(supabase, user.id);
+  if (!membership || !MANAGE_ROLES.includes(membership.role)) {
+    return;
   }
 
   await supabase.from("vendors").delete().eq("id", vendorId);

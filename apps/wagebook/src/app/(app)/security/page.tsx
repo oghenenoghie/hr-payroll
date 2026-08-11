@@ -7,6 +7,7 @@ import { Badge } from "@/components/Badge";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { MemberRoleForm } from "./MemberRoleForm";
+import { InviteTeamMemberForm } from "./InviteTeamMemberForm";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const tdClass = "px-3 py-[10px] text-[13px]";
@@ -22,9 +23,10 @@ export default async function SecurityPage() {
   }
 
   const membership = await getMembership(supabase, user.id);
-  if (membership?.role !== "admin") {
+  if (!membership || (membership.role !== "admin" && membership.role !== "auditor")) {
     redirect("/dashboard");
   }
+  const isAdmin = membership.role === "admin";
 
   const [{ data: roles }, { data: memberships }] = await Promise.all([
     supabase.from("roles").select("key, label, mfa_required").order("sort_order"),
@@ -80,6 +82,21 @@ export default async function SecurityPage() {
           + Add team member
         </Link>
       </header>
+
+      {isAdmin && (
+        <div className="rounded-card border border-border bg-surface p-6">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
+            Invite a team member
+          </span>
+          <p className="mt-1 text-[13px] text-ink-soft">
+            Grants operational access to the platform itself — not an employee&apos;s self-service account, which is
+            invited from their record on the Employees page.
+          </p>
+          <div className="mt-4">
+            <InviteTeamMemberForm />
+          </div>
+        </div>
+      )}
 
       <div className="overflow-x-auto rounded-card border border-border bg-surface">
         <table className="w-full min-w-[640px] border-collapse">
