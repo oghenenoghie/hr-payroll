@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { formatKobo } from "@/lib/format";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -7,6 +8,8 @@ import { payVendorBillsBatch } from "./actions";
 
 type ApprovedBill = {
   id: string;
+  vendor_id: string;
+  bill_number: string | null;
   description: string;
   amount_kobo: number;
   wht_kobo: number;
@@ -60,6 +63,7 @@ export function ApprovedBillsTable({ bills, canManage }: { bills: ApprovedBill[]
           <thead>
             <tr className="border-b border-border">
               {canManage && <th className={thClass}></th>}
+              <th className={`${thClass} text-left`}>Bill #</th>
               <th className={`${thClass} text-left`}>Vendor</th>
               <th className={`${thClass} text-left`}>Description</th>
               <th className={`${thClass} text-right`}>Amount</th>
@@ -82,7 +86,16 @@ export function ApprovedBillsTable({ bills, canManage }: { bills: ApprovedBill[]
                     />
                   </td>
                 )}
-                <td className={`${tdClass} font-bold text-ink`}>{bill.vendors?.name ?? "—"}</td>
+                <td className={`${tdClass} text-ink-soft`}>{bill.bill_number}</td>
+                <td className={`${tdClass} font-bold`}>
+                  {bill.vendors?.name ? (
+                    <Link href={`/vendors/${bill.vendor_id}`} className="text-primary">
+                      {bill.vendors.name}
+                    </Link>
+                  ) : (
+                    "—"
+                  )}
+                </td>
                 <td className={`${tdClass} text-ink-soft`}>{bill.description}</td>
                 <td className={`${tdClass} text-right text-ink`}>{formatKobo(BigInt(bill.amount_kobo))}</td>
                 <td className={`${tdClass} text-right text-ink-soft`}>{formatKobo(BigInt(bill.wht_kobo))}</td>

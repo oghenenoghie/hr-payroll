@@ -99,7 +99,11 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
             {customers && customers.length > 0 ? (
               customers.map((customer) => (
                 <tr key={customer.id} className="border-b border-border last:border-b-0">
-                  <td className={`${tdClass} font-bold text-ink`}>{customer.name}</td>
+                  <td className={`${tdClass} font-bold`}>
+                    <Link href={`/customers/${customer.id}`} className="text-primary">
+                      {customer.name}
+                    </Link>
+                  </td>
                   <td className={`${tdClass} text-ink-soft`}>
                     {customer.contact_email ?? customer.contact_phone ?? "—"}
                   </td>

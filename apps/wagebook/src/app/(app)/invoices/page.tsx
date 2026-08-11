@@ -16,7 +16,11 @@ const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em
 const tdClass = "px-3 py-[10px] text-[13px]";
 const PAGE_SIZE = 25;
 
-export default async function InvoicesPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
+export default async function InvoicesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string; customer_id?: string }>;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -39,7 +43,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
 
   const canManage = membership.role === "admin" || membership.role === "payroll_manager";
 
-  const { page: pageParam } = await searchParams;
+  const { page: pageParam, customer_id: defaultCustomerId } = await searchParams;
   const requestedPage = Math.max(1, Number(pageParam) || 1);
 
   // Draft/issued are an actionable work queue — every item needs to stay
@@ -148,6 +152,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
             <table className="w-full min-w-[720px] border-collapse">
               <thead>
                 <tr className="border-b border-border">
+                  <th className={`${thClass} text-left`}>Invoice #</th>
                   <th className={`${thClass} text-left`}>Customer</th>
                   <th className={`${thClass} text-left`}>Description</th>
                   <th className={`${thClass} text-right`}>Amount</th>
@@ -158,7 +163,16 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
               <tbody>
                 {drafts.map((invoice) => (
                   <tr key={invoice.id} className="border-b border-border last:border-b-0">
-                    <td className={`${tdClass} font-bold text-ink`}>{invoice.customers?.name ?? "—"}</td>
+                    <td className={`${tdClass} text-ink-soft`}>{invoice.invoice_number}</td>
+                    <td className={`${tdClass} font-bold`}>
+                      {invoice.customers?.name ? (
+                        <Link href={`/customers/${invoice.customer_id}`} className="text-primary">
+                          {invoice.customers.name}
+                        </Link>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                     <td className={`${tdClass} text-ink-soft`}>{invoice.description}</td>
                     <td className={`${tdClass} text-right text-ink`}>{formatKobo(BigInt(invoice.amount_kobo))}</td>
                     <td className={`${tdClass} text-ink-soft`}>{invoice.invoice_date}</td>
@@ -201,6 +215,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
             <table className="w-full min-w-[720px] border-collapse">
               <thead>
                 <tr className="border-b border-border">
+                  <th className={`${thClass} text-left`}>Invoice #</th>
                   <th className={`${thClass} text-left`}>Customer</th>
                   <th className={`${thClass} text-left`}>Description</th>
                   <th className={`${thClass} text-right`}>Amount</th>
@@ -214,7 +229,16 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
                   const outstanding = outstandingKobo(invoice);
                   return (
                     <tr key={invoice.id} className="border-b border-border last:border-b-0">
-                      <td className={`${tdClass} font-bold text-ink`}>{invoice.customers?.name ?? "—"}</td>
+                      <td className={`${tdClass} text-ink-soft`}>{invoice.invoice_number}</td>
+                      <td className={`${tdClass} font-bold`}>
+                      {invoice.customers?.name ? (
+                        <Link href={`/customers/${invoice.customer_id}`} className="text-primary">
+                          {invoice.customers.name}
+                        </Link>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                       <td className={`${tdClass} text-ink-soft`}>{invoice.description}</td>
                       <td className={`${tdClass} text-right text-ink`}>{formatKobo(BigInt(invoice.amount_kobo))}</td>
                       <td className={`${tdClass} text-right font-bold text-ink`}>{formatKobo(outstanding)}</td>
@@ -246,6 +270,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
           <table className="w-full min-w-[720px] border-collapse">
             <thead>
               <tr className="border-b border-border">
+                <th className={`${thClass} text-left`}>Invoice #</th>
                 <th className={`${thClass} text-left`}>Customer</th>
                 <th className={`${thClass} text-left`}>Description</th>
                 <th className={`${thClass} text-right`}>Amount</th>
@@ -256,7 +281,16 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
               {rest.length > 0 ? (
                 rest.map((invoice) => (
                   <tr key={invoice.id} className="border-b border-border last:border-b-0">
-                    <td className={`${tdClass} font-bold text-ink`}>{invoice.customers?.name ?? "—"}</td>
+                    <td className={`${tdClass} text-ink-soft`}>{invoice.invoice_number}</td>
+                    <td className={`${tdClass} font-bold`}>
+                      {invoice.customers?.name ? (
+                        <Link href={`/customers/${invoice.customer_id}`} className="text-primary">
+                          {invoice.customers.name}
+                        </Link>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                     <td className={`${tdClass} text-ink-soft`}>{invoice.description}</td>
                     <td className={`${tdClass} text-right text-ink`}>{formatKobo(BigInt(invoice.amount_kobo))}</td>
                     <td className={`${tdClass} text-center`}>
@@ -266,7 +300,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4} className="px-3 py-10 text-center text-[13px] text-ink-soft">
+                  <td colSpan={5} className="px-3 py-10 text-center text-[13px] text-ink-soft">
                     No paid or void invoices yet.
                   </td>
                 </tr>
@@ -300,10 +334,10 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
       </div>
 
       {canManage && (
-        <div className="rounded-card border border-border bg-surface p-6">
+        <div id="raise-invoice" className="rounded-card border border-border bg-surface p-6 scroll-mt-6">
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Raise an invoice</span>
           <div className="mt-3">
-            <InvoiceForm customers={customers ?? []} />
+            <InvoiceForm customers={customers ?? []} defaultCustomerId={defaultCustomerId} />
           </div>
         </div>
       )}

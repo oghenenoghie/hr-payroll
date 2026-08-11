@@ -2,9 +2,10 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { NG_2026_1, UnknownWhtCategoryError, computeVendorInvoiceTotals, naira } from "@plutus/compliance";
+import { NG_2026_1, UnknownWhtCategoryError, computeVendorInvoiceTotals } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
+import { parseLineItemsField } from "@/lib/lineItems";
 
 export type CreateBillState = { error?: string; success?: boolean } | null;
 
@@ -24,13 +25,12 @@ export async function createVendorBill(_prevState: CreateBillState, formData: Fo
   }
 
   const vendorId = String(formData.get("vendor_id") ?? "").trim();
-  const billNumber = String(formData.get("bill_number") ?? "").trim() || null;
   const billDate = String(formData.get("bill_date") ?? "").trim();
   const dueDate = String(formData.get("due_date") ?? "").trim() || null;
-  const subtotalNaira = Number(formData.get("subtotal") ?? 0);
   const description = String(formData.get("description") ?? "").trim();
   const vatCategory = String(formData.get("vat_category") ?? "standard").trim() || "standard";
   const whtCategory = String(formData.get("wht_category") ?? "").trim();
+  const lines = parseLineItemsField(formData.get("lines"));
 
   if (!vendorId) {
     return { error: "Choose a vendor." };
@@ -41,17 +41,22 @@ export async function createVendorBill(_prevState: CreateBillState, formData: Fo
   if (!description) {
     return { error: "Enter a description." };
   }
-  if (!subtotalNaira || subtotalNaira <= 0) {
-    return { error: "Enter a subtotal greater than zero." };
+  if (lines.length === 0) {
+    return { error: "Add at least one line item." };
   }
   if (!whtCategory) {
     return { error: "Select a WHT category." };
   }
 
+  const subtotalKobo = lines.reduce((sum, line) => sum + line.line_total_kobo, 0);
+  if (subtotalKobo <= 0) {
+    return { error: "Line items must total more than zero." };
+  }
+
   const ruleVersion = NG_2026_1;
   let totals;
   try {
-    totals = computeVendorInvoiceTotals({ subtotalKobo: naira(subtotalNaira), vatCategory, whtCategory }, ruleVersion);
+    totals = computeVendorInvoiceTotals({ subtotalKobo: BigInt(subtotalKobo), vatCategory, whtCategory }, ruleVersion);
   } catch (err) {
     if (err instanceof UnknownWhtCategoryError) {
       return { error: "Unrecognized WHT category." };
@@ -59,23 +64,19 @@ export async function createVendorBill(_prevState: CreateBillState, formData: Fo
     throw err;
   }
 
-  const { error } = await supabase.from("vendor_bills").insert({
-    org_id: membership.orgId,
-    vendor_id: vendorId,
-    bill_number: billNumber,
-    bill_date: billDate,
-    due_date: dueDate,
-    amount_kobo: Number(totals.invoiceTotalKobo),
-    subtotal_kobo: Number(totals.subtotalKobo),
-    vat_category: vatCategory,
-    vat_kobo: Number(totals.vatKobo),
-    vat_exempt: totals.vatExempt,
-    wht_category: whtCategory,
-    wht_kobo: Number(totals.whtKobo),
-    net_payable_kobo: Number(totals.netPayableToVendorKobo),
-    rule_version_id: ruleVersion.id,
-    description,
-    requested_by: user.id,
+  const { error } = await supabase.rpc("create_vendor_bill_with_lines", {
+    p_vendor_id: vendorId,
+    p_description: description,
+    p_bill_date: billDate,
+    p_due_date: dueDate,
+    p_subtotal_kobo: Number(totals.subtotalKobo),
+    p_vat_category: vatCategory,
+    p_vat_kobo: Number(totals.vatKobo),
+    p_vat_exempt: totals.vatExempt,
+    p_wht_category: whtCategory,
+    p_wht_kobo: Number(totals.whtKobo),
+    p_rule_version_id: ruleVersion.id,
+    p_lines: lines,
   });
 
   if (error) {
