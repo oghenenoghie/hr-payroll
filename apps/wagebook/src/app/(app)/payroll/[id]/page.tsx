@@ -7,7 +7,25 @@ import { PayRunStatusBadge } from "@/components/Badge";
 import { PayslipTable } from "./PayslipTable";
 import { PayRunDraftActions } from "./PayRunDraftActions";
 import { ReversalForm } from "./ReversalForm";
+import { RecordRemittanceForm } from "./RecordRemittanceForm";
 import { VarianceFlags, type VarianceFlag } from "./VarianceFlags";
+
+// The four schemes this build actually posts a liability for — matches
+// /compliance and /reports's own "applied" set. ITF and WHT are
+// "documented, not yet applied" and have no liability to remit against.
+const REMITTANCE_SCHEME_ACCOUNT_CODES: Record<string, string> = {
+  paye: "paye_payable",
+  pension: "pension_payable",
+  nhf: "nhf_payable",
+  nsitf: "nsitf_payable",
+};
+const REMITTANCE_SCHEME_LABEL: Record<string, string> = {
+  paye: "PAYE",
+  pension: "Pension",
+  nhf: "NHF",
+  nsitf: "NSITF",
+};
+const REMITTANCE_ROLES = new Set(["admin", "payroll_manager", "finance_manager"]);
 
 // Variance flags only make sense for ongoing salary (weekly/biweekly/monthly)
 // — bonus, 13th month and final settlement ("off-cycle") runs are inherently
@@ -117,6 +135,64 @@ export default async function PayRunDetailPage({ params }: { params: Promise<{ i
         .order("account_code")
     : { data: null };
 
+  // The run's ORIGINAL journal entry specifically (earliest by
+  // created_at) — not the single `journalEntry` above, which breaks once
+  // a run is reversed (a reversed run has two journal_entries rows
+  // sharing this pay_run_id, and .maybeSingle() errors on more than one).
+  // Same "order by created_at asc limit 1" reverse_pay_run itself uses to
+  // find the entry it's correcting.
+  const { data: originalJournalEntries } = await supabase
+    .from("journal_entries")
+    .select("id")
+    .eq("pay_run_id", id)
+    .order("created_at", { ascending: true })
+    .limit(1);
+  const originalJournalEntry = originalJournalEntries?.[0] ?? null;
+
+  const [{ data: liabilityPostings }, { data: remittances }] = await Promise.all([
+    originalJournalEntry
+      ? supabase
+          .from("ledger_postings")
+          .select("account_code, amount_kobo")
+          .eq("journal_entry_id", originalJournalEntry.id)
+          .eq("direction", "credit")
+          .in("account_code", Object.values(REMITTANCE_SCHEME_ACCOUNT_CODES))
+      : Promise.resolve({ data: null }),
+    supabase
+      .from("statutory_remittances")
+      .select("scheme, amount_kobo, remitted_on, reference, notes, created_at")
+      .eq("pay_run_id", id)
+      .order("created_at", { ascending: false }),
+  ]);
+
+  const liabilityKoboByScheme = new Map<string, bigint>();
+  for (const posting of liabilityPostings ?? []) {
+    const scheme = Object.keys(REMITTANCE_SCHEME_ACCOUNT_CODES).find(
+      (key) => REMITTANCE_SCHEME_ACCOUNT_CODES[key] === posting.account_code,
+    );
+    if (scheme) liabilityKoboByScheme.set(scheme, BigInt(posting.amount_kobo));
+  }
+
+  const remittancesByScheme = new Map<string, typeof remittances>();
+  for (const remittance of remittances ?? []) {
+    const existing = remittancesByScheme.get(remittance.scheme) ?? [];
+    existing.push(remittance);
+    remittancesByScheme.set(remittance.scheme, existing);
+  }
+
+  const schemesForRecording = [...liabilityKoboByScheme.keys()].map((scheme) => ({
+    value: scheme,
+    label: `${REMITTANCE_SCHEME_LABEL[scheme]} (${formatKobo(liabilityKoboByScheme.get(scheme)!)} posted)`,
+  }));
+
+  const remittedSchemesForReversal = [...remittancesByScheme.entries()].map(([scheme, rows]) => ({
+    label: REMITTANCE_SCHEME_LABEL[scheme] ?? scheme,
+    amountKobo: (rows ?? []).reduce((sum, r) => sum + BigInt(r.amount_kobo), 0n),
+    remittedOn: (rows ?? [])[0]?.remitted_on ?? "",
+  }));
+
+  const canRecordRemittance = REMITTANCE_ROLES.has(membership?.role ?? "");
+
   return (
     <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 px-6 py-10">
       <header className="flex items-start justify-between gap-4">
@@ -184,6 +260,49 @@ export default async function PayRunDetailPage({ params }: { params: Promise<{ i
         </div>
       )}
 
+      {liabilityKoboByScheme.size > 0 && (
+        <div className="rounded-card border border-border bg-surface p-6">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
+            Statutory remittances
+          </span>
+          <p className="mt-1 text-[12.5px] text-ink-soft">
+            A record of what&apos;s actually been paid to each authority for this run — not a payment made by this
+            system. Recording one here is what lets reversal warn you before correcting a liability that&apos;s
+            already left the business.
+          </p>
+          <div className="mt-3 flex flex-col gap-2">
+            {[...liabilityKoboByScheme.entries()].map(([scheme, liabilityKobo]) => {
+              const recorded = remittancesByScheme.get(scheme) ?? [];
+              return (
+                <div key={scheme} className="rounded-panel border border-border bg-bg p-3">
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-[13px] font-bold text-ink">{REMITTANCE_SCHEME_LABEL[scheme]}</span>
+                    <span className="text-[12.5px] text-ink-soft">{formatKobo(liabilityKobo)} posted</span>
+                  </div>
+                  {recorded.length > 0 ? (
+                    <ul className="mt-1 flex flex-col gap-1">
+                      {recorded.map((remittance) => (
+                        <li key={remittance.created_at} className="text-[12.5px] text-good">
+                          {formatKobo(BigInt(remittance.amount_kobo))} remitted {remittance.remitted_on}
+                          {remittance.reference ? ` · ${remittance.reference}` : ""}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <span className="text-[12.5px] text-ink-soft">Not yet recorded</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          {canRecordRemittance && (
+            <div className="mt-4 border-t border-border pt-4">
+              <RecordRemittanceForm payRunId={payRun.id} schemes={schemesForRecording} />
+            </div>
+          )}
+        </div>
+      )}
+
       {reversal && (
         <div className="rounded-card border border-bad bg-bad-tint p-6">
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-bad">Reversed</span>
@@ -196,7 +315,7 @@ export default async function PayRunDetailPage({ params }: { params: Promise<{ i
         <div className="rounded-card border border-border bg-surface p-6">
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Reverse this run</span>
           <div className="mt-3">
-            <ReversalForm payRunId={payRun.id} />
+            <ReversalForm payRunId={payRun.id} remittedSchemes={remittedSchemesForReversal} />
           </div>
         </div>
       )}

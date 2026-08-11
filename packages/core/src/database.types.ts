@@ -331,6 +331,60 @@ export type Database = {
           },
         ]
       }
+      statutory_remittances: {
+        Row: {
+          amount_kobo: number
+          created_at: string
+          id: string
+          notes: string | null
+          org_id: string
+          pay_run_id: string
+          recorded_by: string
+          reference: string | null
+          remitted_on: string
+          scheme: string
+        }
+        Insert: {
+          amount_kobo: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          org_id: string
+          pay_run_id: string
+          recorded_by: string
+          reference?: string | null
+          remitted_on: string
+          scheme: string
+        }
+        Update: {
+          amount_kobo?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          org_id?: string
+          pay_run_id?: string
+          recorded_by?: string
+          reference?: string | null
+          remitted_on?: string
+          scheme?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "statutory_remittances_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "statutory_remittances_pay_run_id_fkey"
+            columns: ["pay_run_id"]
+            isOneToOne: false
+            referencedRelation: "pay_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employment_contract_signatures: {
         Row: {
           document_hash: string
@@ -4147,7 +4201,7 @@ export type Database = {
         }
       }
       reverse_pay_run: {
-        Args: { p_pay_run_id: string; p_reason: string }
+        Args: { p_pay_run_id: string; p_reason: string; p_acknowledge_remitted?: boolean }
         Returns: {
           created_at: string
           id: string
@@ -4640,6 +4694,34 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "fixed_assets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      record_statutory_remittance: {
+        Args: {
+          p_pay_run_id: string
+          p_scheme: string
+          p_amount_kobo: number
+          p_remitted_on: string
+          p_reference?: string | null
+          p_notes?: string | null
+        }
+        Returns: {
+          amount_kobo: number
+          created_at: string
+          id: string
+          notes: string | null
+          org_id: string
+          pay_run_id: string
+          recorded_by: string
+          reference: string | null
+          remitted_on: string
+          scheme: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "statutory_remittances"
           isOneToOne: true
           isSetofReturn: false
         }
