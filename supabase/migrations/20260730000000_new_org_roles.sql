@@ -10,14 +10,36 @@
 -- "Super Admin" (the display name for the existing 'admin' role) is a
 -- label-only change and needs no migration — see AppShell.tsx and
 -- security/page.tsx.
-alter table public.org_memberships drop constraint org_memberships_role_check;
-alter table public.org_memberships add constraint org_memberships_role_check
-  check (role in ('admin', 'payroll_manager', 'hr_manager', 'accountant', 'department_manager', 'auditor', 'employee'));
+--
+-- What this migration does NOT need to do anymore: legalize these three
+-- role values on org_memberships.role. That was originally a CHECK-
+-- constraint swap here, but 20260729010000_roles_and_permissions.sql
+-- (an independent, parallel migration merged into this branch) already
+-- replaced the whole CHECK-constraint mechanism with a foreign key to a
+-- new public.roles table, and its seed insert already lists 'accountant',
+-- 'department_manager' and 'auditor' among the seven roles it creates.
+-- The original two-statement constraint swap that stood here (drop
+-- org_memberships_role_check, re-add it with a wider role list) fails on
+-- a fresh replay for exactly that reason: by the time this migration
+-- runs, org_memberships_role_check no longer exists to be dropped — it
+-- was already dropped and replaced by org_memberships_role_fkey. Removed
+-- rather than reordered, since the FK already grants everything those
+-- two statements were trying to grant. Everything below (RLS widening,
+-- the employees_masked redeclare, the create_pay_run/approve_pay_run/
+-- discard_pay_run_draft/review_leave_encashment_request/
+-- check_pending_approvals redeclares) is independent of which mechanism
+-- makes the role legal and stays exactly as originally written.
 
--- employees_masked: latest definition was 20260724000000_branches.sql's.
--- Full redeclare (the only way to change a view's column expressions) —
--- accountant now sees real salary figures, same as admin/payroll_manager,
--- since it has full payroll-processing parity with Payroll Manager.
+-- employees_masked: base off 20260729020000_employee_id_login.sql's
+-- definition, not 20260724000000_branches.sql's as this migration
+-- originally assumed — employee_id_login is a later, independent,
+-- parallel migration (merged into this branch) that appended
+-- e.employee_id as this view's last column, and CREATE OR REPLACE VIEW
+-- can only append new columns at the end, never drop or reorder one a
+-- prior definition already exposed. Full redeclare (the only way to
+-- change a view's column expressions) — accountant now sees real salary
+-- figures, same as admin/payroll_manager, since it has full
+-- payroll-processing parity with Payroll Manager.
 create or replace view public.employees_masked
 with (security_invoker = true)
 as
@@ -64,7 +86,8 @@ select
   e.employment_type,
   e.contract_end_date,
   e.branch_id,
-  b.name as branch_name
+  b.name as branch_name,
+  e.employee_id
 from public.employees e
 left join public.departments d on d.id = e.department_id
 left join public.job_grades jg on jg.id = e.job_grade_id
