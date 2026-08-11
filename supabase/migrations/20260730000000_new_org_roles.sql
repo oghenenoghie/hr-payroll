@@ -2,9 +2,9 @@
 -- hr_manager/employee set: 'accountant' (full Payroll Manager parity —
 -- everywhere payroll_manager appears in a role check, accountant is added
 -- alongside it), 'department_manager' (its own migration,
--- 20260730020000, since it needs a new departments.manager_id column and
+-- 20260730020001, since it needs a new departments.manager_id column and
 -- department-scoped policies rather than a simple array widening), and
--- 'auditor' (its own migration, 20260730010000 — strictly read-only,
+-- 'auditor' (its own migration, 20260730010001 — strictly read-only,
 -- added only to SELECT policies, never to INSERT/UPDATE/DELETE).
 --
 -- "Super Admin" (the display name for the existing 'admin' role) is a

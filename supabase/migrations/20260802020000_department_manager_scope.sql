@@ -1,7 +1,7 @@
 -- Wires up the Department Manager role for real — was originally written
 -- believing nothing anywhere checked for it yet. In the combined history
 -- (this migration merged from a branch that diverged before
--- 20260730020000_department_manager.sql landed), that migration already
+-- 20260730020001_department_manager.sql landed), that migration already
 -- had: departments.manager_id (an explicit, admin-assigned "head of
 -- department" column — see departments/actions.ts), a
 -- core.is_manager_of_department(department_id) helper built on it, and

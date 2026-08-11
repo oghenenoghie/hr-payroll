@@ -80,13 +80,13 @@ export default async function VendorsPage({ searchParams }: { searchParams: Prom
         <p className="text-[13px] text-ink-soft">
           Suppliers you owe bills to, or bill VAT/WHT-computed invoices against. Add a vendor here first, then raise
           a bill from{" "}
-          <a href="/bills" className="font-bold text-primary">
+          <Link href="/bills" className="font-bold text-primary">
             Bills
-          </a>{" "}
+          </Link>{" "}
           or an invoice from{" "}
-          <a href="/vendor-invoices" className="font-bold text-primary">
+          <Link href="/vendor-invoices" className="font-bold text-primary">
             Vendor Invoices
-          </a>
+          </Link>
           .
         </p>
       </header>

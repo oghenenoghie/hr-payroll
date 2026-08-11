@@ -202,7 +202,7 @@ $$;
 revoke all on function core.is_eligible_leave_approver(uuid, uuid, integer) from public, anon;
 grant execute on function core.is_eligible_leave_approver(uuid, uuid, integer) to authenticated;
 
--- review_leave_request(): full redeclare per 20260730020000_department_
+-- review_leave_request(): full redeclare per 20260730020001_department_
 -- manager.sql (the last migration to touch it). Same public signature
 -- and same final observable behavior for every org that hasn't
 -- configured a custom workflow — creates a one-step approval_instances
