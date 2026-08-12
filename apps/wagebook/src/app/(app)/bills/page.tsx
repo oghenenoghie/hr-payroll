@@ -46,29 +46,34 @@ export default async function BillsPage({
   const { page: pageParam, vendor_id: defaultVendorId } = await searchParams;
   const requestedPage = Math.max(1, Number(pageParam) || 1);
 
-  // Pending/approved are an actionable work queue — every item needs to
-  // stay visible, so that fetch is unbounded (these naturally stay small,
-  // capped by how many bills are actually mid-workflow at once). Only the
-  // settled history (rejected/paid) grows without bound over the org's
-  // lifetime, so that's the part that's actually paginated.
+  // Pending/approved/scheduled are an actionable work queue — every item
+  // needs to stay visible, so that fetch is unbounded (these naturally
+  // stay small, capped by how many bills are actually mid-workflow at
+  // once). Only the settled history (rejected/paid/cancelled) grows
+  // without bound over the org's lifetime, so that's the part that's
+  // actually paginated.
   const [{ data: queue }, { data: settled, count }, { data: vendors }] = await Promise.all([
     supabase
       .from("vendor_bills")
       .select("*, vendors(name)")
-      .in("status", ["pending_approval", "approved"])
+      .in("status", ["pending_approval", "approved", "scheduled"])
       .order("created_at", { ascending: false }),
     supabase
       .from("vendor_bills")
       .select("*, vendors(name)", { count: "exact" })
-      .in("status", ["rejected", "paid"])
+      .in("status", ["rejected", "paid", "cancelled"])
       .order("created_at", { ascending: false })
       .range((requestedPage - 1) * PAGE_SIZE, requestedPage * PAGE_SIZE - 1),
     supabase.from("vendors").select("id, name").eq("status", "active").order("name"),
   ]);
 
   const pending = (queue ?? []).filter((b) => b.status === "pending_approval");
-  const approved = (queue ?? []).filter((b) => b.status === "approved");
+  // Approved and scheduled render in the same table — scheduling is an
+  // optional waypoint on the way to paid, not a separate queue a viewer
+  // needs to check in a different place.
+  const awaitingPayment = (queue ?? []).filter((b) => b.status === "approved" || b.status === "scheduled");
   const rest = settled ?? [];
+  const today = new Date().toISOString().slice(0, 10);
 
   const totalSettled = count ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalSettled / PAGE_SIZE));
@@ -94,8 +99,9 @@ export default async function BillsPage({
       "Bill Date",
       "Due Date",
       "Status",
+      "Scheduled Payment Date",
     ],
-    [...pending, ...approved, ...rest].map((bill) => [
+    [...pending, ...awaitingPayment, ...rest].map((bill) => [
       bill.vendors?.name ?? "—",
       bill.description,
       bill.bill_number ?? "",
@@ -107,6 +113,7 @@ export default async function BillsPage({
       bill.bill_date,
       bill.due_date ?? "",
       bill.status,
+      bill.scheduled_payment_date ?? "",
     ]),
   );
 
@@ -115,7 +122,7 @@ export default async function BillsPage({
       <header className="flex flex-col gap-1">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Accounts Payable</span>
-          {(pending.length > 0 || approved.length > 0 || rest.length > 0) && (
+          {(pending.length > 0 || awaitingPayment.length > 0 || rest.length > 0) && (
             <ExportCsvButton csv={csv} filename="vendor-bills.csv" label="Export queue + this page (CSV)" />
           )}
         </div>
@@ -196,12 +203,12 @@ export default async function BillsPage({
         </div>
       )}
 
-      {approved.length > 0 && (
+      {awaitingPayment.length > 0 && (
         <div className="flex flex-col gap-2">
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
             Approved — awaiting payment
           </span>
-          <ApprovedBillsTable bills={approved} canManage={canManage} />
+          <ApprovedBillsTable bills={awaitingPayment} canManage={canManage} today={today} />
         </div>
       )}
 

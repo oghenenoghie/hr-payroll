@@ -1957,6 +1957,9 @@ export type Database = {
           approved_by: string | null
           bill_date: string
           bill_number: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           created_at: string
           description: string
           due_date: string | null
@@ -1968,6 +1971,7 @@ export type Database = {
           payment_journal_entry_id: string | null
           requested_by: string
           rule_version_id: string | null
+          scheduled_payment_date: string | null
           status: string
           subtotal_kobo: number
           vat_category: string | null
@@ -1983,6 +1987,9 @@ export type Database = {
           approved_by?: string | null
           bill_date: string
           bill_number?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           created_at?: string
           description: string
           due_date?: string | null
@@ -1994,6 +2001,7 @@ export type Database = {
           payment_journal_entry_id?: string | null
           requested_by: string
           rule_version_id?: string | null
+          scheduled_payment_date?: string | null
           status?: string
           subtotal_kobo: number
           vat_category?: string | null
@@ -2009,6 +2017,9 @@ export type Database = {
           approved_by?: string | null
           bill_date?: string
           bill_number?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           created_at?: string
           description?: string
           due_date?: string | null
@@ -2020,6 +2031,7 @@ export type Database = {
           payment_journal_entry_id?: string | null
           requested_by?: string
           rule_version_id?: string | null
+          scheduled_payment_date?: string | null
           status?: string
           subtotal_kobo?: number
           vat_category?: string | null
@@ -4687,6 +4699,64 @@ export type Database = {
           to: "vendor_bills"
           isOneToOne: false
           isSetofReturn: true
+        }
+      }
+      schedule_vendor_bill_payment: {
+        Args: { p_bill_id: string; p_payment_date: string }
+        Returns: {
+          amount_kobo: number
+          approved_at: string | null
+          approved_by: string | null
+          bill_date: string
+          bill_number: string | null
+          created_at: string
+          description: string
+          due_date: string | null
+          id: string
+          journal_entry_id: string | null
+          org_id: string
+          paid_at: string | null
+          payment_journal_entry_id: string | null
+          requested_by: string
+          scheduled_payment_date: string | null
+          status: string
+          vendor_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "vendor_bills"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      cancel_vendor_bill: {
+        Args: { p_bill_id: string; p_reason: string }
+        Returns: {
+          amount_kobo: number
+          approved_at: string | null
+          approved_by: string | null
+          bill_date: string
+          bill_number: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          created_at: string
+          description: string
+          due_date: string | null
+          id: string
+          journal_entry_id: string | null
+          org_id: string
+          paid_at: string | null
+          payment_journal_entry_id: string | null
+          requested_by: string
+          status: string
+          vendor_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "vendor_bills"
+          isOneToOne: true
+          isSetofReturn: false
         }
       }
       create_vendor_bill_with_lines: {

@@ -206,16 +206,29 @@ export function BenefitEnrollmentStatusBadge({ status }: { status: string }) {
 const VENDOR_BILL_STATUS_TONE = {
   pending_approval: "warn",
   approved: "good",
+  scheduled: "warn",
   rejected: "bad",
   paid: "neutral",
+  cancelled: "neutral",
 } as const;
 
 const VENDOR_BILL_STATUS_LABEL: Record<string, string> = {
   pending_approval: "Pending approval",
   approved: "Approved",
+  scheduled: "Scheduled",
   rejected: "Rejected",
   paid: "Paid",
+  cancelled: "Cancelled",
 };
+
+// Overdue isn't a stored status — a bill is overdue when it's still
+// waiting on payment (approved or scheduled) and its due date has
+// passed. Rendered as a second, separate badge alongside the status
+// badge above, never as a status value of its own, so it can never
+// drift from what due_date/status actually say.
+export function OverdueBadge() {
+  return <Badge tone="bad">Overdue</Badge>;
+}
 
 export function VendorBillStatusBadge({ status }: { status: string }) {
   const tone = VENDOR_BILL_STATUS_TONE[status as keyof typeof VENDOR_BILL_STATUS_TONE] ?? "neutral";

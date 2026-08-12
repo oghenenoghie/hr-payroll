@@ -4,7 +4,10 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { formatKobo } from "@/lib/format";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { VendorBillStatusBadge, OverdueBadge } from "@/components/Badge";
 import { payVendorBillsBatch } from "./actions";
+import { ScheduleBillPaymentForm } from "./ScheduleBillPaymentForm";
+import { CancelBillForm } from "./CancelBillForm";
 
 type ApprovedBill = {
   id: string;
@@ -15,18 +18,28 @@ type ApprovedBill = {
   wht_kobo: number;
   net_payable_kobo: number;
   due_date: string | null;
+  status: string;
+  scheduled_payment_date: string | null;
   vendors: { name: string } | null;
 };
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const tdClass = "px-3 py-[10px] text-[13px]";
 
-// Select several approved bills and pay them together in one action —
-// one aggregate journal entry for the whole batch (see
-// pay_vendor_bills_batch), the same way a pay run posts once per run
-// rather than once per employee — instead of clicking "mark as paid" on
-// each bill individually.
-export function ApprovedBillsTable({ bills, canManage }: { bills: ApprovedBill[]; canManage: boolean }) {
+// Select several bills — approved or already scheduled for payment,
+// pay_vendor_bills_batch accepts either — and pay them together in one
+// action — one aggregate journal entry for the whole batch, the same
+// way a pay run posts once per run rather than once per employee —
+// instead of clicking "mark as paid" on each bill individually.
+export function ApprovedBillsTable({
+  bills,
+  canManage,
+  today,
+}: {
+  bills: ApprovedBill[];
+  canManage: boolean;
+  today: string;
+}) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirming, setConfirming] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -59,7 +72,7 @@ export function ApprovedBillsTable({ bills, canManage }: { bills: ApprovedBill[]
   return (
     <div className="flex flex-col gap-2">
       <div className="overflow-x-auto rounded-card border border-border bg-surface">
-        <table className="w-full min-w-[720px] border-collapse">
+        <table className="w-full min-w-[820px] border-collapse">
           <thead>
             <tr className="border-b border-border">
               {canManage && <th className={thClass}></th>}
@@ -70,41 +83,67 @@ export function ApprovedBillsTable({ bills, canManage }: { bills: ApprovedBill[]
               <th className={`${thClass} text-right`}>WHT</th>
               <th className={`${thClass} text-right`}>Net payable</th>
               <th className={`${thClass} text-left`}>Due date</th>
+              <th className={`${thClass} text-left`}>Status</th>
+              {canManage && <th className={thClass}></th>}
             </tr>
           </thead>
           <tbody>
-            {bills.map((bill) => (
-              <tr key={bill.id} className="border-b border-border last:border-b-0">
-                {canManage && (
-                  <td className={tdClass}>
-                    <input
-                      type="checkbox"
-                      checked={selected.has(bill.id)}
-                      disabled={pending}
-                      onChange={() => toggle(bill.id)}
-                      className="h-4 w-4 accent-primary"
-                    />
-                  </td>
-                )}
-                <td className={`${tdClass} text-ink-soft`}>{bill.bill_number}</td>
-                <td className={`${tdClass} font-bold`}>
-                  {bill.vendors?.name ? (
-                    <Link href={`/vendors/${bill.vendor_id}`} className="text-primary">
-                      {bill.vendors.name}
-                    </Link>
-                  ) : (
-                    "—"
+            {bills.map((bill) => {
+              const overdue = Boolean(bill.due_date && bill.due_date < today);
+              return (
+                <tr key={bill.id} className="border-b border-border last:border-b-0">
+                  {canManage && (
+                    <td className={tdClass}>
+                      <input
+                        type="checkbox"
+                        checked={selected.has(bill.id)}
+                        disabled={pending}
+                        onChange={() => toggle(bill.id)}
+                        className="h-4 w-4 accent-primary"
+                      />
+                    </td>
                   )}
-                </td>
-                <td className={`${tdClass} text-ink-soft`}>{bill.description}</td>
-                <td className={`${tdClass} text-right text-ink`}>{formatKobo(BigInt(bill.amount_kobo))}</td>
-                <td className={`${tdClass} text-right text-ink-soft`}>{formatKobo(BigInt(bill.wht_kobo))}</td>
-                <td className={`${tdClass} text-right font-bold text-ink`}>
-                  {formatKobo(BigInt(bill.net_payable_kobo))}
-                </td>
-                <td className={`${tdClass} text-ink-soft`}>{bill.due_date ?? "—"}</td>
-              </tr>
-            ))}
+                  <td className={`${tdClass} text-ink-soft`}>{bill.bill_number}</td>
+                  <td className={`${tdClass} font-bold`}>
+                    {bill.vendors?.name ? (
+                      <Link href={`/vendors/${bill.vendor_id}`} className="text-primary">
+                        {bill.vendors.name}
+                      </Link>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td className={`${tdClass} text-ink-soft`}>{bill.description}</td>
+                  <td className={`${tdClass} text-right text-ink`}>{formatKobo(BigInt(bill.amount_kobo))}</td>
+                  <td className={`${tdClass} text-right text-ink-soft`}>{formatKobo(BigInt(bill.wht_kobo))}</td>
+                  <td className={`${tdClass} text-right font-bold text-ink`}>
+                    {formatKobo(BigInt(bill.net_payable_kobo))}
+                  </td>
+                  <td className={`${tdClass} text-ink-soft`}>
+                    <div className="flex items-center gap-1.5">
+                      <span>{bill.due_date ?? "—"}</span>
+                      {overdue && <OverdueBadge />}
+                    </div>
+                  </td>
+                  <td className={tdClass}>
+                    <div className="flex flex-col gap-1">
+                      <VendorBillStatusBadge status={bill.status} />
+                      {bill.scheduled_payment_date && (
+                        <span className="text-[11px] text-ink-soft">for {bill.scheduled_payment_date}</span>
+                      )}
+                    </div>
+                  </td>
+                  {canManage && (
+                    <td className={`${tdClass} text-right`}>
+                      <div className="flex flex-col items-end gap-1.5">
+                        {bill.status === "approved" && <ScheduleBillPaymentForm billId={bill.id} />}
+                        <CancelBillForm billId={bill.id} billDescription={bill.description} />
+                      </div>
+                    </td>
+                  )}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

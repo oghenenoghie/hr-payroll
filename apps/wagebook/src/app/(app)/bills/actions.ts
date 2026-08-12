@@ -123,6 +123,55 @@ export async function payVendorBill(billId: string) {
   revalidatePath("/bills");
 }
 
+export type ScheduleBillPaymentState = { error?: string } | null;
+
+export async function scheduleVendorBillPayment(
+  billId: string,
+  _prevState: ScheduleBillPaymentState,
+  formData: FormData,
+): Promise<ScheduleBillPaymentState> {
+  const supabase = await requireApprover();
+  const paymentDate = String(formData.get("payment_date") ?? "").trim();
+  if (!paymentDate) {
+    return { error: "Choose a payment date." };
+  }
+
+  const { error } = await supabase.rpc("schedule_vendor_bill_payment", {
+    p_bill_id: billId,
+    p_payment_date: paymentDate,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/bills");
+  return null;
+}
+
+export type CancelBillState = { error?: string } | null;
+
+export async function cancelVendorBill(
+  billId: string,
+  _prevState: CancelBillState,
+  formData: FormData,
+): Promise<CancelBillState> {
+  const supabase = await requireApprover();
+  const reason = String(formData.get("reason") ?? "").trim();
+  if (!reason) {
+    return { error: "A reason is required to cancel a bill." };
+  }
+
+  const { error } = await supabase.rpc("cancel_vendor_bill", { p_bill_id: billId, p_reason: reason });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/bills");
+  return null;
+}
+
 export async function payVendorBillsBatch(billIds: string[]) {
   const supabase = await createClient();
   const {
