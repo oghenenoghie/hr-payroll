@@ -57,6 +57,56 @@ The "feel like Stripe/Linear/Rippling" instinct and this app's actual design sys
 5. **Explain before you build.** For anything touching more than 2–3 files: what's changing, why, which files, then implement.
 6. **Verify.** Run `pnpm typecheck` / `pnpm lint` / `pnpm build` (see `engineering-and-lifecycle.md` for the exact commands) before calling something done — this project has no staging Supabase project in most sessions, so a full build is usually the highest-signal check available.
 
+## Auditing a workflow module — map the state machine first
+
+Any module with an approval, payment, or fulfillment lifecycle (Bills, Loans, Expenses, Payroll Runs, Recruitment,
+Leave) is a state machine before it's a screen. Before touching the UI, write down its actual states and
+transitions as they exist in the schema (a `status` column's `check` constraint plus the RPCs that move a row
+between values) — not the states a generic version of this module "should" have. Then ask two things:
+
+1. **Are there exception states with nowhere to go?** A bill past its due date, a loan repayment that bounced, a
+   candidate who ghosted mid-pipeline — these are usually *derived* conditions (a date comparison, a missing
+   expected event), not stored states. Compute them, don't add a column for them — a stored "overdue" flag drifts
+   from reality the moment someone changes the due date or pays late; a computed one never can. Only add a real
+   stored state (with its own RPC and RLS-respecting transition) when the transition is something a person
+   actually *does* (schedules a payment, cancels a request) rather than something that becomes true on its own.
+2. **Is every transition reachable from the UI, and is the reverse of a mistake possible?** A workflow that can go
+   `pending → approved` but has no `approved → cancelled` (short of database surgery) will accumulate stuck rows in
+   production. Check whether a correcting/reversal path already exists elsewhere in the codebase for the same
+   *shape* of problem (`reverse_pay_run`'s correcting-journal-entry pattern, `discard_pay_run_draft`'s full
+   rollback) before inventing a new one — cancellation of an already-posted financial record should almost always
+   reverse the ledger impact with a new correcting entry, never edit or delete the original posting.
+
+## Page-level UX checklist
+
+For any screen showing operational data (a queue, a record, a dashboard), it should let the viewer answer, in
+order, without hunting: **What is happening? What here needs my attention, and why? What can I do about it, and
+what happens after I do?** A table with fifty identical-looking rows and no visual distinction for the ones that
+are overdue, blocked, or awaiting *this viewer specifically* fails the second question even if every number on it
+is correct. This is a lens for the audit step (a concrete way to justify "Improve" over "Keep"), not a new set of
+components — answer it using badges, section grouping, and the dashboard widget catalog already in place, per
+"Recurring patterns" above.
+
+## State content — loading, empty, error
+
+Every list/table screen needs content for three states, and the copy matters as much as the mechanism:
+
+- **Loading** — a skeleton matching the real layout (see `CertificateLoadingSkeleton.tsx` / `ReportLoadingSkeleton.tsx`
+  for the existing pattern), not a spinner replacing the whole page.
+- **Empty** — name the thing that's missing and offer the action that fixes it ("No bills yet" + a Raise Bill
+  button), never a bare "No data."
+- **Error** — plain language about what failed, with a retry path where one makes sense. Never surface a raw
+  Postgres/Supabase error string to a non-admin viewer; log it, show a human sentence.
+
+## Prioritizing audit findings
+
+Once the Keep/Improve/Rebuild/Remove classification names *what* to do, use a lightweight severity × impact ×
+effort read to help the user (or yourself) decide *what order*: severity is how wrong it can go today (data loss,
+stuck workflow, wrong money) — that's rarely about visuals; impact is how many roles/how often it's hit, not just
+"looks dated"; effort is relative to what already exists in this codebase (a new column + RPC following an
+established pattern is cheap; a new shared component is not). A polish item can be high-impact and should still be
+sequenced after a severity issue in the same module — don't let visual severity substitute for functional severity.
+
 ## When the ask is genuinely large
 
 If the user's request spans many screens (their own prompt, or something like it, is a good signal — sidebar redesign + dashboard redesign + payroll workflow + exceptions + approvals + reporting all at once), don't attempt it in one pass. Do the audit across the whole surface first, then propose a prioritized sequence (Critical/High/Medium/Low, or simply "do this first because X unblocks Y") and confirm the sequence with the user before starting — use plan mode for this rather than a wall of text, since it lets the user redirect before real implementation work begins. Ground every "Critical" or "High" item in something concrete (a missing empty state, a dead-end workflow, an action buried three clicks deep) rather than a general feeling that the app should look better.
