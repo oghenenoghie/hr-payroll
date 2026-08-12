@@ -2,9 +2,10 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { naira } from "@plutus/compliance";
+import { NG_2026_1, computeVat, naira } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
+import { parseLineItemsField } from "@/lib/lineItems";
 
 export type CreateInvoiceState = { error?: string; success?: boolean } | null;
 
@@ -27,11 +28,11 @@ export async function createCustomerInvoice(
   }
 
   const customerId = String(formData.get("customer_id") ?? "").trim();
-  const invoiceNumber = String(formData.get("invoice_number") ?? "").trim() || null;
   const invoiceDate = String(formData.get("invoice_date") ?? "").trim();
   const dueDate = String(formData.get("due_date") ?? "").trim() || null;
-  const amountNaira = Number(formData.get("amount") ?? 0);
   const description = String(formData.get("description") ?? "").trim();
+  const vatCategory = String(formData.get("vat_category") ?? "standard").trim() || "standard";
+  const lines = parseLineItemsField(formData.get("lines"));
 
   if (!customerId) {
     return { error: "Choose a customer." };
@@ -42,19 +43,29 @@ export async function createCustomerInvoice(
   if (!description) {
     return { error: "Enter a description." };
   }
-  if (!amountNaira || amountNaira <= 0) {
-    return { error: "Enter an amount greater than zero." };
+  if (lines.length === 0) {
+    return { error: "Add at least one line item." };
   }
 
-  const { error } = await supabase.from("customer_invoices").insert({
-    org_id: membership.orgId,
-    customer_id: customerId,
-    invoice_number: invoiceNumber,
-    invoice_date: invoiceDate,
-    due_date: dueDate,
-    amount_kobo: Number(naira(amountNaira)),
-    description,
-    created_by: user.id,
+  const subtotalKobo = lines.reduce((sum, line) => sum + line.line_total_kobo, 0);
+  if (subtotalKobo <= 0) {
+    return { error: "Line items must total more than zero." };
+  }
+
+  const ruleVersion = NG_2026_1;
+  const { vatKobo, exempt: vatExempt } = computeVat(BigInt(subtotalKobo), vatCategory, ruleVersion);
+
+  const { error } = await supabase.rpc("create_customer_invoice_with_lines", {
+    p_customer_id: customerId,
+    p_description: description,
+    p_invoice_date: invoiceDate,
+    p_due_date: dueDate,
+    p_subtotal_kobo: subtotalKobo,
+    p_vat_category: vatCategory,
+    p_vat_kobo: Number(vatKobo),
+    p_vat_exempt: vatExempt,
+    p_rule_version_id: ruleVersion.id,
+    p_lines: lines,
   });
 
   if (error) {

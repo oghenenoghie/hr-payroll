@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@plutus/core";
 import { formatKobo } from "@/lib/format";
 import { AnimatedCount } from "@/components/AnimatedCount";
+import { PayrollTrendChart } from "./PayrollTrendChart";
 import {
   BuildingIcon,
   ClockIcon,
@@ -38,6 +39,25 @@ function WidgetHeader({ icon: Icon, label }: { icon: WidgetIcon; label: React.Re
       </span>
       <span className={labelClass}>{label}</span>
     </div>
+  );
+}
+
+// Turns a plain link-row into a single-hue magnitude bar — the row's
+// value scaled against the widget's own largest value, painted as a
+// tint behind the label rather than a separate mini-chart, so a widget
+// that's already a short list of counts also reads as "which of these
+// is biggest" at a glance. Markup/links/hover stay the row's own
+// (rowClass), this only adds the bar behind it.
+function BarRow({ href, label, value, maxValue }: { href: string; label: string; value: number; maxValue: number }) {
+  const pct = maxValue > 0 ? Math.max(value > 0 ? 6 : 0, Math.round((value / maxValue) * 100)) : 0;
+  return (
+    <Link href={href} className="relative block overflow-hidden rounded-control hover:text-primary">
+      <span aria-hidden className="absolute inset-y-0 left-0 z-0 bg-primary-tint" style={{ width: `${pct}%` }} />
+      <span className={`${rowClass} relative z-10 px-1.5 py-1`}>
+        <span>{label}</span>
+        <span className="font-bold text-ink">{value}</span>
+      </span>
+    </Link>
   );
 }
 
@@ -79,6 +99,7 @@ export async function PendingApprovalsWidget({ supabase, orgId }: WidgetProps) {
   ]);
 
   const total = (leave ?? 0) + (loans ?? 0) + (expenses ?? 0) + (overtime ?? 0);
+  const maxValue = Math.max(leave ?? 0, loans ?? 0, expenses ?? 0, overtime ?? 0);
 
   return (
     <div className={cardClass}>
@@ -86,36 +107,34 @@ export async function PendingApprovalsWidget({ supabase, orgId }: WidgetProps) {
       <p className={statClass}>
         <AnimatedCount value={total} />
       </p>
-      <div className="mt-3 flex flex-col gap-2 text-[13px] text-ink-soft">
-        <Link href="/leave" className={`${rowClass} hover:text-primary`}>
-          <span>Leave</span>
-          <span className="font-bold text-ink">{leave ?? 0}</span>
-        </Link>
-        <Link href="/loans" className={`${rowClass} hover:text-primary`}>
-          <span>Loans</span>
-          <span className="font-bold text-ink">{loans ?? 0}</span>
-        </Link>
-        <Link href="/expenses" className={`${rowClass} hover:text-primary`}>
-          <span>Expenses</span>
-          <span className="font-bold text-ink">{expenses ?? 0}</span>
-        </Link>
-        <Link href="/overtime" className={`${rowClass} hover:text-primary`}>
-          <span>Overtime</span>
-          <span className="font-bold text-ink">{overtime ?? 0}</span>
-        </Link>
+      <div className="mt-3 flex flex-col gap-1 text-[13px] text-ink-soft">
+        <BarRow href="/leave" label="Leave" value={leave ?? 0} maxValue={maxValue} />
+        <BarRow href="/loans" label="Loans" value={loans ?? 0} maxValue={maxValue} />
+        <BarRow href="/expenses" label="Expenses" value={expenses ?? 0} maxValue={maxValue} />
+        <BarRow href="/overtime" label="Overtime" value={overtime ?? 0} maxValue={maxValue} />
       </div>
     </div>
   );
 }
 
+const RECENT_PAY_RUN_COUNT = 8;
+
 export async function PayrollSnapshotWidget({ supabase, orgId }: WidgetProps) {
-  const { data: latestRun } = await supabase
+  const { data: recentRuns } = await supabase
     .from("pay_runs")
     .select("period_start, period_end, status, gross_kobo, net_kobo, employee_count")
     .eq("org_id", orgId)
     .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(RECENT_PAY_RUN_COUNT);
+
+  const latestRun = recentRuns?.[0] ?? null;
+  // Chart reads left-to-right chronologically, opposite of the
+  // most-recent-first order the query fetched (and the latest-run
+  // summary above still needs).
+  const trendPoints = [...(recentRuns ?? [])].reverse().map((run) => ({
+    label: `${run.period_start} – ${run.period_end}`,
+    netKobo: BigInt(run.net_kobo),
+  }));
 
   return (
     <Link href="/payroll" className="block transition-opacity hover:opacity-80">
@@ -140,6 +159,7 @@ export async function PayrollSnapshotWidget({ supabase, orgId }: WidgetProps) {
                 <span className="font-bold text-ink">{formatKobo(BigInt(latestRun.net_kobo))}</span>
               </div>
             </div>
+            {trendPoints.length > 1 && <PayrollTrendChart points={trendPoints} />}
           </>
         ) : (
           <p className={statClass}>No pay runs yet</p>
@@ -230,6 +250,7 @@ export async function AccountsSnapshotWidget({ supabase, orgId }: WidgetProps) {
   ]);
 
   const total = (outstandingBills ?? 0) + (outstandingInvoices ?? 0);
+  const maxValue = Math.max(outstandingBills ?? 0, outstandingInvoices ?? 0);
 
   return (
     <div className={cardClass}>
@@ -237,15 +258,14 @@ export async function AccountsSnapshotWidget({ supabase, orgId }: WidgetProps) {
       <p className={statClass}>
         <AnimatedCount value={total} />
       </p>
-      <div className="mt-3 flex flex-col gap-2 text-[13px] text-ink-soft">
-        <Link href="/bills" className={`${rowClass} hover:text-primary`}>
-          <span>Bills awaiting payment</span>
-          <span className="font-bold text-ink">{outstandingBills ?? 0}</span>
-        </Link>
-        <Link href="/invoices" className={`${rowClass} hover:text-primary`}>
-          <span>Invoices awaiting collection</span>
-          <span className="font-bold text-ink">{outstandingInvoices ?? 0}</span>
-        </Link>
+      <div className="mt-3 flex flex-col gap-1 text-[13px] text-ink-soft">
+        <BarRow href="/bills" label="Bills awaiting payment" value={outstandingBills ?? 0} maxValue={maxValue} />
+        <BarRow
+          href="/invoices"
+          label="Invoices awaiting collection"
+          value={outstandingInvoices ?? 0}
+          maxValue={maxValue}
+        />
       </div>
     </div>
   );

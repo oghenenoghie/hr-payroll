@@ -102,7 +102,11 @@ export default async function VendorsPage({ searchParams }: { searchParams: Prom
             {vendors && vendors.length > 0 ? (
               vendors.map((vendor) => (
                 <tr key={vendor.id} className="border-b border-border last:border-b-0">
-                  <td className={`${tdClass} font-bold text-ink`}>{vendor.name}</td>
+                  <td className={`${tdClass} font-bold`}>
+                    <Link href={`/vendors/${vendor.id}`} className="text-primary">
+                      {vendor.name}
+                    </Link>
+                  </td>
                   <td className={`${tdClass} text-ink-soft`}>{vendor.contact_email ?? vendor.contact_phone ?? "—"}</td>
                   <td className={`${tdClass} text-ink-soft`}>
                     {vendor.bank_name ? `${vendor.bank_name} · ${vendor.bank_account_number ?? "—"}` : "—"}
