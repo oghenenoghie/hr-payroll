@@ -54,6 +54,9 @@ export default async function MyPayslipPrintPage({ params }: { params: Promise<{
           <Row label="Gross pay" value={formatKobo(BigInt(slip.gross_kobo))} />
           <Row label="Pension (employee)" value={`− ${formatKobo(BigInt(slip.pension_employee_kobo))}`} />
           <Row label="NHF" value={`− ${formatKobo(BigInt(slip.nhf_kobo))}`} />
+          {BigInt(slip.union_dues_kobo) > 0n && (
+            <Row label="Trade union dues" value={`− ${formatKobo(BigInt(slip.union_dues_kobo))}`} />
+          )}
           <Row label="PAYE" value={`− ${formatKobo(BigInt(slip.paye_kobo))}`} />
           <Row label="Net pay" value={formatKobo(BigInt(slip.net_kobo))} emphasis />
         </div>

@@ -96,10 +96,12 @@ export function DerivationDetail({ slip, ruleVersion }: { slip: Tables<"payslips
   // derivation still reconciles to net pay instead of silently going
   // unaccounted for.
   const benefitEmployeeDeductionKobo = BigInt(slip.benefit_employee_deduction_kobo);
+  const unionDuesKobo = BigInt(slip.union_dues_kobo);
   const loanRepaymentKobo =
     BigInt(slip.employee_deductions_kobo) -
     BigInt(slip.pension_employee_kobo) -
     BigInt(slip.nhf_kobo) -
+    unionDuesKobo -
     BigInt(slip.paye_kobo) -
     benefitEmployeeDeductionKobo;
 
@@ -190,6 +192,9 @@ export function DerivationDetail({ slip, ruleVersion }: { slip: Tables<"payslips
           value={`− ${formatKobo(BigInt(slip.pension_employee_kobo))}`}
         />
         <Row label={`NHF (${formatPercent(ruleVersion.nhf.rateScaled)})`} value={`− ${formatKobo(BigInt(slip.nhf_kobo))}`} />
+        {unionDuesKobo > 0n && (
+          <Row label="Trade union dues (manually entered, before tax)" value={`− ${formatKobo(unionDuesKobo)}`} />
+        )}
         <Row label="Rent relief" value={`− ${formatKobo(BigInt(slip.rent_relief_kobo))}`} />
         <p className="mt-1 text-[11px] text-ink-soft">
           Pension employer share ({formatPercent(ruleVersion.pension.employerRateScaled)},{" "}

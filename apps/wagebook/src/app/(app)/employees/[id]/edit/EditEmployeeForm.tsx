@@ -226,13 +226,26 @@ export function EditEmployeeForm({
               defaultValue={String(toNaira(BigInt(employee.transport_kobo!)))}
             />
           </div>
-          <FormField
-            label="Annual rent paid (₦)"
-            name="annual_rent"
-            type="number"
-            required={false}
-            defaultValue={String(toNaira(BigInt(employee.annual_rent_kobo!)))}
-          />
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              label="Annual rent paid (₦)"
+              name="annual_rent"
+              type="number"
+              required={false}
+              defaultValue={String(toNaira(BigInt(employee.annual_rent_kobo!)))}
+            />
+            <FormField
+              label="Annual trade union dues (₦)"
+              name="annual_union_dues"
+              type="number"
+              required={false}
+              defaultValue={String(toNaira(BigInt(employee.annual_union_dues_kobo!)))}
+            />
+          </div>
+          <p className="text-[11px] text-ink-soft">
+            Trade union dues are entered manually (no statutory rate) and deducted before PAYE, the same as pension
+            and NHF — never a cash deduction the employee doesn&apos;t actually pay.
+          </p>
         </>
       ) : (
         <p className="rounded-panel border border-border bg-bg px-4 py-3 text-[12.5px] text-ink-soft">

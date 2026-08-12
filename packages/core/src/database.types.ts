@@ -562,6 +562,7 @@ export type Database = {
         Row: {
           annual_leave_balance_days: number
           annual_rent_kobo: number
+          annual_union_dues_kobo: number
           bank_account_name: string | null
           bank_account_number: string | null
           bank_name: string | null
@@ -602,6 +603,7 @@ export type Database = {
         Insert: {
           annual_leave_balance_days?: number
           annual_rent_kobo?: number
+          annual_union_dues_kobo?: number
           bank_account_name?: string | null
           bank_account_number?: string | null
           bank_name?: string | null
@@ -642,6 +644,7 @@ export type Database = {
         Update: {
           annual_leave_balance_days?: number
           annual_rent_kobo?: number
+          annual_union_dues_kobo?: number
           bank_account_name?: string | null
           bank_account_number?: string | null
           bank_name?: string | null
@@ -1614,6 +1617,7 @@ export type Database = {
           rent_relief_kobo: number
           salary_change_adjustment_kobo: number
           taxable_reimbursement_kobo: number
+          union_dues_kobo: number
           unpaid_leave_deduction_kobo: number
         }
         Insert: {
@@ -1644,6 +1648,7 @@ export type Database = {
           rent_relief_kobo: number
           salary_change_adjustment_kobo?: number
           taxable_reimbursement_kobo?: number
+          union_dues_kobo?: number
           unpaid_leave_deduction_kobo?: number
         }
         Update: {
@@ -1674,6 +1679,7 @@ export type Database = {
           rent_relief_kobo?: number
           salary_change_adjustment_kobo?: number
           taxable_reimbursement_kobo?: number
+          union_dues_kobo?: number
           unpaid_leave_deduction_kobo?: number
         }
         Relationships: [
@@ -4532,6 +4538,7 @@ export type Database = {
         Row: {
           annual_leave_balance_days: number | null
           annual_rent_kobo: number | null
+          annual_union_dues_kobo: number | null
           bank_account_name: string | null
           bank_account_number: string | null
           bank_name: string | null
@@ -4643,6 +4650,7 @@ export type Database = {
           rent_relief_kobo: number | null
           salary_change_adjustment_kobo: number | null
           taxable_reimbursement_kobo: number | null
+          union_dues_kobo: number | null
           unpaid_leave_deduction_kobo: number | null
         }
         Relationships: [
@@ -4802,6 +4810,7 @@ export type Database = {
         Returns: {
           annual_leave_balance_days: number
           annual_rent_kobo: number
+          annual_union_dues_kobo: number
           bank_account_name: string | null
           bank_account_number: string | null
           bank_name: string | null

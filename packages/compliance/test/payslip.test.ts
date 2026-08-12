@@ -29,6 +29,7 @@ describe("derivePeriodPayslip", () => {
       {
         annualPayComponents: annualComponents(3_000_000, 1_500_000, 900_000),
         annualRentPaidKobo: naira(1_200_000),
+        annualUnionDuesKobo: 0n,
         frequency: "monthly",
         cumulativeChargeableIncomeBeforeKobo: 0n,
         cumulativePayePaidBeforeKobo: 0n,
@@ -57,6 +58,7 @@ describe("derivePeriodPayslip", () => {
         {
           annualPayComponents,
           annualRentPaidKobo,
+          annualUnionDuesKobo: 0n,
           frequency: "monthly",
           cumulativeChargeableIncomeBeforeKobo,
           cumulativePayePaidBeforeKobo,
@@ -95,6 +97,7 @@ describe("derivePeriodPayslip", () => {
         {
           annualPayComponents: lowComponents,
           annualRentPaidKobo,
+          annualUnionDuesKobo: 0n,
           frequency: "monthly",
           cumulativeChargeableIncomeBeforeKobo,
           cumulativePayePaidBeforeKobo,
@@ -109,6 +112,7 @@ describe("derivePeriodPayslip", () => {
       {
         annualPayComponents: lowComponents,
         annualRentPaidKobo,
+        annualUnionDuesKobo: 0n,
         frequency: "monthly",
         cumulativeChargeableIncomeBeforeKobo: 0n,
         cumulativePayePaidBeforeKobo: 0n,
@@ -120,6 +124,7 @@ describe("derivePeriodPayslip", () => {
       {
         annualPayComponents: highComponents,
         annualRentPaidKobo,
+        annualUnionDuesKobo: 0n,
         frequency: "monthly",
         cumulativeChargeableIncomeBeforeKobo,
         cumulativePayePaidBeforeKobo,
@@ -147,6 +152,7 @@ describe("derivePeriodPayslip", () => {
       {
         annualPayComponents: annualComponents(1_200_000, 600_000, 360_000), // 2,160,000/yr -> 180,000/mo
         annualRentPaidKobo: 0n,
+        annualUnionDuesKobo: 0n,
         frequency: "monthly",
         cumulativeChargeableIncomeBeforeKobo: 0n,
         cumulativePayePaidBeforeKobo: 0n,
@@ -157,6 +163,7 @@ describe("derivePeriodPayslip", () => {
       {
         annualPayComponents: annualComponents(2_400_000, 1_200_000, 720_000), // 4,320,000/yr -> 360,000/mo
         annualRentPaidKobo: 0n,
+        annualUnionDuesKobo: 0n,
         frequency: "monthly",
         cumulativeChargeableIncomeBeforeKobo: 0n,
         cumulativePayePaidBeforeKobo: 0n,
@@ -171,6 +178,46 @@ describe("derivePeriodPayslip", () => {
     expect(nsitf.totalMonthlyPayrollBaseKobo).toBe(employeeA.grossKobo + employeeB.grossKobo);
     expect(nsitf.totalMonthlyPayrollBaseKobo).toBe(naira(180_000 + 360_000));
     expect(nsitf.employerKobo).toBe(naira(5_400)); // 1% of ₦540,000 combined base
+  });
+
+  it("trade union dues: a manually-entered amount, deducted before PAYE banding like pension/NHF — not a statutory rate", () => {
+    const annualUnionDuesKobo = naira(60_000); // ₦5,000/month — an admin-entered figure, not derived from a rate
+    const withoutDues = derivePeriodPayslip(
+      {
+        annualPayComponents: annualComponents(3_000_000, 1_500_000, 900_000),
+        annualRentPaidKobo: 0n,
+        annualUnionDuesKobo: 0n,
+        frequency: "monthly",
+        cumulativeChargeableIncomeBeforeKobo: 0n,
+        cumulativePayePaidBeforeKobo: 0n,
+      },
+      rv,
+    );
+    const withDues = derivePeriodPayslip(
+      {
+        annualPayComponents: annualComponents(3_000_000, 1_500_000, 900_000),
+        annualRentPaidKobo: 0n,
+        annualUnionDuesKobo,
+        frequency: "monthly",
+        cumulativeChargeableIncomeBeforeKobo: 0n,
+        cumulativePayePaidBeforeKobo: 0n,
+      },
+      rv,
+    );
+
+    const monthlyDuesKobo = annualUnionDuesKobo / 12n;
+    expect(withDues.unionDuesKobo).toBe(monthlyDuesKobo);
+    // Gross is unaffected — dues reduce chargeable income and net, not gross.
+    expect(withDues.grossKobo).toBe(withoutDues.grossKobo);
+    // Pre-tax: chargeable income drops by exactly the dues withheld this period.
+    expect(withoutDues.chargeableIncomeKobo - withDues.chargeableIncomeKobo).toBe(monthlyDuesKobo);
+    // A real cash deduction too: employeeDeductionsKobo is pension + nhf +
+    // union dues + PAYE, so subtracting each side's own PAYE isolates the
+    // union-dues contribution exactly (pension/nhf are identical either way).
+    expect(withDues.employeeDeductionsKobo - withDues.payeKobo - (withoutDues.employeeDeductionsKobo - withoutDues.payeKobo)).toBe(
+      monthlyDuesKobo,
+    );
+    expect(withDues.netKobo).toBeLessThan(withoutDues.netKobo);
   });
 });
 
@@ -239,6 +286,7 @@ describe("deriveLumpSumPayslip (bonus / 13th month) — feature-backlog.md §1's
       {
         annualPayComponents: annualComponents(1_200_000, 600_000, 360_000),
         annualRentPaidKobo: 0n,
+        annualUnionDuesKobo: 0n,
         frequency: "monthly",
         cumulativeChargeableIncomeBeforeKobo: 0n,
         cumulativePayePaidBeforeKobo: 0n,

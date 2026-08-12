@@ -310,6 +310,14 @@ export default async function ViewEmployeePage({ params }: { params: Promise<{ i
               {employee.annual_rent_kobo !== null ? formatKobo(BigInt(employee.annual_rent_kobo)) : "Restricted"}
             </span>
           </div>
+          <div className={detailRow}>
+            <span className="text-ink-soft">Annual trade union dues</span>
+            <span className="font-bold text-ink">
+              {employee.annual_union_dues_kobo !== null
+                ? formatKobo(BigInt(employee.annual_union_dues_kobo))
+                : "Restricted"}
+            </span>
+          </div>
         </div>
       </div>
 

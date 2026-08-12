@@ -14,6 +14,7 @@ interface EmployeeBase {
   housingKobo: number;
   transportKobo: number;
   annualRentKobo: number;
+  annualUnionDuesKobo: number;
 }
 
 interface ScenarioTotals {
@@ -42,6 +43,7 @@ function scenarioAt(employees: EmployeeBase[], multiplier: number): ScenarioTota
         pensionEmployeeKobo: pension.employeeKobo,
         nhfKobo,
         annualRentPaidKobo: BigInt(employee.annualRentKobo),
+        unionDuesKobo: BigInt(employee.annualUnionDuesKobo),
       },
       NG_2026_1,
     );

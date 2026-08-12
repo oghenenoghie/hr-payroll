@@ -47,6 +47,11 @@ export interface ChargeableIncomeInput {
   pensionEmployeeKobo: Kobo;
   nhfKobo: Kobo;
   annualRentPaidKobo: Kobo;
+  /** Trade union dues: manually entered, not statutory — see
+   * derivePeriodPayslip's doc comment in payslip.ts. Optional (defaults to
+   * 0) so existing callers without a union-dues concept (e.g. the demo
+   * calculator) don't need to thread a value through. */
+  unionDuesKobo?: Kobo;
 }
 
 export function computeRentRelief(annualRentPaidKobo: Kobo, ruleVersion: RuleVersion): Kobo {
@@ -54,11 +59,11 @@ export function computeRentRelief(annualRentPaidKobo: Kobo, ruleVersion: RuleVer
   return uncapped > ruleVersion.paye.rentRelief.capKobo ? ruleVersion.paye.rentRelief.capKobo : uncapped;
 }
 
-/** Order matters: pension + NHF + rent relief are deducted from gross *before* banding. */
+/** Order matters: pension + NHF + union dues + rent relief are deducted from gross *before* banding. */
 export function deriveChargeableIncome(input: ChargeableIncomeInput, ruleVersion: RuleVersion): Kobo {
   const rentRelief = computeRentRelief(input.annualRentPaidKobo, ruleVersion);
   return clampNonNegative(
-    input.annualGrossKobo - input.pensionEmployeeKobo - input.nhfKobo - rentRelief,
+    input.annualGrossKobo - input.pensionEmployeeKobo - input.nhfKobo - (input.unionDuesKobo ?? 0n) - rentRelief,
   );
 }
 

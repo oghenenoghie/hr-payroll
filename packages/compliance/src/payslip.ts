@@ -16,6 +16,13 @@ export interface PeriodPayslipInput {
   /** Employee's annual pay components, as actually configured — never a derived split. */
   annualPayComponents: PayComponent[];
   annualRentPaidKobo: Kobo;
+  /** Trade union dues: not a statutory rate — an amount the employer
+   * manually enters per employee (the union's own check-off figure, not
+   * anything the compliance engine derives). Treated like pension/NHF: a
+   * real cash deduction from pay that also reduces chargeable income
+   * before PAYE banding, per product instruction. Defaults to 0 for an
+   * employee with no union membership on record. */
+  annualUnionDuesKobo: Kobo;
   frequency: PayFrequency;
   /** State carried from the employee's most recent prior payslip; 0/0 for their first ever run. */
   cumulativeChargeableIncomeBeforeKobo: Kobo;
@@ -29,6 +36,7 @@ export interface PeriodPayslipResult {
   pensionEmployerKobo: Kobo;
   nhfKobo: Kobo;
   rentReliefKobo: Kobo;
+  unionDuesKobo: Kobo;
   /** Cumulative year-to-date chargeable income as of (including) this period — not a period-only figure. */
   chargeableIncomeKobo: Kobo;
   /** This period's own incremental PAYE — already net of tax withheld earlier in the year. */
@@ -72,13 +80,16 @@ export function derivePeriodPayslip(input: PeriodPayslipInput, ruleVersion: Rule
   const pension = computePension(periodComponents, ruleVersion);
   const nhfKobo = computeNhf(periodComponents, ruleVersion);
   const rentReliefKobo = proratePerPeriod(computeRentRelief(input.annualRentPaidKobo, ruleVersion), periodsPerYear);
+  const unionDuesKobo = proratePerPeriod(input.annualUnionDuesKobo, periodsPerYear);
 
-  const periodChargeableAddition = clampNonNegative(grossKobo - pension.employeeKobo - nhfKobo - rentReliefKobo);
+  const periodChargeableAddition = clampNonNegative(
+    grossKobo - pension.employeeKobo - nhfKobo - unionDuesKobo - rentReliefKobo,
+  );
   const chargeableIncomeKobo = input.cumulativeChargeableIncomeBeforeKobo + periodChargeableAddition;
 
   const payeKobo = computeCumulativePeriodPaye(chargeableIncomeKobo, input.cumulativePayePaidBeforeKobo, ruleVersion);
 
-  const employeeDeductionsKobo = pension.employeeKobo + nhfKobo + payeKobo;
+  const employeeDeductionsKobo = pension.employeeKobo + nhfKobo + unionDuesKobo + payeKobo;
   const netKobo = clampNonNegative(grossKobo - employeeDeductionsKobo);
 
   return {
@@ -88,6 +99,7 @@ export function derivePeriodPayslip(input: PeriodPayslipInput, ruleVersion: Rule
     pensionEmployerKobo: pension.employerKobo,
     nhfKobo,
     rentReliefKobo,
+    unionDuesKobo,
     chargeableIncomeKobo,
     payeKobo,
     employeeDeductionsKobo,

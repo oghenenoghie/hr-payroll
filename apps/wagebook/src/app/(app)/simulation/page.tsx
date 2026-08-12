@@ -20,7 +20,7 @@ export default async function SimulationPage() {
 
   const { data: employees } = await supabase
     .from("employees")
-    .select("id, basic_kobo, housing_kobo, transport_kobo, annual_rent_kobo")
+    .select("id, basic_kobo, housing_kobo, transport_kobo, annual_rent_kobo, annual_union_dues_kobo")
     .eq("status", "active");
 
   return (
@@ -42,6 +42,7 @@ export default async function SimulationPage() {
           housingKobo: e.housing_kobo,
           transportKobo: e.transport_kobo,
           annualRentKobo: e.annual_rent_kobo,
+          annualUnionDuesKobo: e.annual_union_dues_kobo,
         }))}
         isAdmin={membership?.role === "admin"}
       />

@@ -193,6 +193,7 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
     pension_employer_kobo: number;
     nhf_kobo: number;
     rent_relief_kobo: number;
+    union_dues_kobo?: number;
     chargeable_income_kobo: number;
     paye_kobo: number;
     employee_deductions_kobo: number;
@@ -543,6 +544,7 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
         {
           annualPayComponents,
           annualRentPaidKobo: BigInt(employee.annual_rent_kobo),
+          annualUnionDuesKobo: BigInt(employee.annual_union_dues_kobo),
           frequency: regularFrequency,
           cumulativeChargeableIncomeBeforeKobo: prior?.chargeableIncomeKobo ?? 0n,
           cumulativePayePaidBeforeKobo: prior?.payePaidAfterKobo ?? 0n,
@@ -675,7 +677,9 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
       const grossKobo = clampNonNegative(
         result.grossKobo + reimbursementKobo + overtimePayKobo + leaveEncashmentKobo - daysOffDeductionKobo,
       );
-      const netBeforeLoanKobo = clampNonNegative(grossKobo - result.pensionEmployeeKobo - result.nhfKobo - payeKobo);
+      const netBeforeLoanKobo = clampNonNegative(
+        grossKobo - result.pensionEmployeeKobo - result.nhfKobo - result.unionDuesKobo - payeKobo,
+      );
 
       // Apply loan repayments on top — post-tax deductions, never touching
       // chargeable income or PAYE. Oldest loan first; each capped at its own
@@ -719,7 +723,12 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
 
       const netKobo = clampNonNegative(netBeforeLoanKobo - loanDeductionKobo - benefitEmployeeDeductionKobo);
       const employeeDeductionsKobo =
-        result.pensionEmployeeKobo + result.nhfKobo + payeKobo + loanDeductionKobo + benefitEmployeeDeductionKobo;
+        result.pensionEmployeeKobo +
+        result.nhfKobo +
+        result.unionDuesKobo +
+        payeKobo +
+        loanDeductionKobo +
+        benefitEmployeeDeductionKobo;
       totalGrossKobo += grossKobo;
       totalNetKobo += netKobo;
 
@@ -748,6 +757,7 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
           amount_kobo: result.pensionEmployeeKobo + result.pensionEmployerKobo,
         },
         { account_code: "nhf_payable", direction: "credit", amount_kobo: result.nhfKobo },
+        { account_code: "union_dues_payable", direction: "credit", amount_kobo: result.unionDuesKobo },
         { account_code: "staff_loans_receivable", direction: "credit", amount_kobo: loanDeductionKobo },
         {
           account_code: "benefits_payable",
@@ -764,6 +774,7 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
         pension_employer_kobo: Number(result.pensionEmployerKobo),
         nhf_kobo: Number(result.nhfKobo),
         rent_relief_kobo: Number(result.rentReliefKobo),
+        union_dues_kobo: Number(result.unionDuesKobo),
         chargeable_income_kobo: Number(chargeableIncomeKobo),
         paye_kobo: Number(payeKobo),
         employee_deductions_kobo: Number(employeeDeductionsKobo),

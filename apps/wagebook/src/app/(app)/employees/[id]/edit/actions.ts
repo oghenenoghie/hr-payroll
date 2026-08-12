@@ -53,6 +53,7 @@ export async function editEmployee(
   const housingNaira = Number(formData.get("housing") ?? 0);
   const transportNaira = Number(formData.get("transport") ?? 0);
   const annualRentNaira = Number(formData.get("annual_rent") ?? 0);
+  const annualUnionDuesNaira = Number(formData.get("annual_union_dues") ?? 0);
   const salaryMaskedRequested = formData.get("salary_masked") === "true";
 
   if (bankAccountNumber && !/^\d{10}$/.test(bankAccountNumber)) {
@@ -112,6 +113,7 @@ export async function editEmployee(
             housing_kobo: Number(naira(housingNaira)),
             transport_kobo: Number(naira(transportNaira)),
             annual_rent_kobo: Number(naira(annualRentNaira)),
+            annual_union_dues_kobo: Number(naira(annualUnionDuesNaira)),
             bank_name: bankName,
             bank_account_number: bankAccountNumber,
             bank_account_name: bankAccountName,

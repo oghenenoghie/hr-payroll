@@ -28,6 +28,7 @@ export const ACCOUNT_LABEL: Record<string, string> = {
   wht_payable: "WHT payable (due FIRS/State IRS, by the 21st)",
   itf_expense: "ITF expense",
   itf_payable: "ITF payable (due ITF, on/before 1 April annually)",
+  union_dues_payable: "Trade union dues payable",
   accounts_receivable: "Accounts receivable",
   sales_revenue: "Sales revenue",
   cash_and_bank: "Cash and bank",
