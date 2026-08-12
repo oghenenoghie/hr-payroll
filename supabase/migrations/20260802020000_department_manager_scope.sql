@@ -1,8 +1,13 @@
--- Wires up the Department Manager role for real. It already existed as a
--- roles-table row, a nav-sections default (["requests"]), and seeded
--- role_permissions ('employee.record.view.department',
--- 'leave.approve.department') — but nothing anywhere actually checked for
--- it: no RLS policy, no Server Action authorization branch, no page query.
+-- Wires up the Department Manager role for real — was originally written
+-- believing nothing anywhere checked for it yet. In the combined history
+-- (this migration merged from a branch that diverged before
+-- 20260730020001_department_manager.sql landed), that migration already
+-- had: departments.manager_id (an explicit, admin-assigned "head of
+-- department" column — see departments/actions.ts), a
+-- core.is_manager_of_department(department_id) helper built on it, and
+-- "department managers can view their department's employees" /
+-- "...leave requests" policies plus a review_leave_request() branch, all
+-- using that explicit-assignment model.
 --
 -- Department Manager is a distinct org_membership.role, not the same
 -- concept as 20260723090000_manager_self_service.sql's "manager" (any

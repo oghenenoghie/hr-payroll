@@ -58,9 +58,13 @@ export function PayRunDraftActions({ payRunId }: { payRunId: string }) {
       {confirming === "approve" && (
         <ConfirmDialog
           title="Approve and post this run?"
-          message="This posts the run for real — it becomes visible to employees, counted in reports, and carries forward into future cumulative tax calculations. Once posted, correcting it means reversing rather than discarding."
+          message={
+            awaitingVarianceAck
+              ? "This run has unreviewed variance flags — proceeding acknowledges them and posts anyway. It becomes visible to employees, counted in reports, and carries forward into future cumulative tax calculations. Once posted, correcting it means reversing rather than discarding."
+              : "This posts the run for real — it becomes visible to employees, counted in reports, and carries forward into future cumulative tax calculations. Once posted, correcting it means reversing rather than discarding."
+          }
           tone="primary"
-          confirmLabel="Approve & post"
+          confirmLabel={awaitingVarianceAck ? "Acknowledge flags & approve anyway" : "Approve & post"}
           onConfirm={() => {
             setConfirming(null);
             submitApprove();

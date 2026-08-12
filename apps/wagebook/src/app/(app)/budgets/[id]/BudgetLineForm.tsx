@@ -6,7 +6,17 @@ import { upsertBudgetLine } from "./actions";
 
 type Account = { code: string; name: string; type: string };
 
-export function BudgetLineForm({ budgetId, accounts }: { budgetId: string; accounts: Account[] }) {
+export function BudgetLineForm({
+  budgetId,
+  accounts,
+  periodStart,
+  periodEnd,
+}: {
+  budgetId: string;
+  accounts: Account[];
+  periodStart: string;
+  periodEnd: string;
+}) {
   const [state, formAction] = useActionState(upsertBudgetLine, null);
 
   return (
@@ -36,6 +46,14 @@ export function BudgetLineForm({ budgetId, accounts }: { budgetId: string; accou
         </div>
         <FormField label="Budgeted amount (₦)" name="amount" type="number" />
       </div>
+      <div className="grid grid-cols-2 gap-3">
+        <FormField label="Line period start" name="period_start" type="date" defaultValue={periodStart} />
+        <FormField label="Line period end" name="period_end" type="date" defaultValue={periodEnd} />
+      </div>
+      <p className="text-[12px] text-ink-soft">
+        Defaults to the budget&apos;s whole period. Narrow it (e.g. one calendar month) and add another line for the
+        next month to break an account into a monthly or quarterly plan.
+      </p>
       <SubmitButton>Save line</SubmitButton>
     </form>
   );

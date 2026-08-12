@@ -46,9 +46,11 @@ export default async function DepreciationRunDetailPage({ params }: { params: Pr
           <Link href="/fixed-assets/depreciation" className="text-primary">
             Depreciation Runs
           </Link>{" "}
-          / {run.period_end}
+          / {run.period_start} to {run.period_end}
         </span>
-        <h1 className="text-[22px] font-extrabold text-ink">Depreciation for period ending {run.period_end}</h1>
+        <h1 className="text-[22px] font-extrabold text-ink">
+          Depreciation for period {run.period_start} to {run.period_end}
+        </h1>
         <p className="text-[13px] text-ink-soft">
           One balanced journal entry — debit depreciation expense, credit accumulated depreciation — for the total
           below. See{" "}

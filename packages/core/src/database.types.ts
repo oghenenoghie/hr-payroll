@@ -2732,12 +2732,16 @@ export type Database = {
           cost_kobo: number
           created_at: string
           created_by: string
+          declining_balance_rate_percent: number | null
+          department_id: string | null
+          depreciation_method: string
           disposal_journal_entry_id: string | null
           disposal_proceeds_kobo: number | null
           disposed_at: string | null
           id: string
           name: string
           org_id: string
+          revaluation_adjustment_kobo: number
           salvage_value_kobo: number
           status: string
           useful_life_months: number
@@ -2749,12 +2753,16 @@ export type Database = {
           cost_kobo: number
           created_at?: string
           created_by: string
+          declining_balance_rate_percent?: number | null
+          department_id?: string | null
+          depreciation_method?: string
           disposal_journal_entry_id?: string | null
           disposal_proceeds_kobo?: number | null
           disposed_at?: string | null
           id?: string
           name: string
           org_id: string
+          revaluation_adjustment_kobo?: number
           salvage_value_kobo?: number
           status?: string
           useful_life_months: number
@@ -2766,12 +2774,16 @@ export type Database = {
           cost_kobo?: number
           created_at?: string
           created_by?: string
+          declining_balance_rate_percent?: number | null
+          department_id?: string | null
+          depreciation_method?: string
           disposal_journal_entry_id?: string | null
           disposal_proceeds_kobo?: number | null
           disposed_at?: string | null
           id?: string
           name?: string
           org_id?: string
+          revaluation_adjustment_kobo?: number
           salvage_value_kobo?: number
           status?: string
           useful_life_months?: number
@@ -2791,6 +2803,13 @@ export type Database = {
             referencedRelation: "journal_entries"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fixed_assets_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
         ]
       }
       depreciation_runs: {
@@ -2801,6 +2820,7 @@ export type Database = {
           journal_entry_id: string
           org_id: string
           period_end: string
+          period_start: string
           total_amount_kobo: number
         }
         Insert: {
@@ -2810,6 +2830,7 @@ export type Database = {
           journal_entry_id: string
           org_id: string
           period_end: string
+          period_start: string
           total_amount_kobo: number
         }
         Update: {
@@ -2819,6 +2840,7 @@ export type Database = {
           journal_entry_id?: string
           org_id?: string
           period_end?: string
+          period_start?: string
           total_amount_kobo?: number
         }
         Relationships: [
@@ -2879,6 +2901,7 @@ export type Database = {
       }
       budgets: {
         Row: {
+          budget_type: string
           created_at: string
           created_by: string
           id: string
@@ -2888,6 +2911,7 @@ export type Database = {
           period_start: string
         }
         Insert: {
+          budget_type?: string
           created_at?: string
           created_by: string
           id?: string
@@ -2897,6 +2921,7 @@ export type Database = {
           period_start: string
         }
         Update: {
+          budget_type?: string
           created_at?: string
           created_by?: string
           id?: string
@@ -2922,6 +2947,8 @@ export type Database = {
           budget_id: string
           created_at: string
           id: string
+          period_end: string
+          period_start: string
         }
         Insert: {
           account_code: string
@@ -2929,6 +2956,8 @@ export type Database = {
           budget_id: string
           created_at?: string
           id?: string
+          period_end: string
+          period_start: string
         }
         Update: {
           account_code?: string
@@ -2936,6 +2965,8 @@ export type Database = {
           budget_id?: string
           created_at?: string
           id?: string
+          period_end?: string
+          period_start?: string
         }
         Relationships: [
           {
@@ -4213,6 +4244,225 @@ export type Database = {
           },
         ]
       }
+      statutory_remittances: {
+        Row: {
+          amount_kobo: number
+          created_at: string
+          id: string
+          notes: string | null
+          org_id: string
+          pay_run_id: string
+          recorded_by: string
+          reference: string | null
+          remitted_on: string
+          scheme: string
+        }
+        Insert: {
+          amount_kobo: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          org_id: string
+          pay_run_id: string
+          recorded_by: string
+          reference?: string | null
+          remitted_on: string
+          scheme: string
+        }
+        Update: {
+          amount_kobo?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          org_id?: string
+          pay_run_id?: string
+          recorded_by?: string
+          reference?: string | null
+          remitted_on?: string
+          scheme?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "statutory_remittances_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "statutory_remittances_pay_run_id_fkey"
+            columns: ["pay_run_id"]
+            isOneToOne: false
+            referencedRelation: "pay_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_revaluations: {
+        Row: {
+          adjustment_kobo: number
+          asset_id: string
+          id: string
+          journal_entry_id: string
+          note: string | null
+          org_id: string
+          revalued_at: string
+          revalued_by: string
+        }
+        Insert: {
+          adjustment_kobo: number
+          asset_id: string
+          id?: string
+          journal_entry_id: string
+          note?: string | null
+          org_id: string
+          revalued_at?: string
+          revalued_by: string
+        }
+        Update: {
+          adjustment_kobo?: number
+          asset_id?: string
+          id?: string
+          journal_entry_id?: string
+          note?: string | null
+          org_id?: string
+          revalued_at?: string
+          revalued_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_revaluations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_revaluations_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_revaluations_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employment_contract_signatures: {
+        Row: {
+          document_hash: string
+          employee_id: string
+          id: string
+          ip_address: string | null
+          org_id: string
+          party: string
+          signed_at: string
+          signed_by: string
+        }
+        Insert: {
+          document_hash: string
+          employee_id: string
+          id?: string
+          ip_address?: string | null
+          org_id: string
+          party: string
+          signed_at?: string
+          signed_by: string
+        }
+        Update: {
+          document_hash?: string
+          employee_id?: string
+          id?: string
+          ip_address?: string | null
+          org_id?: string
+          party?: string
+          signed_at?: string
+          signed_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employment_contract_signatures_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contract_signatures_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_transfers: {
+        Row: {
+          asset_id: string
+          from_department_id: string | null
+          id: string
+          note: string | null
+          org_id: string
+          to_department_id: string | null
+          transferred_at: string
+          transferred_by: string
+        }
+        Insert: {
+          asset_id: string
+          from_department_id?: string | null
+          id?: string
+          note?: string | null
+          org_id: string
+          to_department_id?: string | null
+          transferred_at?: string
+          transferred_by: string
+        }
+        Update: {
+          asset_id?: string
+          from_department_id?: string | null
+          id?: string
+          note?: string | null
+          org_id?: string
+          to_department_id?: string | null
+          transferred_at?: string
+          transferred_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_transfers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_transfers_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_transfers_from_department_id_fkey"
+            columns: ["from_department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_transfers_to_department_id_fkey"
+            columns: ["to_department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       employees_masked: {
@@ -4530,7 +4780,7 @@ export type Database = {
         }
       }
       reverse_pay_run: {
-        Args: { p_pay_run_id: string; p_reason: string }
+        Args: { p_pay_run_id: string; p_reason: string; p_acknowledge_remitted?: boolean }
         Returns: {
           created_at: string
           id: string
@@ -5068,7 +5318,7 @@ export type Database = {
         }
       }
       run_depreciation: {
-        Args: { p_org_id: string; p_period_end: string }
+        Args: { p_org_id: string; p_period_start: string; p_period_end: string }
         Returns: {
           created_at: string
           created_by: string
@@ -5076,6 +5326,7 @@ export type Database = {
           journal_entry_id: string
           org_id: string
           period_end: string
+          period_start: string
           total_amount_kobo: number
         }
         SetofOptions: {
@@ -5094,12 +5345,16 @@ export type Database = {
           cost_kobo: number
           created_at: string
           created_by: string
+          declining_balance_rate_percent: number | null
+          department_id: string | null
+          depreciation_method: string
           disposal_journal_entry_id: string | null
           disposal_proceeds_kobo: number | null
           disposed_at: string | null
           id: string
           name: string
           org_id: string
+          revaluation_adjustment_kobo: number
           salvage_value_kobo: number
           status: string
           useful_life_months: number
@@ -5270,6 +5525,113 @@ export type Database = {
           passed: boolean
           submitted_at: string
         }[]
+      }
+      revalue_fixed_asset: {
+        Args: { p_asset_id: string; p_adjustment_kobo: number; p_revaluation_date: string; p_note?: string | null }
+        Returns: {
+          accumulated_depreciation_kobo: number
+          acquisition_date: string
+          category: string | null
+          cost_kobo: number
+          created_at: string
+          created_by: string
+          declining_balance_rate_percent: number | null
+          department_id: string | null
+          depreciation_method: string
+          disposal_journal_entry_id: string | null
+          disposal_proceeds_kobo: number | null
+          disposed_at: string | null
+          id: string
+          name: string
+          org_id: string
+          revaluation_adjustment_kobo: number
+          salvage_value_kobo: number
+          status: string
+          useful_life_months: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "fixed_assets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      transfer_fixed_asset: {
+        Args: { p_asset_id: string; p_to_department_id?: string | null; p_note?: string | null }
+        Returns: {
+          accumulated_depreciation_kobo: number
+          acquisition_date: string
+          category: string | null
+          cost_kobo: number
+          created_at: string
+          created_by: string
+          declining_balance_rate_percent: number | null
+          department_id: string | null
+          depreciation_method: string
+          disposal_journal_entry_id: string | null
+          disposal_proceeds_kobo: number | null
+          disposed_at: string | null
+          id: string
+          name: string
+          org_id: string
+          revaluation_adjustment_kobo: number
+          salvage_value_kobo: number
+          status: string
+          useful_life_months: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "fixed_assets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      record_statutory_remittance: {
+        Args: {
+          p_pay_run_id: string
+          p_scheme: string
+          p_amount_kobo: number
+          p_remitted_on: string
+          p_reference?: string | null
+          p_notes?: string | null
+        }
+        Returns: {
+          amount_kobo: number
+          created_at: string
+          id: string
+          notes: string | null
+          org_id: string
+          pay_run_id: string
+          recorded_by: string
+          reference: string | null
+          remitted_on: string
+          scheme: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "statutory_remittances"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      sign_employment_contract: {
+        Args: { p_employee_id: string; p_party: string; p_document_hash: string; p_ip_address?: string | null }
+        Returns: {
+          document_hash: string
+          employee_id: string
+          id: string
+          ip_address: string | null
+          org_id: string
+          party: string
+          signed_at: string
+          signed_by: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "employment_contract_signatures"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
     }
     Enums: {

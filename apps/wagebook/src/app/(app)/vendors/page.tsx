@@ -13,8 +13,8 @@ const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em
 const tdClass = "px-3 py-[10px] text-[13px]";
 const PAGE_SIZE = 50;
 
-const VIEW_ROLES = ["admin", "payroll_manager", "accountant", "auditor"];
 const MANAGE_ROLES = ["admin", "payroll_manager", "accountant"];
+const VIEW_ROLES = [...MANAGE_ROLES, "auditor"];
 
 export default async function VendorsPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const supabase = await createClient();
@@ -79,9 +79,9 @@ export default async function VendorsPage({ searchParams }: { searchParams: Prom
         <h1 className="text-[22px] font-extrabold text-ink">Vendors</h1>
         <p className="text-[13px] text-ink-soft">
           Suppliers you owe bills to. Add a vendor here first, then raise bills against them from{" "}
-          <a href="/bills" className="font-bold text-primary">
+          <Link href="/bills" className="font-bold text-primary">
             Bills
-          </a>
+          </Link>
           .
         </p>
       </header>

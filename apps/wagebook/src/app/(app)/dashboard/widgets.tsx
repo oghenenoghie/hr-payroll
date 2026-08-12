@@ -2,9 +2,11 @@ import Link from "next/link";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@plutus/core";
 import { NG_2026_1 } from "@plutus/compliance";
+import type { Kobo } from "@plutus/compliance";
 import { formatKobo } from "@/lib/format";
 import { AnimatedCount } from "@/components/AnimatedCount";
 import { PayrollTrendChart } from "./PayrollTrendChart";
+import { PayRunStatusBadge } from "@/components/Badge";
 import {
   BuildingIcon,
   ClockIcon,
@@ -534,7 +536,143 @@ export async function MyTeamSnapshotWidget({ supabase, orgId, userId }: WidgetPr
   );
 }
 
-const DEADLINE_MONTH_LABEL = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+// --- Presentational primitives from the base branch's dashboard redesign
+// (KPI tiles, approval donut, monthly cost chart, deadline rail) — kept
+// as building blocks and wired into the widget catalog below rather than
+// replacing it, so /security/dashboards' per-role visibility controls
+// keep covering every widget on the page instead of going stale for some
+// of them.
+
+export function StatTile({ label, value, caption }: { label: string; value: string; caption: string }) {
+  return (
+    <div className="flex flex-col gap-1 rounded-card border border-border bg-surface p-5">
+      <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">{label}</span>
+      <span className="text-[24px] font-extrabold text-ink">{value}</span>
+      <span className="text-[11px] text-ink-soft">{caption}</span>
+    </div>
+  );
+}
+
+export function Avatar({ name }: { name: string }) {
+  const initials =
+    name
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? "")
+      .join("") || "?";
+
+  return (
+    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-primary-tint text-[11px] font-extrabold uppercase tracking-[0.03em] text-primary-dark">
+      {initials}
+    </div>
+  );
+}
+
+const DONUT_SEGMENTS: { key: "approved" | "pending" | "rejected"; label: string; colorVar: string }[] = [
+  { key: "approved", label: "Approved", colorVar: "var(--good)" },
+  { key: "pending", label: "Pending", colorVar: "var(--warn)" },
+  { key: "rejected", label: "Rejected", colorVar: "var(--bad)" },
+];
+
+export function ApprovalDonut({
+  approved,
+  pending,
+  rejected,
+}: {
+  approved: number;
+  pending: number;
+  rejected: number;
+}) {
+  const total = approved + pending + rejected;
+  const counts = { approved, pending, rejected };
+
+  let cursor = 0;
+  const stops = DONUT_SEGMENTS.map((segment) => {
+    const share = total > 0 ? (counts[segment.key] / total) * 100 : 0;
+    const start = cursor;
+    cursor += share;
+    return `${segment.colorVar} ${start}% ${cursor}%`;
+  }).join(", ");
+
+  return (
+    <div className="flex items-center gap-6">
+      <div
+        className="relative h-[112px] w-[112px] shrink-0 rounded-full"
+        style={{ background: total > 0 ? `conic-gradient(${stops})` : "var(--border)" }}
+        role="img"
+        aria-label={`${approved} approved, ${pending} pending, ${rejected} rejected`}
+      >
+        <div className="absolute inset-[16px] flex flex-col items-center justify-center rounded-full bg-surface">
+          <span className="text-[19px] font-extrabold text-ink">{total}</span>
+          <span className="text-[10px] font-bold uppercase tracking-[0.03em] text-ink-soft">Total</span>
+        </div>
+      </div>
+      <div className="flex flex-col gap-2.5">
+        {DONUT_SEGMENTS.map((segment) => (
+          <div key={segment.key} className="flex items-center gap-2 text-[12.5px]">
+            <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: segment.colorVar }} aria-hidden="true" />
+            <span className="text-ink-soft">{segment.label}</span>
+            <span className="font-bold text-ink">{counts[segment.key]}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function MonthlyPayrollCostChart({ months }: { months: { label: string; totalKobo: Kobo }[] }) {
+  const maxKobo = months.reduce((max, m) => (m.totalKobo > max ? m.totalKobo : max), 1n);
+
+  return (
+    <div className="flex items-end gap-3 pt-4" style={{ height: 168 }}>
+      {months.map((month) => {
+        const heightPct = maxKobo > 0n ? Number((month.totalKobo * 1000n) / maxKobo) / 10 : 0;
+        return (
+          <div key={month.label} className="group relative flex h-full flex-1 flex-col items-center justify-end gap-2">
+            <div
+              role="img"
+              aria-label={`${month.label}: ${formatKobo(month.totalKobo)}`}
+              className="pointer-events-none absolute -top-1 left-1/2 z-10 -translate-x-1/2 -translate-y-full rounded-panel border border-border bg-surface px-2.5 py-1.5 text-[11px] font-bold whitespace-nowrap text-ink opacity-0 transition-opacity group-hover:opacity-100"
+            >
+              {formatKobo(month.totalKobo)}
+            </div>
+            <div
+              className="w-full max-w-[28px] rounded-t-[4px] bg-primary-tint transition-colors group-hover:bg-primary"
+              style={{ height: `${Math.max(heightPct, month.totalKobo > 0n ? 3 : 1)}%` }}
+            />
+            <span className="text-[10.5px] font-bold uppercase tracking-[0.02em] text-ink-soft">{month.label}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export function DeadlineItem({ dateLabel, title, authority }: { dateLabel: string; title: string; authority: string }) {
+  return (
+    <div className="flex items-start gap-3 rounded-panel border border-border bg-bg px-3 py-2.5">
+      <div className="flex w-11 shrink-0 flex-col items-center rounded-control border border-border bg-surface py-1.5">
+        <span className="text-[13px] font-extrabold text-ink">{dateLabel}</span>
+      </div>
+      <div className="flex flex-col gap-0.5">
+        <span className="text-[12.5px] font-bold text-ink">{title}</span>
+        <span className="text-[11px] text-ink-soft">{authority}</span>
+      </div>
+    </div>
+  );
+}
+
+// --- Widgets built on top of those primitives, wired into the same
+// DASHBOARD_WIDGETS catalog every other widget on this page goes through.
+
+const MONTH_LABEL = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const TERMINAL_STATUSES = ["approved", "paid", "completed"];
+const APPROVAL_TABLES = ["loans", "expenses", "overtime_requests", "leave_requests", "leave_encashment_requests"] as const;
+
+function monthKey(dateStr: string) {
+  return dateStr.slice(0, 7); // YYYY-MM
+}
 
 /** Next calendar occurrence of a fixed day-of-month from `today` —
  * payment-relative schemes (pension, NHF) have no fixed calendar day and
@@ -557,7 +695,7 @@ function nextAnnualDeadline(monthDay: string, today: Date): Date {
 }
 
 function formatDeadlineDate(date: Date): string {
-  return `${date.getUTCDate()} ${DEADLINE_MONTH_LABEL[date.getUTCMonth()]}`;
+  return `${date.getUTCDate()} ${MONTH_LABEL[date.getUTCMonth()]}`;
 }
 
 // Upcoming statutory filing deadlines plus a TIN-missing gap count — the
@@ -611,3 +749,186 @@ export async function ComplianceDeadlinesWidget({ supabase, orgId }: WidgetProps
   );
 }
 
+export async function OrgKpiSnapshotWidget({ supabase, orgId }: WidgetProps) {
+  const today = new Date();
+  const thirtyDaysAgo = new Date(today);
+  thirtyDaysAgo.setUTCDate(thirtyDaysAgo.getUTCDate() - 30);
+  const thirtyDaysAgoIso = thirtyDaysAgo.toISOString().slice(0, 10);
+
+  const [{ count: activeEmployeeCount }, { count: newHireCount }, { count: tinMissingCount }, ...approvalTableRows] =
+    await Promise.all([
+      supabase.from("employees").select("id", { count: "exact", head: true }).eq("org_id", orgId).eq("status", "active"),
+      supabase
+        .from("employees")
+        .select("id", { count: "exact", head: true })
+        .eq("org_id", orgId)
+        .eq("status", "active")
+        .gte("hire_date", thirtyDaysAgoIso),
+      supabase
+        .from("employees")
+        .select("id", { count: "exact", head: true })
+        .eq("org_id", orgId)
+        .eq("status", "active")
+        .is("tin", null),
+      ...APPROVAL_TABLES.map((table) => supabase.from(table).select("status").eq("org_id", orgId)),
+    ]);
+
+  let pendingCount = 0;
+  for (const result of approvalTableRows) {
+    for (const row of result.data ?? []) {
+      if (row.status === "pending") pendingCount++;
+    }
+  }
+
+  return (
+    <div className={cardClass}>
+      <WidgetHeader icon={PeopleIcon} label="Organization KPIs" />
+      <div className="mt-3 grid grid-cols-2 gap-3">
+        <StatTile label="Total Employees" value={String(activeEmployeeCount ?? 0)} caption="Active headcount" />
+        <StatTile label="New Hires" value={String(newHireCount ?? 0)} caption="In the last 30 days" />
+        <StatTile label="Pending Approvals" value={String(pendingCount)} caption="Loans, expenses, overtime & leave" />
+        <StatTile
+          label="TIN Missing"
+          value={String(tinMissingCount ?? 0)}
+          caption={`Of ${activeEmployeeCount ?? 0} active employees`}
+        />
+      </div>
+    </div>
+  );
+}
+
+export async function ApprovalsBreakdownWidget({ supabase, orgId }: WidgetProps) {
+  const approvalTableRows = await Promise.all(
+    APPROVAL_TABLES.map((table) => supabase.from(table).select("status").eq("org_id", orgId)),
+  );
+
+  let approvedCount = 0;
+  let pendingCount = 0;
+  let rejectedCount = 0;
+  for (const result of approvalTableRows) {
+    for (const row of result.data ?? []) {
+      if (row.status === "pending") pendingCount++;
+      else if (row.status === "rejected") rejectedCount++;
+      else if (TERMINAL_STATUSES.includes(row.status)) approvedCount++;
+    }
+  }
+
+  return (
+    <div className={cardClass}>
+      <WidgetHeader icon={ClockIcon} label="Approvals breakdown" />
+      <div className="mt-3">
+        <ApprovalDonut approved={approvedCount} pending={pendingCount} rejected={rejectedCount} />
+      </div>
+    </div>
+  );
+}
+
+export async function PayrollCostTrendWidget({ supabase, orgId }: WidgetProps) {
+  const today = new Date();
+  const { data: payRunsForChart } = await supabase
+    .from("pay_runs")
+    .select("period_end, net_kobo, status")
+    .eq("org_id", orgId)
+    .eq("status", "posted")
+    .order("period_end", { ascending: false })
+    .limit(100);
+
+  const totalsByMonth = new Map<string, bigint>();
+  for (const run of payRunsForChart ?? []) {
+    const key = monthKey(run.period_end);
+    totalsByMonth.set(key, (totalsByMonth.get(key) ?? 0n) + BigInt(run.net_kobo));
+  }
+
+  const chartMonths = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - (5 - i), 1));
+    const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+    return { label: MONTH_LABEL[d.getUTCMonth()]!, totalKobo: totalsByMonth.get(key) ?? 0n };
+  });
+
+  return (
+    <Link href="/payroll" className="block transition-opacity hover:opacity-80">
+      <div className={cardClass}>
+        <WidgetHeader icon={BanknoteIcon} label="Payroll cost trend" />
+        <p className="mt-1 text-[13px] text-ink-soft">Net pay, last 6 months</p>
+        <MonthlyPayrollCostChart months={chartMonths} />
+      </div>
+    </Link>
+  );
+}
+
+export async function RecentPayRunsWidget({ supabase, orgId }: WidgetProps) {
+  const { data: recentPayRuns } = await supabase
+    .from("pay_runs")
+    .select("id, period_start, period_end, frequency, status, net_kobo")
+    .eq("org_id", orgId)
+    .order("period_end", { ascending: false })
+    .limit(5);
+
+  return (
+    <div className={cardClass}>
+      <div className="flex items-center justify-between">
+        <WidgetHeader icon={BanknoteIcon} label="Recent pay runs" />
+        <Link href="/payroll" className="text-[12px] font-bold text-primary">
+          See all
+        </Link>
+      </div>
+      <div className="mt-3 flex flex-col">
+        {recentPayRuns && recentPayRuns.length > 0 ? (
+          recentPayRuns.map((run) => (
+            <Link
+              key={run.id}
+              href={`/payroll/${run.id}`}
+              className="flex items-center justify-between gap-3 border-b border-border py-2.5 text-[13px] last:border-b-0 hover:text-primary"
+            >
+              <span className="font-bold text-ink">
+                {run.period_start} – {run.period_end}
+              </span>
+              <PayRunStatusBadge status={run.status} />
+              <span className="font-bold text-ink">{formatKobo(BigInt(run.net_kobo))}</span>
+            </Link>
+          ))
+        ) : (
+          <p className="py-4 text-center text-[13px] text-ink-soft">No pay runs yet.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export async function EmployeeDirectoryWidget({ supabase, orgId }: WidgetProps) {
+  const { data: recentEmployees } = await supabase
+    .from("employees_masked")
+    .select("id, full_name, email, department_name")
+    .eq("org_id", orgId)
+    .order("full_name")
+    .limit(6);
+
+  return (
+    <div className={cardClass}>
+      <div className="flex items-center justify-between">
+        <WidgetHeader icon={PeopleIcon} label="Employee directory" />
+        <Link href="/employees" className="text-[12px] font-bold text-primary">
+          See all
+        </Link>
+      </div>
+      <div className="mt-3 flex flex-col">
+        {recentEmployees && recentEmployees.length > 0 ? (
+          recentEmployees.map((employee) => (
+            <div key={employee.id} className="flex items-center justify-between gap-3 border-b border-border py-2.5 text-[13px] last:border-b-0">
+              <div className="flex items-center gap-3">
+                <Avatar name={employee.full_name ?? "?"} />
+                <div className="flex flex-col">
+                  <span className="font-bold text-ink">{employee.full_name ?? "—"}</span>
+                  <span className="text-[12px] text-ink-soft">{employee.email ?? "—"}</span>
+                </div>
+              </div>
+              <span className="text-ink-soft">{employee.department_name ?? "—"}</span>
+            </div>
+          ))
+        ) : (
+          <p className="py-4 text-center text-[13px] text-ink-soft">No employees yet.</p>
+        )}
+      </div>
+    </div>
+  );
+}

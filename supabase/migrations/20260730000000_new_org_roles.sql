@@ -4,8 +4,10 @@
 -- alongside it), 'department_manager' (its own migration,
 -- 20260730021000, since it needs a new departments.manager_id column and
 -- department-scoped policies rather than a simple array widening), and
--- 'auditor' (its own migration, 20260730010000 — strictly read-only,
--- added only to SELECT policies, never to INSERT/UPDATE/DELETE).
+-- 'auditor' (its own migration, 20260802010000 — strictly read-only,
+-- added only to SELECT policies, never to INSERT/UPDATE/DELETE; wired up
+-- for real there, superseding an earlier, narrower auditor_read_access
+-- migration that never made it into this history).
 --
 -- "Super Admin" (the display name for the existing 'admin' role) is a
 -- label-only change and needs no migration — see AppShell.tsx and

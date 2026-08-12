@@ -45,23 +45,28 @@ export function PayslipTable({ payslips, ruleVersionId }: { payslips: PayslipRow
           {payslips.map((slip) => (
             <tr key={slip.id} className="border-b border-border">
               <td colSpan={7} className="p-0">
+                <div className="grid grid-cols-[1fr_repeat(4,minmax(0,1fr))_auto] items-center gap-0 px-3 py-[10px]">
+                  <span className="text-left text-[13px] font-bold text-ink">{slip.employees?.full_name ?? "—"}</span>
+                  <span className="text-right text-[13px] text-ink">{formatKobo(BigInt(slip.gross_kobo))}</span>
+                  <span className="text-right text-[13px] text-ink-soft">
+                    {formatKobo(BigInt(slip.pension_employee_kobo))}
+                  </span>
+                  <span className="text-right text-[13px] text-ink-soft">{formatKobo(BigInt(slip.nhf_kobo))}</span>
+                  <span className="text-right text-[13px] text-ink-soft">{formatKobo(BigInt(slip.paye_kobo))}</span>
+                  <span className="flex items-center justify-end gap-3 text-right text-[13px] font-bold text-ink">
+                    {formatKobo(BigInt(slip.net_kobo))}
+                    <a
+                      href={`/payroll/${slip.pay_run_id}/payslips/${slip.id}`}
+                      className="whitespace-nowrap rounded-button border border-primary px-[12px] py-[5px] text-[11.5px] font-extrabold text-primary"
+                    >
+                      View payslip
+                    </a>
+                  </span>
+                </div>
                 <details className="group">
-                  <summary className="grid list-none grid-cols-[1fr_repeat(4,minmax(0,1fr))_auto] items-center gap-0 px-3 py-[10px] marker:hidden [&::-webkit-details-marker]:hidden">
-                    <span className="text-left text-[13px] font-bold text-ink">{slip.employees?.full_name ?? "—"}</span>
-                    <span className="text-right text-[13px] text-ink">{formatKobo(BigInt(slip.gross_kobo))}</span>
-                    <span className="text-right text-[13px] text-ink-soft">
-                      {formatKobo(BigInt(slip.pension_employee_kobo))}
-                    </span>
-                    <span className="text-right text-[13px] text-ink-soft">{formatKobo(BigInt(slip.nhf_kobo))}</span>
-                    <span className="text-right text-[13px] text-ink-soft">{formatKobo(BigInt(slip.paye_kobo))}</span>
-                    <span className="flex items-center justify-end gap-3 text-right text-[13px] font-bold text-ink">
-                      {formatKobo(BigInt(slip.net_kobo))}
-                      <span className="cursor-pointer text-[12px] font-bold text-primary group-open:hidden">· how?</span>
-                      <span className="hidden cursor-pointer text-[12px] font-bold text-primary group-open:inline">hide</span>
-                      <a href={`/payroll/${slip.pay_run_id}/payslips/${slip.id}`} className="text-[12px] font-bold text-primary">
-                        Print
-                      </a>
-                    </span>
+                  <summary className="cursor-pointer list-none px-3 pb-[10px] text-[12px] font-bold text-primary marker:hidden [&::-webkit-details-marker]:hidden">
+                    <span className="group-open:hidden">How was this derived?</span>
+                    <span className="hidden group-open:inline">Hide derivation</span>
                   </summary>
                   <div className="border-t border-border bg-bg px-3 py-4">
                     {ruleVersion ? (
