@@ -129,27 +129,45 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
   }
 
   // Carry forward cumulative PAYE state from each employee's most recent
-  // payslip — never restart cumulative income at zero for an employee
-  // who's already had pay runs this year. Shared by every run type,
-  // including 13th month: a lump sum is taxed on top of this position too.
-  // Reads posted_payslips, not payslips directly — a still-unapproved
-  // draft's numbers aren't final and could still be discarded, so they
-  // must never seed another run's cumulative position.
+  // payslip within the current tax year — never restart cumulative income
+  // at zero for an employee who's already had pay runs this year, but
+  // never carry a PRIOR year's cumulative position into a new year either:
+  // PAYE resets at each calendar-year boundary, so an employee's first run
+  // of a new year must start from zero regardless of what they earned last
+  // year. Shared by every run type, including 13th month: a lump sum is
+  // taxed on top of this position too. Reads posted_payslips, not payslips
+  // directly — a still-unapproved draft's numbers aren't final and could
+  // still be discarded, so they must never seed another run's cumulative
+  // position. Two-step (posted_payslips, then pay_runs for period_start)
+  // rather than an embedded select, matching the same lookup in
+  // employees/[id]/settle/compute.ts.
+  const currentTaxYear = Number(periodStart.slice(0, 4));
+
   const { data: recentPayslips } = await supabase
     .from("posted_payslips")
-    .select("employee_id, chargeable_income_kobo, cumulative_paye_paid_before_kobo, paye_kobo, created_at")
+    .select("employee_id, pay_run_id, chargeable_income_kobo, cumulative_paye_paid_before_kobo, paye_kobo, created_at")
     .in(
       "employee_id",
       employees.map((e) => e.id),
     )
     .order("created_at", { ascending: false });
 
+  const candidatePayRunIds = [
+    ...new Set((recentPayslips ?? []).map((s) => s.pay_run_id).filter((id): id is string => id !== null)),
+  ];
+  const { data: candidatePayRuns } =
+    candidatePayRunIds.length > 0
+      ? await supabase.from("pay_runs").select("id, period_start").in("id", candidatePayRunIds)
+      : { data: [] };
+  const payRunYearById = new Map((candidatePayRuns ?? []).map((r) => [r.id, Number(r.period_start.slice(0, 4))]));
+
   const priorStateByEmployee = new Map<string, { chargeableIncomeKobo: bigint; payePaidAfterKobo: bigint }>();
   for (const slip of recentPayslips ?? []) {
     // posted_payslips' columns are nullable in the view's inferred type even
     // though the underlying payslips table enforces NOT NULL — a real row
-    // never has a null employee_id.
+    // never has a null employee_id or pay_run_id.
     if (!slip.employee_id || priorStateByEmployee.has(slip.employee_id)) continue; // already have the most recent one
+    if (!slip.pay_run_id || payRunYearById.get(slip.pay_run_id) !== currentTaxYear) continue; // prior tax year — doesn't carry forward
     priorStateByEmployee.set(slip.employee_id, {
       chargeableIncomeKobo: BigInt(slip.chargeable_income_kobo ?? 0),
       payePaidAfterKobo: BigInt(slip.cumulative_paye_paid_before_kobo ?? 0) + BigInt(slip.paye_kobo ?? 0),
@@ -484,14 +502,15 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
     }
 
     // Mid-period salary changes: an employee whose basic/housing/transport
-    // changed inside this period was paid at two different rates across it.
-    // Only the earliest change within the period matters as a two-way split
-    // boundary — days before it were at that row's "old" rate, days from it
-    // onward are at the employee's current rate (which is what this run
-    // already computes everything at), regardless of how many further
-    // changes happened later in the same period. changed_at is a
-    // timestamptz auto-logged by a trigger (see migration), never a
-    // client-chosen effective date.
+    // changed inside this period was paid at more than one rate across it.
+    // Every change within the period is its own segment boundary — the
+    // segment before the first change was at that row's "old" rate, each
+    // segment between two consecutive changes was at the later row's "old"
+    // rate (the same rate the earlier change transitioned *to*), and the
+    // segment from the last change onward is already correct, since
+    // derivePeriodPayslip above computed the whole period at the employee's
+    // current rate. changed_at is a timestamptz auto-logged by a trigger
+    // (see migration), never a client-chosen effective date.
     const periodEndExclusive = new Date(Date.parse(periodEnd) + 86_400_000).toISOString().slice(0, 10);
     const { data: compensationChanges } = await supabase
       .from("employee_compensation_history")
@@ -501,15 +520,15 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
       .lt("changed_at", periodEndExclusive)
       .order("changed_at", { ascending: true });
 
-    const earliestCompChangeByEmployee = new Map<string, { oldAnnualContractualKobo: bigint; changedAt: string }>();
+    const compChangesByEmployee = new Map<string, { oldAnnualContractualKobo: bigint; changedAt: string }[]>();
     for (const change of compensationChanges ?? []) {
-      if (!earliestCompChangeByEmployee.has(change.employee_id)) {
-        earliestCompChangeByEmployee.set(change.employee_id, {
-          oldAnnualContractualKobo:
-            BigInt(change.old_basic_kobo) + BigInt(change.old_housing_kobo) + BigInt(change.old_transport_kobo),
-          changedAt: change.changed_at,
-        });
-      }
+      const list = compChangesByEmployee.get(change.employee_id) ?? [];
+      list.push({
+        oldAnnualContractualKobo:
+          BigInt(change.old_basic_kobo) + BigInt(change.old_housing_kobo) + BigInt(change.old_transport_kobo),
+        changedAt: change.changed_at,
+      });
+      compChangesByEmployee.set(change.employee_id, list);
     }
 
     payslipsPayload = employees.map((employee) => {
@@ -589,24 +608,26 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
         newHireProrationDeductionKobo = dailyRateKobo * BigInt(daysNotEmployed);
       }
 
-      // Mid-period salary change: the days before the change were paid at
-      // the old rate, but derivePeriodPayslip above already computed this
-      // whole period at the employee's current rate. This adjustment is
-      // signed — positive (reduces gross) for a raise, since the pre-change
-      // days were over-credited at the new higher rate; negative (increases
-      // gross) for a pay cut, since those days were under-credited at the
-      // new lower rate. Same clamp-via-min idiom as new-hire proration
-      // above: daysAtOldRate naturally clamps to [0, period length].
+      // Mid-period salary change: the days before each change were paid at
+      // that segment's own rate, but derivePeriodPayslip above already
+      // computed this whole period at the employee's current rate. Each
+      // segment's adjustment is signed — positive (reduces gross) where that
+      // segment's rate was lower than current, since those days were
+      // over-credited; negative (increases gross) where it was higher,
+      // since those days were under-credited. Same clamp-via-min idiom as
+      // new-hire proration above: each segment's day count naturally clamps
+      // to [0, period length].
       let salaryChangeAdjustmentKobo = 0n;
-      const compChange = earliestCompChangeByEmployee.get(employee.id);
-      if (compChange) {
-        const changeTime = Date.parse(compChange.changedAt.slice(0, 10));
-        const periodStartTime = Date.parse(periodStart);
-        const periodEndTime = Date.parse(periodEnd);
-        const lastOldRateTime = Math.min(changeTime - 86_400_000, periodEndTime);
-        const daysAtOldRate = Math.max(0, Math.round((lastOldRateTime - periodStartTime) / 86_400_000) + 1);
-        const oldDailyRateKobo = compChange.oldAnnualContractualKobo / 365n;
-        salaryChangeAdjustmentKobo = (dailyRateKobo - oldDailyRateKobo) * BigInt(daysAtOldRate);
+      const compChanges = compChangesByEmployee.get(employee.id) ?? [];
+      const periodStartTime = Date.parse(periodStart);
+      const periodEndTime = Date.parse(periodEnd);
+      for (let i = 0; i < compChanges.length; i++) {
+        const segmentEndTime = Date.parse(compChanges[i].changedAt.slice(0, 10));
+        const segmentStartTime = i === 0 ? periodStartTime : Date.parse(compChanges[i - 1].changedAt.slice(0, 10));
+        const lastSegmentDayTime = Math.min(segmentEndTime - 86_400_000, periodEndTime);
+        const daysInSegment = Math.max(0, Math.round((lastSegmentDayTime - segmentStartTime) / 86_400_000) + 1);
+        const segmentDailyRateKobo = compChanges[i].oldAnnualContractualKobo / 365n;
+        salaryChangeAdjustmentKobo += (dailyRateKobo - segmentDailyRateKobo) * BigInt(daysInSegment);
       }
 
       const daysOffDeductionKobo =

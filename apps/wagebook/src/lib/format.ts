@@ -8,6 +8,16 @@ export function formatPercent(rateScaled: bigint): string {
   return `${(Number(rateScaled) / 10_000).toLocaleString("en-NG")}%`;
 }
 
+/** First letter of the first two words of a name, for a placeholder
+ * avatar when no profile photo is on file. */
+export function getInitials(fullName: string): string {
+  const words = fullName.trim().split(/\s+/).filter(Boolean);
+  return words
+    .slice(0, 2)
+    .map((word) => word[0]!.toUpperCase())
+    .join("");
+}
+
 export type ProbationStatus = "confirmed" | "overdue" | "ends_soon" | "on_probation" | "none";
 
 /** Plain data derivation, not a component — Date.now() can't be called

@@ -35,6 +35,7 @@ export async function addEmployee(_prevState: AddEmployeeState, formData: FormDa
 
   const email = String(formData.get("email") ?? "").trim() || null;
   const stateOfResidence = String(formData.get("state_of_residence") ?? "").trim() || null;
+  const residentialAddress = String(formData.get("residential_address") ?? "").trim() || null;
   const hireDate = String(formData.get("hire_date") ?? "").trim() || null;
   const probationEndDate = String(formData.get("probation_end_date") ?? "").trim() || null;
   const employmentType = String(formData.get("employment_type") ?? "permanent").trim() || "permanent";
@@ -66,11 +67,15 @@ export async function addEmployee(_prevState: AddEmployeeState, formData: FormDa
     }
   }
 
+  // employee_id (the badge/staff number, distinct from this row's own id)
+  // is deliberately not set here — a database trigger assigns a unique
+  // one automatically on insert whenever it's left null.
   const { error } = await supabase.from("employees").insert({
     org_id: membership.org_id,
     full_name: fullName,
     email,
     state_of_residence: stateOfResidence,
+    residential_address: residentialAddress,
     hire_date: hireDate,
     probation_end_date: probationEndDate,
     employment_type: employmentType,
@@ -93,7 +98,10 @@ export async function addEmployee(_prevState: AddEmployeeState, formData: FormDa
   });
 
   if (error) {
-    return { error: error.message };
+    // 23505: unique violation — the only remaining one on this insert is
+    // (org_id, email); employee_id conflicts can't reach here since it's
+    // never user-supplied and the generator retries internally.
+    return { error: error.code === "23505" ? "That email is already in use in your organization." : error.message };
   }
 
   revalidatePath("/employees");

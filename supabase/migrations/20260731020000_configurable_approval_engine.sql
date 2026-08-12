@@ -171,7 +171,7 @@ begin
         core.has_org_role(p_org_id, array['department_manager'])
         and exists (
           select 1 from public.employees e
-          where e.id = p_employee_id and core.is_manager_of_department(e.department_id)
+          where e.id = p_employee_id and core.is_department_manager_of(e.id)
         )
       )
     );
@@ -191,7 +191,7 @@ begin
           s.approver_kind = 'department_manager'
           and exists (
             select 1 from public.employees e
-            where e.id = p_employee_id and core.is_manager_of_department(e.department_id)
+            where e.id = p_employee_id and core.is_department_manager_of(e.id)
           )
         )
       )
@@ -202,8 +202,8 @@ $$;
 revoke all on function core.is_eligible_leave_approver(uuid, uuid, integer) from public, anon;
 grant execute on function core.is_eligible_leave_approver(uuid, uuid, integer) to authenticated;
 
--- review_leave_request(): full redeclare per 20260730020000_department_
--- manager.sql (the last migration to touch it). Same public signature
+-- review_leave_request(): full redeclare per 20260723090000_manager_
+-- self_service.sql (the last migration to touch it). Same public signature
 -- and same final observable behavior for every org that hasn't
 -- configured a custom workflow — creates a one-step approval_instances
 -- row lazily on first call, checks eligibility for the current step via

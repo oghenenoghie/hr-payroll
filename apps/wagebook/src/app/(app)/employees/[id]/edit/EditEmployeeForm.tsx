@@ -57,6 +57,12 @@ export function EditEmployeeForm({
         required={false}
         defaultValue={employee.state_of_residence ?? ""}
       />
+      <FormField
+        label="Contact address"
+        name="residential_address"
+        required={false}
+        defaultValue={employee.residential_address ?? ""}
+      />
       <FormField label="Hire date" name="hire_date" type="date" required={false} defaultValue={employee.hire_date ?? ""} />
       <div className="grid grid-cols-2 gap-4">
         <FormField

@@ -51,3 +51,34 @@ body {
   background: var(--bg);
   color: var(--ink);
 }
+
+/* A brief press-down on every button and button-styled link (anything
+   using the shared rounded-button radius) — no shadows or color change,
+   matching the flat, border-only register everywhere else in this
+   system; just enough to confirm a click landed. */
+button:not(:disabled),
+a.rounded-button {
+  cursor: pointer;
+  transition: transform 0.1s ease-out;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+button:not(:disabled):active,
+a.rounded-button:active {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button:not(:disabled),
+  a.rounded-button {
+    transition: none;
+  }
+
+  button:not(:disabled):active,
+  a.rounded-button:active {
+    transform: none;
+  }
+}

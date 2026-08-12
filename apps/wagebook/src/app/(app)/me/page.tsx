@@ -17,6 +17,7 @@ import { OvertimeRequestForm } from "./OvertimeRequestForm";
 import { LeaveEncashmentForm } from "./LeaveEncashmentForm";
 import { acknowledgePolicy } from "./actions";
 import { markNotificationRead } from "../notifications/actions";
+import { FormSubmitButton } from "@/components/FormSubmitButton";
 
 export default async function MePage() {
   const supabase = await createClient();
@@ -45,83 +46,81 @@ export default async function MePage() {
     );
   }
 
-  const { data: latestPayslip } = await supabase
-    .from("posted_payslips")
-    .select("*, pay_runs(period_start, period_end)")
-    .eq("employee_id", employee.id)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const { data: loans } = await supabase
-    .from("loans")
-    .select("*")
-    .eq("employee_id", employee.id)
-    .order("created_at", { ascending: false });
-
-  const { data: expenses } = await supabase
-    .from("expenses")
-    .select("*")
-    .eq("employee_id", employee.id)
-    .order("created_at", { ascending: false });
-
-  const { data: overtimeRequests } = await supabase
-    .from("overtime_requests")
-    .select("*")
-    .eq("employee_id", employee.id)
-    .order("created_at", { ascending: false });
-
-  const { data: leaveRequests } = await supabase
-    .from("leave_requests")
-    .select("*")
-    .eq("employee_id", employee.id)
-    .order("created_at", { ascending: false });
-
-  const { data: leaveEncashmentRequests } = await supabase
-    .from("leave_encashment_requests")
-    .select("*")
-    .eq("employee_id", employee.id)
-    .order("created_at", { ascending: false });
-
-  const { data: benefitEnrollments } = await supabase
-    .from("employee_benefit_enrollments")
-    .select("*, benefit_plans(name, category, employer_cost_kobo, employee_cost_kobo)")
-    .eq("employee_id", employee.id)
-    .eq("status", "active")
-    .order("enrolled_at", { ascending: false });
-
-  const { data: unreadNotifications } = await supabase
-    .from("notifications")
-    .select("id, message, link")
-    .eq("recipient_user_id", user.id)
-    .is("read_at", null)
-    .order("created_at", { ascending: false });
-
+  // None of these 11 queries depends on another's result — every filter
+  // is keyed only on employee.id/user.id, already resolved above — so
+  // they run as one batch of concurrent round-trips instead of 11
+  // sequential ones.
   const thirtyDaysAgoDate = new Date();
   thirtyDaysAgoDate.setDate(thirtyDaysAgoDate.getDate() - 30);
   const thirtyDaysAgo = thirtyDaysAgoDate.toISOString().slice(0, 10);
-  const { data: recentAttendance } = await supabase
-    .from("attendance_records")
-    .select("date, status")
-    .eq("employee_id", employee.id)
-    .gte("date", thirtyDaysAgo)
-    .order("date", { ascending: false });
 
-  const { data: policies } = await supabase
-    .from("company_policies")
-    .select("*")
-    .order("created_at", { ascending: false });
-
-  const { data: myAcknowledgements } = await supabase
-    .from("policy_acknowledgements")
-    .select("policy_id, acknowledged_at")
-    .eq("employee_id", employee.id);
-
-  const { data: myDocumentsRaw } = await supabase
-    .from("employee_documents")
-    .select("id, file_name, document_type, storage_path, uploaded_at")
-    .eq("employee_id", employee.id)
-    .order("uploaded_at", { ascending: false });
+  const [
+    { data: latestPayslip },
+    { data: loans },
+    { data: expenses },
+    { data: overtimeRequests },
+    { data: leaveRequests },
+    { data: leaveEncashmentRequests },
+    { data: benefitEnrollments },
+    { data: unreadNotifications },
+    { data: recentAttendance },
+    { data: policies },
+    { data: myAcknowledgements },
+    { data: myDocumentsRaw },
+  ] = await Promise.all([
+    supabase
+      .from("posted_payslips")
+      .select("*, pay_runs(period_start, period_end)")
+      .eq("employee_id", employee.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase.from("loans").select("*").eq("employee_id", employee.id).order("created_at", { ascending: false }),
+    supabase.from("expenses").select("*").eq("employee_id", employee.id).order("created_at", { ascending: false }),
+    supabase
+      .from("overtime_requests")
+      .select("*")
+      .eq("employee_id", employee.id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("leave_requests")
+      .select("*")
+      .eq("employee_id", employee.id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("leave_encashment_requests")
+      .select("*")
+      .eq("employee_id", employee.id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("employee_benefit_enrollments")
+      .select("*, benefit_plans(name, category, employer_cost_kobo, employee_cost_kobo)")
+      .eq("employee_id", employee.id)
+      .eq("status", "active")
+      .order("enrolled_at", { ascending: false }),
+    supabase
+      .from("notifications")
+      .select("id, message, link")
+      .eq("recipient_user_id", user.id)
+      .is("read_at", null)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("attendance_records")
+      .select("date, status")
+      .eq("employee_id", employee.id)
+      .gte("date", thirtyDaysAgo)
+      .order("date", { ascending: false }),
+    // Only title/updated_at are needed to show a policy's acknowledgement
+    // status here — the full document body is fetched separately, only
+    // when an employee actually opens one to read/acknowledge it.
+    supabase.from("company_policies").select("id, title, updated_at").order("created_at", { ascending: false }),
+    supabase.from("policy_acknowledgements").select("policy_id, acknowledged_at").eq("employee_id", employee.id),
+    supabase
+      .from("employee_documents")
+      .select("id, file_name, document_type, storage_path, uploaded_at")
+      .eq("employee_id", employee.id)
+      .order("uploaded_at", { ascending: false }),
+  ]);
 
   const myDocuments = await Promise.all(
     (myDocumentsRaw ?? []).map(async (doc) => {
@@ -144,6 +143,12 @@ export default async function MePage() {
         <Link href="/me/tax-certificate" className="text-[12.5px] font-bold text-primary">
           Download annual tax certificate →
         </Link>
+        <Link href="/me/offer-letter" className="text-[12.5px] font-bold text-primary">
+          Download offer / confirmation letter →
+        </Link>
+        <Link href="/me/contract" className="text-[12.5px] font-bold text-primary">
+          Download employment contract →
+        </Link>
       </header>
 
       {unreadNotifications && unreadNotifications.length > 0 && (
@@ -155,9 +160,7 @@ export default async function MePage() {
             >
               <span className="text-[13px] font-bold text-ink">{n.message}</span>
               <form action={markNotificationRead.bind(null, n.id)}>
-                <button type="submit" className="text-[12px] font-bold text-primary">
-                  Mark read
-                </button>
+                <FormSubmitButton className="text-[12px] font-bold text-primary">Mark read</FormSubmitButton>
               </form>
             </div>
           ))}
@@ -173,7 +176,12 @@ export default async function MePage() {
       </div>
 
       <div className="rounded-card border border-border bg-surface p-6">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Latest payslip</span>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Latest payslip</span>
+          <Link href="/me/payslips" className="text-[12px] font-bold text-primary">
+            View all →
+          </Link>
+        </div>
 
         {latestPayslip ? (
           <div className="mt-3 flex flex-col gap-3">
@@ -192,6 +200,11 @@ export default async function MePage() {
                 <span>{formatKobo(BigInt(latestPayslip.net_kobo ?? 0))}</span>
               </div>
             </div>
+            {latestPayslip.id && (
+              <Link href={`/me/payslips/${latestPayslip.id}`} className="self-start text-[12px] font-bold text-primary">
+                Print / Save as PDF →
+              </Link>
+            )}
           </div>
         ) : (
           <p className="mt-2 text-[13px] text-ink-soft">No payslips yet.</p>
@@ -412,9 +425,9 @@ export default async function MePage() {
                   </div>
                   {status !== "acknowledged" && (
                     <form action={acknowledgePolicy.bind(null, policy.id)}>
-                      <button type="submit" className="text-[12px] font-bold text-primary">
+                      <FormSubmitButton className="text-[12px] font-bold text-primary">
                         Acknowledge
-                      </button>
+                      </FormSubmitButton>
                     </form>
                   )}
                 </div>

@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
+import { toCsv } from "@/lib/csv";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { ConfirmActionButton } from "@/components/ConfirmActionButton";
 import { BranchForm } from "./BranchForm";
 import { deleteBranch } from "./actions";
 
@@ -22,9 +25,10 @@ export default async function BranchesPage() {
     redirect("/me");
   }
 
-  const { data: branches } = await supabase.from("branches").select("*").order("name");
-
-  const { data: employees } = await supabase.from("employees").select("branch_id");
+  const [{ data: branches }, { data: employees }] = await Promise.all([
+    supabase.from("branches").select("*").order("name"),
+    supabase.from("employees").select("branch_id"),
+  ]);
 
   const employeeCountByBranch = new Map<string, number>();
   for (const employee of employees ?? []) {
@@ -32,10 +36,23 @@ export default async function BranchesPage() {
     employeeCountByBranch.set(employee.branch_id, (employeeCountByBranch.get(employee.branch_id) ?? 0) + 1);
   }
 
+  const csv = toCsv(
+    ["Branch", "State", "Address", "Employees"],
+    (branches ?? []).map((branch) => [
+      branch.name,
+      branch.state ?? "",
+      branch.address ?? "",
+      employeeCountByBranch.get(branch.id) ?? 0,
+    ]),
+  );
+
   return (
     <div className="mx-auto flex w-full max-w-[720px] flex-col gap-5 px-6 py-10">
       <header className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Branches</span>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Branches</span>
+          {branches && branches.length > 0 && <ExportCsvButton csv={csv} filename="branches.csv" />}
+        </div>
         <h1 className="text-[22px] font-extrabold text-ink">Locations for employee work assignment</h1>
         <p className="text-[13px] text-ink-soft">
           Assign employees to a branch on their edit page. A branch&apos;s state is a work-location record only — it
@@ -65,11 +82,13 @@ export default async function BranchesPage() {
                     {employeeCountByBranch.get(branch.id) ?? 0}
                   </td>
                   <td className={`${tdClass} text-right`}>
-                    <form action={deleteBranch.bind(null, branch.id)}>
-                      <button type="submit" className="text-[12px] font-bold text-bad">
-                        Delete
-                      </button>
-                    </form>
+                    <ConfirmActionButton
+                      action={deleteBranch.bind(null, branch.id)}
+                      label="Delete"
+                      confirmTitle="Delete this branch?"
+                      confirmMessage={`"${branch.name}" will be removed. Employees currently assigned to it keep their record but lose this branch assignment.`}
+                      confirmLabel="Delete"
+                    />
                   </td>
                 </tr>
               ))

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { FormSubmitButton } from "@/components/FormSubmitButton";
 import { markNotificationRead, markAllNotificationsRead } from "./actions";
 
 function formatTimestamp(iso: string): string {
@@ -35,9 +36,7 @@ export default async function NotificationsPage() {
         </div>
         {unread.length > 0 && (
           <form action={markAllNotificationsRead}>
-            <button type="submit" className="text-[12px] font-bold text-primary">
-              Mark all read
-            </button>
+            <FormSubmitButton className="text-[12px] font-bold text-primary">Mark all read</FormSubmitButton>
           </form>
         )}
       </header>
@@ -85,9 +84,7 @@ function NotificationRow({
       </div>
       {unread && (
         <form action={markNotificationRead.bind(null, notification.id)}>
-          <button type="submit" className="text-[12px] font-bold text-primary">
-            Mark read
-          </button>
+          <FormSubmitButton className="text-[12px] font-bold text-primary">Mark read</FormSubmitButton>
         </form>
       )}
     </div>

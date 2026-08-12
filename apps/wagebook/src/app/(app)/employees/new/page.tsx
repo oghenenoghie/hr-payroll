@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
+import { getCachedDepartments, getCachedBranches, getCachedJobGrades } from "@/lib/reference-data";
 import { EmployeeForm } from "./EmployeeForm";
 
 export default async function NewEmployeePage() {
@@ -14,27 +15,19 @@ export default async function NewEmployeePage() {
   }
 
   const membership = await getMembership(supabase, user.id);
-  const { data: departments } = membership
-    ? await supabase.from("departments").select("id, name").eq("org_id", membership.orgId).order("name")
-    : { data: null };
-  const { data: branches } = membership
-    ? await supabase.from("branches").select("id, name").eq("org_id", membership.orgId).order("name")
-    : { data: null };
-  const { data: jobGrades } = membership
-    ? await supabase
-        .from("job_grades")
-        .select("id, name, min_annual_kobo, max_annual_kobo")
-        .eq("org_id", membership.orgId)
-        .order("min_annual_kobo")
-    : { data: null };
-  const { data: managers } = membership
-    ? await supabase
-        .from("employees")
-        .select("id, full_name")
-        .eq("org_id", membership.orgId)
-        .eq("status", "active")
-        .order("full_name")
-    : { data: null };
+  const [departments, branches, jobGrades, { data: managers }] = await Promise.all([
+    membership ? getCachedDepartments(membership.orgId) : Promise.resolve([]),
+    membership ? getCachedBranches(membership.orgId) : Promise.resolve([]),
+    membership ? getCachedJobGrades(membership.orgId) : Promise.resolve([]),
+    membership
+      ? supabase
+          .from("employees")
+          .select("id, full_name")
+          .eq("org_id", membership.orgId)
+          .eq("status", "active")
+          .order("full_name")
+      : Promise.resolve({ data: null }),
+  ]);
 
   return (
     <div className="mx-auto flex w-full max-w-[560px] flex-col gap-5 px-6 py-10">

@@ -2,21 +2,37 @@
 -- hr_manager/employee set: 'accountant' (full Payroll Manager parity —
 -- everywhere payroll_manager appears in a role check, accountant is added
 -- alongside it), 'department_manager' (its own migration,
--- 20260730020000, since it needs a new departments.manager_id column and
+-- 20260730021000, since it needs a new departments.manager_id column and
 -- department-scoped policies rather than a simple array widening), and
--- 'auditor' (its own migration, 20260730010000 — strictly read-only,
--- added only to SELECT policies, never to INSERT/UPDATE/DELETE).
+-- 'auditor' (its own migration, 20260802010000 — strictly read-only,
+-- added only to SELECT policies, never to INSERT/UPDATE/DELETE; wired up
+-- for real there, superseding an earlier, narrower auditor_read_access
+-- migration that never made it into this history).
 --
 -- "Super Admin" (the display name for the existing 'admin' role) is a
 -- label-only change and needs no migration — see AppShell.tsx and
 -- security/page.tsx.
-alter table public.org_memberships drop constraint org_memberships_role_check;
-alter table public.org_memberships add constraint org_memberships_role_check
-  check (role in ('admin', 'payroll_manager', 'hr_manager', 'accountant', 'department_manager', 'auditor', 'employee'));
-
--- employees_masked: latest definition was 20260724000000_branches.sql's.
--- Full redeclare (the only way to change a view's column expressions) —
--- accountant now sees real salary figures, same as admin/payroll_manager,
+--
+-- org_memberships.role's validity check no longer lives here:
+-- 20260729010000_roles_and_permissions.sql already replaced the old
+-- CHECK-constraint-of-role-strings model with a `roles` table + foreign
+-- key (org_memberships_role_fkey), and already seeded all three of
+-- these roles ('accountant', 'department_manager', 'auditor') as rows
+-- there — a new role is a data change now, not a constraint rewrite. A
+-- CHECK-constraint drop/recreate against 'org_memberships_role_check'
+-- would fail outright by the time this migration runs (that constraint
+-- was dropped, not renamed) and would be the wrong model to reintroduce
+-- even if it didn't.
+--
+-- employees_masked: actual latest definition by the time this runs is
+-- 20260729020000_employee_id_login.sql's (which added e.employee_id as
+-- the final column) — not 20260724000000_branches.sql's, which this
+-- migration was originally written against on its own branch before the
+-- two histories combined. Full redeclare (the only way to change a
+-- view's column expressions), with e.employee_id kept as the trailing
+-- column: CREATE OR REPLACE VIEW can only ever append columns, never
+-- drop or reorder them, and dropping it here would fail outright.
+-- Accountant now sees real salary figures, same as admin/payroll_manager,
 -- since it has full payroll-processing parity with Payroll Manager.
 create or replace view public.employees_masked
 with (security_invoker = true)
@@ -64,7 +80,8 @@ select
   e.employment_type,
   e.contract_end_date,
   e.branch_id,
-  b.name as branch_name
+  b.name as branch_name,
+  e.employee_id
 from public.employees e
 left join public.departments d on d.id = e.department_id
 left join public.job_grades jg on jg.id = e.job_grade_id

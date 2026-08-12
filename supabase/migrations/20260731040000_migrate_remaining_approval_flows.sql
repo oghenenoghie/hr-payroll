@@ -46,7 +46,7 @@ begin
           core.has_org_role(p_org_id, array['department_manager'])
           and exists (
             select 1 from public.employees e
-            where e.id = p_employee_id and core.is_manager_of_department(e.department_id)
+            where e.id = p_employee_id and core.is_department_manager_of(e.id)
           )
         );
     end if;
@@ -71,7 +71,7 @@ begin
           s.approver_kind = 'department_manager'
           and exists (
             select 1 from public.employees e
-            where e.id = p_employee_id and core.is_manager_of_department(e.department_id)
+            where e.id = p_employee_id and core.is_department_manager_of(e.id)
           )
         )
       )

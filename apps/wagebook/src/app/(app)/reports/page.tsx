@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { NG_2026_1 } from "@plutus/compliance";
+import { NG_2026_1, toNaira } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
 import { formatKobo } from "@/lib/format";
 import { getMembership } from "@/lib/membership";
+import { toCsv } from "@/lib/csv";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { PrintButton } from "@/components/PrintButton";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const tdClass = "px-3 py-[10px] text-[13px]";
@@ -50,21 +53,20 @@ export default async function ReportsPage() {
     redirect("/me");
   }
 
-  const { data: postings } = await supabase
-    .from("ledger_postings")
-    .select("account_code, amount_kobo")
-    .eq("direction", "credit")
-    .in("account_code", Object.values(SCHEME_ACCOUNT_CODES));
+  const [{ data: postings }, { data: payslips }] = await Promise.all([
+    supabase
+      .from("ledger_postings")
+      .select("account_code, amount_kobo")
+      .eq("direction", "credit")
+      .in("account_code", Object.values(SCHEME_ACCOUNT_CODES)),
+    supabase.from("posted_payslips").select("paye_kobo, employees(state_of_residence)"),
+  ]);
 
   const totalsByAccountCode = new Map<string, bigint>();
   for (const posting of postings ?? []) {
     const running = totalsByAccountCode.get(posting.account_code) ?? 0n;
     totalsByAccountCode.set(posting.account_code, running + BigInt(posting.amount_kobo));
   }
-
-  const { data: payslips } = await supabase
-    .from("posted_payslips")
-    .select("paye_kobo, employees(state_of_residence)");
 
   const payeByState = new Map<string, bigint>();
   for (const slip of payslips ?? []) {
@@ -76,16 +78,35 @@ export default async function ReportsPage() {
     .filter(([, amount]) => amount > 0n)
     .sort((a, b) => Number(b[1] - a[1]));
 
+  const liabilitiesCsv = toCsv(
+    ["Scheme", "Liability Posted to Date (NGN)", "Deadline / Authority"],
+    (Object.keys(SCHEME_ACCOUNT_CODES) as (keyof typeof SCHEME_ACCOUNT_CODES)[]).map((scheme) => [
+      SCHEME_LABEL[scheme],
+      toNaira(totalsByAccountCode.get(SCHEME_ACCOUNT_CODES[scheme]) ?? 0n).toFixed(2),
+      describeDeadline(scheme, NG_2026_1),
+    ]),
+  );
+
+  const payeByStateCsv = toCsv(
+    ["State", "PAYE Liability Posted to Date (NGN)"],
+    stateRows.map(([state, amount]) => [state, toNaira(amount).toFixed(2)]),
+  );
+
   return (
-    <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 px-6 py-10">
+    <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 px-6 py-10 print:px-0 print:py-0">
       <header className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Reports</span>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Reports</span>
+          <span className="print:hidden">
+            <PrintButton>Print / Save as PDF</PrintButton>
+          </span>
+        </div>
         <h1 className="text-[22px] font-extrabold text-ink">Statutory liabilities and audit-ready records by state</h1>
         <p className="text-[13px] text-ink-soft">
           Totals posted across every pay run to date. Remittance/filing-status tracking isn&apos;t built yet — these
           are liability totals, not a claim about what has actually been paid to each authority.
         </p>
-        <div className="mt-1 flex flex-col gap-1">
+        <div className="mt-1 flex flex-col gap-1 print:hidden">
           <Link href="/reports/register" className="text-[12.5px] font-bold text-primary">
             View payroll register &amp; reconciliation →
           </Link>
@@ -95,6 +116,9 @@ export default async function ReportsPage() {
         </div>
       </header>
 
+      <div className="flex justify-end print:hidden">
+        <ExportCsvButton csv={liabilitiesCsv} filename="statutory-liabilities.csv" />
+      </div>
       <div className="overflow-x-auto rounded-card border border-border bg-surface">
         <table className="w-full min-w-[640px] border-collapse">
           <thead>
@@ -119,14 +143,21 @@ export default async function ReportsPage() {
         </table>
       </div>
 
-      <div className="flex flex-col gap-1 pt-2">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
-          PAYE liability by state of residence
-        </span>
-        <p className="text-[12.5px] text-ink-soft">
-          PAYE is collected by each employee&apos;s state of residence, not the employer&apos;s location — a
-          multi-state workforce means reconciling with multiple state IRS offices every cycle.
-        </p>
+      <div className="flex items-start justify-between gap-3 pt-2">
+        <div className="flex flex-col gap-1">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
+            PAYE liability by state of residence
+          </span>
+          <p className="text-[12.5px] text-ink-soft">
+            PAYE is collected by each employee&apos;s state of residence, not the employer&apos;s location — a
+            multi-state workforce means reconciling with multiple state IRS offices every cycle.
+          </p>
+        </div>
+        {stateRows.length > 0 && (
+          <span className="print:hidden">
+            <ExportCsvButton csv={payeByStateCsv} filename="paye-by-state.csv" />
+          </span>
+        )}
       </div>
 
       <div className="overflow-x-auto rounded-card border border-border bg-surface">

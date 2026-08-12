@@ -5,14 +5,16 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 
+// 'accountant' has full Payroll Manager parity per
+// 20260730000000_new_org_roles.sql ("everywhere payroll_manager appears
+// in a role check, accountant is added alongside it") — vendors is one
+// of the few tables that predates that migration and never got the
+// widening applied, fixed here alongside the TIN column addition.
 const MANAGE_ROLES = ["admin", "payroll_manager", "accountant"];
 
 export type CreateVendorState = { error?: string; success?: boolean } | null;
 
-export async function createVendor(
-  _prevState: CreateVendorState,
-  formData: FormData,
-): Promise<CreateVendorState> {
+export async function createVendor(_prevState: CreateVendorState, formData: FormData): Promise<CreateVendorState> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -33,8 +35,8 @@ export async function createVendor(
   }
 
   const tin = String(formData.get("tin") ?? "").trim() || null;
-  const email = String(formData.get("email") ?? "").trim() || null;
-  const phone = String(formData.get("phone") ?? "").trim() || null;
+  const contactEmail = String(formData.get("contact_email") ?? "").trim() || null;
+  const contactPhone = String(formData.get("contact_phone") ?? "").trim() || null;
   const bankName = String(formData.get("bank_name") ?? "").trim() || null;
   const bankAccountNumber = String(formData.get("bank_account_number") ?? "").trim() || null;
   const bankAccountName = String(formData.get("bank_account_name") ?? "").trim() || null;
@@ -43,8 +45,8 @@ export async function createVendor(
     org_id: membership.orgId,
     name,
     tin,
-    email,
-    phone,
+    contact_email: contactEmail,
+    contact_phone: contactPhone,
     bank_name: bankName,
     bank_account_number: bankAccountNumber,
     bank_account_name: bankAccountName,
@@ -57,8 +59,7 @@ export async function createVendor(
   }
 
   revalidatePath("/vendors");
-  revalidatePath("/vendor-invoices");
-  revalidatePath("/vendor-invoices/new");
+  revalidatePath("/bills");
   return { success: true };
 }
 

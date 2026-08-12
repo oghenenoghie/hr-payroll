@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 import { Badge } from "@/components/Badge";
+import { ConfirmActionButton } from "@/components/ConfirmActionButton";
+import { FormSubmitButton } from "@/components/FormSubmitButton";
 import { toggleBankConnection } from "./actions";
 
 const BANK_LABEL: Record<string, string> = {
@@ -88,11 +90,20 @@ export default async function IntegrationsPage() {
                       <Badge tone={connected ? "good" : "neutral"}>{connected ? "Connected" : "Not connected"}</Badge>
                     </td>
                     <td className={`${tdClass} text-right`}>
-                      <form action={toggleBankConnection.bind(null, provider, connected)}>
-                        <button type="submit" className="text-[12px] font-bold text-primary">
-                          {connected ? "Disconnect" : "Connect"}
-                        </button>
-                      </form>
+                      {connected ? (
+                        <ConfirmActionButton
+                          action={toggleBankConnection.bind(null, provider, true)}
+                          label="Disconnect"
+                          className="text-[12px] font-bold text-primary disabled:opacity-50"
+                          confirmTitle="Disconnect this bank?"
+                          confirmMessage={`${label} will be disconnected. (Demo integration — nothing external actually changes.)`}
+                          confirmLabel="Disconnect"
+                        />
+                      ) : (
+                        <form action={toggleBankConnection.bind(null, provider, false)}>
+                          <FormSubmitButton className="text-[12px] font-bold text-primary">Connect</FormSubmitButton>
+                        </form>
+                      )}
                     </td>
                   </tr>
                 );

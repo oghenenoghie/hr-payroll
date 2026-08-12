@@ -2,11 +2,14 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
+import { getCachedDepartments, getCachedBranches, getCachedJobGrades } from "@/lib/reference-data";
+import { getInitials } from "@/lib/format";
+import { Badge } from "@/components/Badge";
 import { EditEmployeeForm } from "./EditEmployeeForm";
-import { InviteAccountPanel } from "./InviteAccountPanel";
 import { OffboardingChecklistForm } from "./OffboardingChecklistForm";
 import { OnboardingChecklistForm } from "./OnboardingChecklistForm";
 import { EmployeeDocumentsPanel } from "./EmployeeDocumentsPanel";
+import { EmployeePhotoPanel } from "./EmployeePhotoPanel";
 
 export default async function EditEmployeePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -28,62 +31,69 @@ export default async function EditEmployeePage({ params }: { params: Promise<{ i
   const { data: employee } = await supabase.from("employees_masked").select("*").eq("id", id).maybeSingle();
   if (!employee) notFound();
 
-  const { data: departments } = employee.org_id
-    ? await supabase.from("departments").select("id, name").eq("org_id", employee.org_id).order("name")
-    : { data: null };
-
-  const { data: branches } = employee.org_id
-    ? await supabase.from("branches").select("id, name").eq("org_id", employee.org_id).order("name")
-    : { data: null };
-
-  const { data: jobGrades } = employee.org_id
-    ? await supabase
-        .from("job_grades")
-        .select("id, name, min_annual_kobo, max_annual_kobo")
-        .eq("org_id", employee.org_id)
-        .order("min_annual_kobo")
-    : { data: null };
-
-  const { data: managers } = employee.org_id
-    ? await supabase
-        .from("employees")
-        .select("id, full_name")
-        .eq("org_id", employee.org_id)
-        .eq("status", "active")
-        .neq("id", id)
-        .order("full_name")
-    : { data: null };
-
-  const { data: statusHistory } = await supabase
-    .from("employee_status_history")
-    .select("old_status, new_status, changed_at")
-    .eq("employee_id", id)
-    .order("changed_at", { ascending: false });
-
   const isTerminated = employee.status === "terminated";
-  const { data: onboardingChecklist } = !isTerminated
-    ? await supabase
-        .from("employee_onboarding_checklist")
-        .select("documentation_collected, contract_signed")
-        .eq("employee_id", id)
-        .maybeSingle()
-    : { data: null };
-  const { data: offboardingChecklist } = isTerminated
-    ? await supabase
-        .from("employee_offboarding_checklist")
-        .select("notice_period_served, assets_returned, clearance_obtained, experience_letter_issued")
-        .eq("employee_id", id)
-        .maybeSingle()
-    : { data: null };
-  const { data: finalSettlement } = isTerminated
-    ? await supabase.from("final_settlements").select("id").eq("employee_id", id).maybeSingle()
-    : { data: null };
 
-  const { data: documentsRaw } = await supabase
-    .from("employee_documents")
-    .select("id, file_name, document_type, storage_path, uploaded_at")
-    .eq("employee_id", id)
-    .order("uploaded_at", { ascending: false });
+  // None of these depends on another's result — org-scoped lookups only
+  // need employee.org_id (already known), the rest only need id/isTerminated
+  // (already known) — so they run as one batch instead of up to 9
+  // sequential round-trips.
+  const [
+    departments,
+    branches,
+    jobGrades,
+    { data: managers },
+    { data: statusHistory },
+    { data: onboardingChecklist },
+    { data: offboardingChecklist },
+    { data: finalSettlement },
+    { data: documentsRaw },
+    photoSigned,
+  ] = await Promise.all([
+    employee.org_id ? getCachedDepartments(employee.org_id) : Promise.resolve([]),
+    employee.org_id ? getCachedBranches(employee.org_id) : Promise.resolve([]),
+    employee.org_id ? getCachedJobGrades(employee.org_id) : Promise.resolve([]),
+    employee.org_id
+      ? supabase
+          .from("employees")
+          .select("id, full_name")
+          .eq("org_id", employee.org_id)
+          .eq("status", "active")
+          .neq("id", id)
+          .order("full_name")
+      : Promise.resolve({ data: null }),
+    supabase
+      .from("employee_status_history")
+      .select("old_status, new_status, changed_at")
+      .eq("employee_id", id)
+      .order("changed_at", { ascending: false }),
+    !isTerminated
+      ? supabase
+          .from("employee_onboarding_checklist")
+          .select("documentation_collected, contract_signed")
+          .eq("employee_id", id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    isTerminated
+      ? supabase
+          .from("employee_offboarding_checklist")
+          .select("notice_period_served, assets_returned, clearance_obtained, experience_letter_issued")
+          .eq("employee_id", id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    isTerminated
+      ? supabase.from("final_settlements").select("id").eq("employee_id", id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    supabase
+      .from("employee_documents")
+      .select("id, file_name, document_type, storage_path, uploaded_at")
+      .eq("employee_id", id)
+      .order("uploaded_at", { ascending: false }),
+    employee.photo_path
+      ? supabase.storage.from("employee-photos").createSignedUrl(employee.photo_path, 60 * 10)
+      : Promise.resolve({ data: null }),
+  ]);
+
+  const photoUrl = photoSigned?.data?.signedUrl ?? null;
 
   // Signed URLs since the bucket is private — generated per request, not
   // stored, so a deleted or access-revoked document never leaves a stale
@@ -109,6 +119,18 @@ export default async function EditEmployeePage({ params }: { params: Promise<{ i
         <h1 className="text-[22px] font-extrabold text-ink">{employee.full_name}</h1>
       </header>
       <div className="rounded-card border border-border bg-surface p-6">
+        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Profile photo</span>
+        <div className="mt-3">
+          <EmployeePhotoPanel
+            employeeId={employee.id!}
+            photoUrl={photoUrl}
+            photoPath={employee.photo_path}
+            initials={getInitials(employee.full_name ?? "?")}
+            canManage={canManageDocuments}
+          />
+        </div>
+      </div>
+      <div className="rounded-card border border-border bg-surface p-6">
         <EditEmployeeForm
           employee={employee}
           departments={departments ?? []}
@@ -120,7 +142,22 @@ export default async function EditEmployeePage({ params }: { params: Promise<{ i
         />
       </div>
       <div className="rounded-card border border-border bg-surface p-6">
-        <InviteAccountPanel employeeId={employee.id!} email={employee.email} linkedAt={employee.linked_at} />
+        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Employee account</span>
+        {employee.linked_at ? (
+          <div className="mt-3 flex items-center gap-2">
+            <Badge tone="good">Linked</Badge>
+            <span className="text-[12.5px] text-ink-soft">
+              {employee.email} · since {new Date(employee.linked_at).toLocaleDateString("en-NG")}
+            </span>
+          </div>
+        ) : (
+          <p className="mt-3 text-[13px] text-ink-soft">
+            No login yet.{" "}
+            <Link href="/security/new" className="font-bold text-primary">
+              Create one from Security &amp; Access →
+            </Link>
+          </p>
+        )}
       </div>
       <div className="rounded-card border border-border bg-surface p-6">
         <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Documents</span>
@@ -129,16 +166,21 @@ export default async function EditEmployeePage({ params }: { params: Promise<{ i
         </div>
       </div>
       <div className="rounded-card border border-border bg-surface p-6">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
-          Employment &amp; salary certificate
-        </span>
+        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Documents</span>
         <p className="mt-2 text-[13px] text-ink-soft">
-          A printable document confirming employment and current salary — a common request for loan and visa
-          applications.
+          Printable documents generated on demand from live records — never a stored/stale copy.
         </p>
-        <Link href={`/employees/${employee.id}/certificate`} className="mt-3 inline-block text-[13px] font-bold text-primary">
-          Generate certificate →
-        </Link>
+        <div className="mt-3 flex flex-col items-start gap-2">
+          <Link href={`/employees/${employee.id}/certificate`} className="text-[13px] font-bold text-primary">
+            Employment &amp; salary certificate →
+          </Link>
+          <Link href={`/employees/${employee.id}/offer-letter`} className="text-[13px] font-bold text-primary">
+            Offer / confirmation letter →
+          </Link>
+          <Link href={`/employees/${employee.id}/contract`} className="text-[13px] font-bold text-primary">
+            Employment contract →
+          </Link>
+        </div>
       </div>
       {!isTerminated && (
         <div className="rounded-card border border-border bg-surface p-6">

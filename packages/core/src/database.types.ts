@@ -574,6 +574,7 @@ export type Database = {
           date_of_birth: string | null
           department_id: string | null
           email: string | null
+          employee_id: string | null
           employment_type: string
           full_name: string
           hire_date: string | null
@@ -585,8 +586,10 @@ export type Database = {
           nationality: string | null
           org_id: string
           pfa: string | null
+          photo_path: string | null
           probation_end_date: string | null
           probation_expiry_notified_at: string | null
+          residential_address: string | null
           salary_masked: boolean
           state_of_residence: string | null
           status: string
@@ -611,6 +614,7 @@ export type Database = {
           date_of_birth?: string | null
           department_id?: string | null
           email?: string | null
+          employee_id?: string | null
           employment_type?: string
           full_name: string
           hire_date?: string | null
@@ -622,8 +626,10 @@ export type Database = {
           nationality?: string | null
           org_id: string
           pfa?: string | null
+          photo_path?: string | null
           probation_end_date?: string | null
           probation_expiry_notified_at?: string | null
+          residential_address?: string | null
           salary_masked?: boolean
           state_of_residence?: string | null
           status?: string
@@ -648,6 +654,7 @@ export type Database = {
           date_of_birth?: string | null
           department_id?: string | null
           email?: string | null
+          employee_id?: string | null
           employment_type?: string
           full_name?: string
           hire_date?: string | null
@@ -659,8 +666,10 @@ export type Database = {
           nationality?: string | null
           org_id?: string
           pfa?: string | null
+          photo_path?: string | null
           probation_end_date?: string | null
           probation_expiry_notified_at?: string | null
+          residential_address?: string | null
           salary_masked?: boolean
           state_of_residence?: string | null
           status?: string
@@ -1353,6 +1362,13 @@ export type Database = {
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "org_memberships_role_fkey"
+            columns: ["role"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["key"]
+          },
         ]
       }
       organizations: {
@@ -1744,42 +1760,185 @@ export type Database = {
           },
         ]
       }
+      roles: {
+        Row: {
+          key: string
+          label: string
+          mfa_required: boolean
+          sort_order: number
+        }
+        Insert: {
+          key: string
+          label: string
+          mfa_required?: boolean
+          sort_order: number
+        }
+        Update: {
+          key?: string
+          label?: string
+          mfa_required?: boolean
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      permissions: {
+        Row: {
+          key: string
+          label: string
+          module: string
+        }
+        Insert: {
+          key: string
+          label: string
+          module: string
+        }
+        Update: {
+          key?: string
+          label?: string
+          module?: string
+        }
+        Relationships: []
+      }
+      role_permissions: {
+        Row: {
+          permission_key: string
+          role_key: string
+        }
+        Insert: {
+          permission_key: string
+          role_key: string
+        }
+        Update: {
+          permission_key?: string
+          role_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_role_key_fkey"
+            columns: ["role_key"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "role_permissions_permission_key_fkey"
+            columns: ["permission_key"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
+      module_role_visibility: {
+        Row: {
+          org_id: string
+          module_key: string
+          role_key: string
+          created_at: string
+          created_by: string
+        }
+        Insert: {
+          org_id: string
+          module_key: string
+          role_key: string
+          created_at?: string
+          created_by: string
+        }
+        Update: {
+          org_id?: string
+          module_key?: string
+          role_key?: string
+          created_at?: string
+          created_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_role_visibility_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "module_role_visibility_role_key_fkey"
+            columns: ["role_key"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
+      user_nav_overrides: {
+        Row: {
+          org_id: string
+          user_id: string
+          section_key: string
+          enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          org_id: string
+          user_id: string
+          section_key: string
+          enabled: boolean
+          updated_at?: string
+        }
+        Update: {
+          org_id?: string
+          user_id?: string
+          section_key?: string
+          enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_nav_overrides_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vendors: {
         Row: {
           bank_account_name: string | null
           bank_account_number: string | null
           bank_name: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          tin: string | null
           created_at: string
-          email: string | null
           id: string
           name: string
           org_id: string
-          phone: string | null
-          tin: string | null
+          status: string
         }
         Insert: {
           bank_account_name?: string | null
           bank_account_number?: string | null
           bank_name?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          tin?: string | null
           created_at?: string
-          email?: string | null
           id?: string
           name: string
           org_id: string
-          phone?: string | null
-          tin?: string | null
+          status?: string
         }
         Update: {
           bank_account_name?: string | null
           bank_account_number?: string | null
           bank_name?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          tin?: string | null
           created_at?: string
-          email?: string | null
           id?: string
           name?: string
           org_id?: string
-          phone?: string | null
-          tin?: string | null
+          status?: string
         }
         Relationships: [
           {
@@ -1791,77 +1950,258 @@ export type Database = {
           },
         ]
       }
-      vendor_invoices: {
+      vendor_bills: {
         Row: {
+          amount_kobo: number
+          approved_at: string | null
+          approved_by: string | null
+          bill_date: string
+          bill_number: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           created_at: string
-          created_by: string | null
           description: string
+          due_date: string | null
           id: string
-          invoice_date: string
-          invoice_number: string | null
-          invoice_total_kobo: number
+          journal_entry_id: string | null
           net_payable_kobo: number
           org_id: string
-          rule_version_id: string
+          paid_at: string | null
+          payment_journal_entry_id: string | null
+          requested_by: string
+          rule_version_id: string | null
+          scheduled_payment_date: string | null
           status: string
           subtotal_kobo: number
-          vat_category: string
+          vat_category: string | null
           vat_exempt: boolean
           vat_kobo: number
           vendor_id: string
-          wht_category: string
+          wht_category: string | null
           wht_kobo: number
         }
         Insert: {
+          amount_kobo: number
+          approved_at?: string | null
+          approved_by?: string | null
+          bill_date: string
+          bill_number?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           created_at?: string
-          created_by?: string | null
           description: string
+          due_date?: string | null
           id?: string
-          invoice_date?: string
-          invoice_number?: string | null
-          invoice_total_kobo: number
+          journal_entry_id?: string | null
           net_payable_kobo: number
           org_id: string
-          rule_version_id: string
+          paid_at?: string | null
+          payment_journal_entry_id?: string | null
+          requested_by: string
+          rule_version_id?: string | null
+          scheduled_payment_date?: string | null
           status?: string
           subtotal_kobo: number
-          vat_category: string
+          vat_category?: string | null
           vat_exempt?: boolean
-          vat_kobo: number
+          vat_kobo?: number
           vendor_id: string
-          wht_category: string
-          wht_kobo: number
+          wht_category?: string | null
+          wht_kobo?: number
         }
         Update: {
+          amount_kobo?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          bill_date?: string
+          bill_number?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           created_at?: string
-          created_by?: string | null
           description?: string
+          due_date?: string | null
           id?: string
-          invoice_date?: string
-          invoice_number?: string | null
-          invoice_total_kobo?: number
+          journal_entry_id?: string | null
           net_payable_kobo?: number
           org_id?: string
-          rule_version_id?: string
+          paid_at?: string | null
+          payment_journal_entry_id?: string | null
+          requested_by?: string
+          rule_version_id?: string | null
+          scheduled_payment_date?: string | null
           status?: string
           subtotal_kobo?: number
-          vat_category?: string
+          vat_category?: string | null
           vat_exempt?: boolean
           vat_kobo?: number
           vendor_id?: string
-          wht_category?: string
+          wht_category?: string | null
           wht_kobo?: number
         }
         Relationships: [
           {
-            foreignKeyName: "vendor_invoices_org_id_fkey"
+            foreignKeyName: "vendor_bills_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "vendor_invoices_vendor_id_fkey"
+            foreignKeyName: "vendor_bills_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_bills_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_bills_payment_journal_entry_id_fkey"
+            columns: ["payment_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendor_bill_lines: {
+        Row: {
+          bill_id: string
+          created_at: string
+          description: string
+          discount_kobo: number
+          id: string
+          line_total_kobo: number
+          org_id: string
+          quantity: number
+          sort_order: number
+          unit_price_kobo: number
+        }
+        Insert: {
+          bill_id: string
+          created_at?: string
+          description: string
+          discount_kobo?: number
+          id?: string
+          line_total_kobo: number
+          org_id: string
+          quantity?: number
+          sort_order?: number
+          unit_price_kobo: number
+        }
+        Update: {
+          bill_id?: string
+          created_at?: string
+          description?: string
+          discount_kobo?: number
+          id?: string
+          line_total_kobo?: number
+          org_id?: string
+          quantity?: number
+          sort_order?: number
+          unit_price_kobo?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_bill_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_bill_lines_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_bills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_number_counters: {
+        Row: {
+          doc_type: string
+          last_number: number
+          org_id: string
+          year: number
+        }
+        Insert: {
+          doc_type: string
+          last_number?: number
+          org_id: string
+          year: number
+        }
+        Update: {
+          doc_type?: string
+          last_number?: number
+          org_id?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_number_counters_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendor_bill_templates: {
+        Row: {
+          id: string
+          org_id: string
+          vendor_id: string
+          description: string
+          amount_kobo: number
+          cadence: string
+          next_bill_date: string
+          active: boolean
+          created_by: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          vendor_id: string
+          description: string
+          amount_kobo: number
+          cadence: string
+          next_bill_date: string
+          active?: boolean
+          created_by: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          vendor_id?: string
+          description?: string
+          amount_kobo?: number
+          cadence?: string
+          next_bill_date?: string
+          active?: boolean
+          created_by?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_bill_templates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_bill_templates_vendor_id_fkey"
             columns: ["vendor_id"]
             isOneToOne: false
             referencedRelation: "vendors"
@@ -1869,85 +2209,43 @@ export type Database = {
           },
         ]
       }
-    }
-    Views: {
-      employees_masked: {
+      chart_of_accounts: {
         Row: {
-          annual_leave_balance_days: number | null
-          annual_rent_kobo: number | null
-          bank_account_name: string | null
-          bank_account_number: string | null
-          bank_name: string | null
-          basic_kobo: number | null
-          branch_id: string | null
-          branch_name: string | null
-          confirmed: boolean | null
-          contract_end_date: string | null
-          created_at: string | null
-          date_of_birth: string | null
-          department_id: string | null
-          department_name: string | null
-          email: string | null
-          employment_type: string | null
-          full_name: string | null
-          hire_date: string | null
-          housing_kobo: number | null
-          id: string | null
-          job_grade_id: string | null
-          job_grade_name: string | null
-          linked_at: string | null
-          manager_id: string | null
-          nationality: string | null
-          org_id: string | null
-          pfa: string | null
-          probation_end_date: string | null
-          salary_masked: boolean | null
-          state_of_residence: string | null
-          status: string | null
-          tin: string | null
-          tin_valid_from: string | null
-          tin_valid_to: string | null
-          transport_kobo: number | null
-          user_id: string | null
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_system: boolean
+          name: string
+          org_id: string
+          status: string
+          type: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          name: string
+          org_id: string
+          status?: string
+          type: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          name?: string
+          org_id?: string
+          status?: string
+          type?: string
         }
         Relationships: [
           {
-            foreignKeyName: "employees_branch_id_fkey"
-            columns: ["branch_id"]
-            isOneToOne: false
-            referencedRelation: "branches"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "employees_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "employees_job_grade_id_fkey"
-            columns: ["job_grade_id"]
-            isOneToOne: false
-            referencedRelation: "job_grades"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "employees_manager_id_fkey"
-            columns: ["manager_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "employees_manager_id_fkey"
-            columns: ["manager_id"]
-            isOneToOne: false
-            referencedRelation: "employees_masked"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "employees_org_id_fkey"
+            foreignKeyName: "chart_of_accounts_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -1955,64 +2253,1693 @@ export type Database = {
           },
         ]
       }
-      posted_payslips: {
+      customers: {
         Row: {
-          attendance_absence_deduction_kobo: number | null
-          benefit_employee_deduction_kobo: number | null
-          benefit_employer_cost_kobo: number | null
-          chargeable_income_kobo: number | null
-          created_at: string | null
-          cumulative_chargeable_income_before_kobo: number | null
-          cumulative_paye_paid_before_kobo: number | null
-          employee_deductions_kobo: number | null
-          employee_id: string | null
-          gross_kobo: number | null
-          id: string | null
-          leave_encashment_kobo: number | null
-          net_kobo: number | null
-          new_hire_proration_deduction_kobo: number | null
-          nhf_kobo: number | null
-          non_taxable_reimbursement_kobo: number | null
-          org_id: string | null
-          overtime_pay_kobo: number | null
-          pay_run_id: string | null
-          paye_kobo: number | null
-          pension_employee_kobo: number | null
-          pension_employer_kobo: number | null
-          pensionable_kobo: number | null
-          rent_relief_kobo: number | null
-          salary_change_adjustment_kobo: number | null
-          taxable_reimbursement_kobo: number | null
-          unpaid_leave_deduction_kobo: number | null
+          billing_address: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          name: string
+          org_id: string
+          status: string
+        }
+        Insert: {
+          billing_address?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          org_id: string
+          status?: string
+        }
+        Update: {
+          billing_address?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          org_id?: string
+          status?: string
         }
         Relationships: [
           {
-            foreignKeyName: "payslips_employee_id_fkey"
-            columns: ["employee_id"]
+            foreignKeyName: "customers_org_id_fkey"
+            columns: ["org_id"]
             isOneToOne: false
-            referencedRelation: "employees"
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      customer_invoices: {
+        Row: {
+          amount_kobo: number
+          created_at: string
+          created_by: string
+          customer_id: string
+          description: string
+          due_date: string | null
+          id: string
+          invoice_date: string
+          invoice_number: string | null
+          issued_at: string | null
+          issued_by: string | null
+          journal_entry_id: string | null
+          org_id: string
+          paid_at: string | null
+          payment_journal_entry_id: string | null
+          rule_version_id: string | null
+          status: string
+          subtotal_kobo: number
+          vat_category: string | null
+          vat_exempt: boolean
+          vat_kobo: number
+        }
+        Insert: {
+          amount_kobo: number
+          created_at?: string
+          created_by: string
+          customer_id: string
+          description: string
+          due_date?: string | null
+          id?: string
+          invoice_date: string
+          invoice_number?: string | null
+          issued_at?: string | null
+          issued_by?: string | null
+          journal_entry_id?: string | null
+          org_id: string
+          paid_at?: string | null
+          payment_journal_entry_id?: string | null
+          rule_version_id?: string | null
+          status?: string
+          subtotal_kobo: number
+          vat_category?: string | null
+          vat_exempt?: boolean
+          vat_kobo?: number
+        }
+        Update: {
+          amount_kobo?: number
+          created_at?: string
+          created_by?: string
+          customer_id?: string
+          description?: string
+          due_date?: string | null
+          id?: string
+          invoice_date?: string
+          invoice_number?: string | null
+          issued_at?: string | null
+          issued_by?: string | null
+          journal_entry_id?: string | null
+          org_id?: string
+          paid_at?: string | null
+          payment_journal_entry_id?: string | null
+          rule_version_id?: string | null
+          status?: string
+          subtotal_kobo?: number
+          vat_category?: string | null
+          vat_exempt?: boolean
+          vat_kobo?: number
+        }
+        Relationships: [
           {
-            foreignKeyName: "payslips_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees_masked"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "payslips_org_id_fkey"
+            foreignKeyName: "customer_invoices_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "payslips_pay_run_id_fkey"
-            columns: ["pay_run_id"]
+            foreignKeyName: "customer_invoices_customer_id_fkey"
+            columns: ["customer_id"]
             isOneToOne: false
-            referencedRelation: "pay_runs"
+            referencedRelation: "customers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_invoices_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_invoices_payment_journal_entry_id_fkey"
+            columns: ["payment_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_invoice_lines: {
+        Row: {
+          created_at: string
+          description: string
+          discount_kobo: number
+          id: string
+          invoice_id: string
+          line_total_kobo: number
+          org_id: string
+          quantity: number
+          sort_order: number
+          unit_price_kobo: number
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          discount_kobo?: number
+          id?: string
+          invoice_id: string
+          line_total_kobo: number
+          org_id: string
+          quantity?: number
+          sort_order?: number
+          unit_price_kobo: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          discount_kobo?: number
+          id?: string
+          invoice_id?: string
+          line_total_kobo?: number
+          org_id?: string
+          quantity?: number
+          sort_order?: number
+          unit_price_kobo?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_invoice_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_invoice_lines_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "customer_invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_invoice_payments: {
+        Row: {
+          id: string
+          org_id: string
+          invoice_id: string
+          amount_kobo: number
+          payment_date: string
+          journal_entry_id: string
+          received_by: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          invoice_id: string
+          amount_kobo: number
+          payment_date: string
+          journal_entry_id: string
+          received_by: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          invoice_id?: string
+          amount_kobo?: number
+          payment_date?: string
+          journal_entry_id?: string
+          received_by?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_invoice_payments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_invoice_payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "customer_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_invoice_payments_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_credit_notes: {
+        Row: {
+          id: string
+          org_id: string
+          invoice_id: string
+          amount_kobo: number
+          reason: string
+          journal_entry_id: string
+          issued_by: string
+          issued_at: string
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          invoice_id: string
+          amount_kobo: number
+          reason: string
+          journal_entry_id: string
+          issued_by: string
+          issued_at?: string
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          invoice_id?: string
+          amount_kobo?: number
+          reason?: string
+          journal_entry_id?: string
+          issued_by?: string
+          issued_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_credit_notes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_credit_notes_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "customer_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_credit_notes_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_invoice_templates: {
+        Row: {
+          id: string
+          org_id: string
+          customer_id: string
+          description: string
+          amount_kobo: number
+          cadence: string
+          next_invoice_date: string
+          active: boolean
+          created_by: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          customer_id: string
+          description: string
+          amount_kobo: number
+          cadence: string
+          next_invoice_date: string
+          active?: boolean
+          created_by: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          customer_id?: string
+          description?: string
+          amount_kobo?: number
+          cadence?: string
+          next_invoice_date?: string
+          active?: boolean
+          created_by?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_invoice_templates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_invoice_templates_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bank_reconciliations: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          created_by: string
+          id: string
+          org_id: string
+          period_end: string
+          statement_balance_kobo: number
+          status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          org_id: string
+          period_end: string
+          statement_balance_kobo: number
+          status?: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          org_id?: string
+          period_end?: string
+          statement_balance_kobo?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_reconciliations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bank_statement_lines: {
+        Row: {
+          amount_kobo: number
+          created_at: string
+          created_by: string
+          description: string
+          id: string
+          line_date: string
+          matched_at: string | null
+          matched_by: string | null
+          matched_posting_id: string | null
+          org_id: string
+          reconciliation_id: string
+          type: string
+        }
+        Insert: {
+          amount_kobo: number
+          created_at?: string
+          created_by: string
+          description: string
+          id?: string
+          line_date: string
+          matched_at?: string | null
+          matched_by?: string | null
+          matched_posting_id?: string | null
+          org_id: string
+          reconciliation_id: string
+          type: string
+        }
+        Update: {
+          amount_kobo?: number
+          created_at?: string
+          created_by?: string
+          description?: string
+          id?: string
+          line_date?: string
+          matched_at?: string | null
+          matched_by?: string | null
+          matched_posting_id?: string | null
+          org_id?: string
+          reconciliation_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_statement_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_statement_lines_reconciliation_id_fkey"
+            columns: ["reconciliation_id"]
+            isOneToOne: false
+            referencedRelation: "bank_reconciliations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_statement_lines_matched_posting_id_fkey"
+            columns: ["matched_posting_id"]
+            isOneToOne: true
+            referencedRelation: "ledger_postings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fixed_assets: {
+        Row: {
+          accumulated_depreciation_kobo: number
+          acquisition_date: string
+          category: string | null
+          cost_kobo: number
+          created_at: string
+          created_by: string
+          declining_balance_rate_percent: number | null
+          department_id: string | null
+          depreciation_method: string
+          disposal_journal_entry_id: string | null
+          disposal_proceeds_kobo: number | null
+          disposed_at: string | null
+          id: string
+          name: string
+          org_id: string
+          revaluation_adjustment_kobo: number
+          salvage_value_kobo: number
+          status: string
+          useful_life_months: number
+        }
+        Insert: {
+          accumulated_depreciation_kobo?: number
+          acquisition_date: string
+          category?: string | null
+          cost_kobo: number
+          created_at?: string
+          created_by: string
+          declining_balance_rate_percent?: number | null
+          department_id?: string | null
+          depreciation_method?: string
+          disposal_journal_entry_id?: string | null
+          disposal_proceeds_kobo?: number | null
+          disposed_at?: string | null
+          id?: string
+          name: string
+          org_id: string
+          revaluation_adjustment_kobo?: number
+          salvage_value_kobo?: number
+          status?: string
+          useful_life_months: number
+        }
+        Update: {
+          accumulated_depreciation_kobo?: number
+          acquisition_date?: string
+          category?: string | null
+          cost_kobo?: number
+          created_at?: string
+          created_by?: string
+          declining_balance_rate_percent?: number | null
+          department_id?: string | null
+          depreciation_method?: string
+          disposal_journal_entry_id?: string | null
+          disposal_proceeds_kobo?: number | null
+          disposed_at?: string | null
+          id?: string
+          name?: string
+          org_id?: string
+          revaluation_adjustment_kobo?: number
+          salvage_value_kobo?: number
+          status?: string
+          useful_life_months?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fixed_assets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fixed_assets_disposal_journal_entry_id_fkey"
+            columns: ["disposal_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fixed_assets_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      depreciation_runs: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          journal_entry_id: string
+          org_id: string
+          period_end: string
+          period_start: string
+          total_amount_kobo: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          journal_entry_id: string
+          org_id: string
+          period_end: string
+          period_start: string
+          total_amount_kobo: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          journal_entry_id?: string
+          org_id?: string
+          period_end?: string
+          period_start?: string
+          total_amount_kobo?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "depreciation_runs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "depreciation_runs_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      itf_assessments: {
+        Row: {
+          annual_payroll_base_kobo: number
+          annual_turnover_kobo: number
+          assessment_year: number
+          created_at: string
+          created_by: string
+          employee_count: number
+          employer_kobo: number
+          id: string
+          journal_entry_id: string | null
+          org_id: string
+          qualifies: boolean
+          rule_version_id: string
+        }
+        Insert: {
+          annual_payroll_base_kobo: number
+          annual_turnover_kobo: number
+          assessment_year: number
+          created_at?: string
+          created_by: string
+          employee_count: number
+          employer_kobo: number
+          id?: string
+          journal_entry_id?: string | null
+          org_id: string
+          qualifies: boolean
+          rule_version_id: string
+        }
+        Update: {
+          annual_payroll_base_kobo?: number
+          annual_turnover_kobo?: number
+          assessment_year?: number
+          created_at?: string
+          created_by?: string
+          employee_count?: number
+          employer_kobo?: number
+          id?: string
+          journal_entry_id?: string | null
+          org_id?: string
+          qualifies?: boolean
+          rule_version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itf_assessments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itf_assessments_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      depreciation_lines: {
+        Row: {
+          amount_kobo: number
+          asset_id: string
+          created_at: string
+          depreciation_run_id: string
+          id: string
+        }
+        Insert: {
+          amount_kobo: number
+          asset_id: string
+          created_at?: string
+          depreciation_run_id: string
+          id?: string
+        }
+        Update: {
+          amount_kobo?: number
+          asset_id?: string
+          created_at?: string
+          depreciation_run_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "depreciation_lines_depreciation_run_id_fkey"
+            columns: ["depreciation_run_id"]
+            isOneToOne: false
+            referencedRelation: "depreciation_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "depreciation_lines_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budgets: {
+        Row: {
+          budget_type: string
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+          org_id: string
+          period_end: string
+          period_start: string
+        }
+        Insert: {
+          budget_type?: string
+          created_at?: string
+          created_by: string
+          id?: string
+          name: string
+          org_id: string
+          period_end: string
+          period_start: string
+        }
+        Update: {
+          budget_type?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+          org_id?: string
+          period_end?: string
+          period_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budgets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budget_lines: {
+        Row: {
+          account_code: string
+          amount_kobo: number
+          budget_id: string
+          created_at: string
+          id: string
+          period_end: string
+          period_start: string
+        }
+        Insert: {
+          account_code: string
+          amount_kobo: number
+          budget_id: string
+          created_at?: string
+          id?: string
+          period_end: string
+          period_start: string
+        }
+        Update: {
+          account_code?: string
+          amount_kobo?: number
+          budget_id?: string
+          created_at?: string
+          id?: string
+          period_end?: string
+          period_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_lines_budget_id_fkey"
+            columns: ["budget_id"]
+            isOneToOne: false
+            referencedRelation: "budgets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      performance_review_cycles: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+          org_id: string
+          period_end: string
+          period_start: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          name: string
+          org_id: string
+          period_end: string
+          period_start: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+          org_id?: string
+          period_end?: string
+          period_start?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_review_cycles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      performance_goals: {
+        Row: {
+          created_at: string
+          created_by: string
+          cycle_id: string
+          description: string | null
+          employee_id: string
+          id: string
+          org_id: string
+          status: string
+          target_date: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          cycle_id: string
+          description?: string | null
+          employee_id: string
+          id?: string
+          org_id: string
+          status?: string
+          target_date?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          cycle_id?: string
+          description?: string | null
+          employee_id?: string
+          id?: string
+          org_id?: string
+          status?: string
+          target_date?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_goals_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "performance_review_cycles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_goals_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_goals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shift_templates: {
+        Row: {
+          created_at: string
+          end_time: string
+          id: string
+          name: string
+          org_id: string
+          start_time: string
+        }
+        Insert: {
+          created_at?: string
+          end_time: string
+          id?: string
+          name: string
+          org_id: string
+          start_time: string
+        }
+        Update: {
+          created_at?: string
+          end_time?: string
+          id?: string
+          name?: string
+          org_id?: string
+          start_time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_templates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shift_assignments: {
+        Row: {
+          assigned_by: string
+          created_at: string
+          date: string
+          employee_id: string
+          id: string
+          org_id: string
+          shift_template_id: string
+        }
+        Insert: {
+          assigned_by: string
+          created_at?: string
+          date: string
+          employee_id: string
+          id?: string
+          org_id: string
+          shift_template_id: string
+        }
+        Update: {
+          assigned_by?: string
+          created_at?: string
+          date?: string
+          employee_id?: string
+          id?: string
+          org_id?: string
+          shift_template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_assignments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_assignments_shift_template_id_fkey"
+            columns: ["shift_template_id"]
+            isOneToOne: false
+            referencedRelation: "shift_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_courses: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string
+          description: string | null
+          external_url: string | null
+          has_quiz: boolean
+          id: string
+          is_mandatory: boolean
+          org_id: string
+          quiz_passing_percent: number
+          title: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          external_url?: string | null
+          has_quiz?: boolean
+          id?: string
+          is_mandatory?: boolean
+          org_id: string
+          quiz_passing_percent?: number
+          title: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          external_url?: string | null
+          has_quiz?: boolean
+          id?: string
+          is_mandatory?: boolean
+          org_id?: string
+          quiz_passing_percent?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_courses_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_enrollments: {
+        Row: {
+          assigned_by: string
+          completed_at: string | null
+          course_id: string
+          created_at: string
+          due_date: string | null
+          employee_id: string
+          id: string
+          org_id: string
+          status: string
+        }
+        Insert: {
+          assigned_by: string
+          completed_at?: string | null
+          course_id: string
+          created_at?: string
+          due_date?: string | null
+          employee_id: string
+          id?: string
+          org_id: string
+          status?: string
+        }
+        Update: {
+          assigned_by?: string
+          completed_at?: string | null
+          course_id?: string
+          created_at?: string
+          due_date?: string | null
+          employee_id?: string
+          id?: string
+          org_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_enrollments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_enrollments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "training_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_enrollments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_course_quiz_questions: {
+        Row: {
+          course_id: string
+          created_at: string
+          id: string
+          org_id: string
+          question_text: string
+          sort_order: number
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          id?: string
+          org_id: string
+          question_text: string
+          sort_order?: number
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          id?: string
+          org_id?: string
+          question_text?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_course_quiz_questions_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "training_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_course_quiz_questions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_course_quiz_options: {
+        Row: {
+          created_at: string
+          id: string
+          is_correct: boolean
+          option_text: string
+          org_id: string
+          question_id: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_correct?: boolean
+          option_text: string
+          org_id: string
+          question_id: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_correct?: boolean
+          option_text?: string
+          org_id?: string
+          question_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_course_quiz_options_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "training_course_quiz_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_course_quiz_options_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_quiz_attempts: {
+        Row: {
+          course_id: string
+          employee_id: string
+          enrollment_id: string
+          id: string
+          org_id: string
+          passed: boolean
+          score_percent: number
+          submitted_at: string
+        }
+        Insert: {
+          course_id: string
+          employee_id: string
+          enrollment_id: string
+          id?: string
+          org_id: string
+          passed: boolean
+          score_percent: number
+          submitted_at?: string
+        }
+        Update: {
+          course_id?: string
+          employee_id?: string
+          enrollment_id?: string
+          id?: string
+          org_id?: string
+          passed?: boolean
+          score_percent?: number
+          submitted_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_quiz_attempts_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "training_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_quiz_attempts_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_quiz_attempts_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "training_enrollments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_quiz_attempts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_course_materials: {
+        Row: {
+          course_id: string
+          file_name: string
+          id: string
+          org_id: string
+          storage_path: string
+          uploaded_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          course_id: string
+          file_name: string
+          id?: string
+          org_id: string
+          storage_path: string
+          uploaded_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          course_id?: string
+          file_name?: string
+          id?: string
+          org_id?: string
+          storage_path?: string
+          uploaded_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_course_materials_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "training_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_course_materials_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_relations_cases: {
+        Row: {
+          case_type: string
+          created_at: string
+          created_by: string
+          description: string | null
+          employee_id: string
+          id: string
+          org_id: string
+          raised_by_user_id: string | null
+          resolution: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          case_type: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          employee_id: string
+          id?: string
+          org_id: string
+          raised_by_user_id?: string | null
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          case_type?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          employee_id?: string
+          id?: string
+          org_id?: string
+          raised_by_user_id?: string | null
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_relations_cases_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_relations_cases_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_relations_case_notes: {
+        Row: {
+          action_type: string
+          author_user_id: string
+          case_id: string
+          created_at: string
+          id: string
+          note: string
+          org_id: string
+        }
+        Insert: {
+          action_type?: string
+          author_user_id: string
+          case_id: string
+          created_at?: string
+          id?: string
+          note: string
+          org_id: string
+        }
+        Update: {
+          action_type?: string
+          author_user_id?: string
+          case_id?: string
+          created_at?: string
+          id?: string
+          note?: string
+          org_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_relations_case_notes_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "employee_relations_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_relations_case_notes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      performance_appraisals: {
+        Row: {
+          acknowledged_at: string | null
+          areas_for_improvement: string | null
+          created_at: string
+          cycle_id: string
+          employee_comments: string | null
+          employee_id: string
+          id: string
+          manager_comments: string | null
+          org_id: string
+          rating: number | null
+          reviewed_by: string | null
+          status: string
+          strengths: string | null
+          submitted_at: string | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          areas_for_improvement?: string | null
+          created_at?: string
+          cycle_id: string
+          employee_comments?: string | null
+          employee_id: string
+          id?: string
+          manager_comments?: string | null
+          org_id: string
+          rating?: number | null
+          reviewed_by?: string | null
+          status?: string
+          strengths?: string | null
+          submitted_at?: string | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          areas_for_improvement?: string | null
+          created_at?: string
+          cycle_id?: string
+          employee_comments?: string | null
+          employee_id?: string
+          id?: string
+          manager_comments?: string | null
+          org_id?: string
+          rating?: number | null
+          reviewed_by?: string | null
+          status?: string
+          strengths?: string | null
+          submitted_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_appraisals_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "performance_review_cycles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_appraisals_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_appraisals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_requisitions: {
+        Row: {
+          created_at: string
+          created_by: string
+          department_id: string | null
+          description: string | null
+          id: string
+          job_grade_id: string | null
+          org_id: string
+          status: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          job_grade_id?: string | null
+          org_id: string
+          status?: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          job_grade_id?: string | null
+          org_id?: string
+          status?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_requisitions_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_requisitions_job_grade_id_fkey"
+            columns: ["job_grade_id"]
+            isOneToOne: false
+            referencedRelation: "job_grades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_requisitions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      candidates: {
+        Row: {
+          created_at: string
+          created_by: string
+          email: string | null
+          full_name: string
+          hired_employee_id: string | null
+          id: string
+          notes: string | null
+          org_id: string
+          phone: string | null
+          rejected_reason: string | null
+          requisition_id: string
+          resume_link: string | null
+          source: string | null
+          stage: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          email?: string | null
+          full_name: string
+          hired_employee_id?: string | null
+          id?: string
+          notes?: string | null
+          org_id: string
+          phone?: string | null
+          rejected_reason?: string | null
+          requisition_id: string
+          resume_link?: string | null
+          source?: string | null
+          stage?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          email?: string | null
+          full_name?: string
+          hired_employee_id?: string | null
+          id?: string
+          notes?: string | null
+          org_id?: string
+          phone?: string | null
+          rejected_reason?: string | null
+          requisition_id?: string
+          resume_link?: string | null
+          source?: string | null
+          stage?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidates_hired_employee_id_fkey"
+            columns: ["hired_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidates_requisition_id_fkey"
+            columns: ["requisition_id"]
+            isOneToOne: false
+            referencedRelation: "job_requisitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      candidate_interviews: {
+        Row: {
+          candidate_id: string
+          created_at: string
+          created_by: string
+          id: string
+          interviewer_id: string
+          notes: string | null
+          org_id: string
+          outcome: string
+          scheduled_at: string
+        }
+        Insert: {
+          candidate_id: string
+          created_at?: string
+          created_by: string
+          id?: string
+          interviewer_id: string
+          notes?: string | null
+          org_id: string
+          outcome?: string
+          scheduled_at: string
+        }
+        Update: {
+          candidate_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          interviewer_id?: string
+          notes?: string | null
+          org_id?: string
+          outcome?: string
+          scheduled_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidate_interviews_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_interviews_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dashboard_widget_visibility: {
+        Row: {
+          org_id: string
+          widget_key: string
+          role_key: string
+          created_at: string
+          created_by: string
+        }
+        Insert: {
+          org_id: string
+          widget_key: string
+          role_key: string
+          created_at?: string
+          created_by: string
+        }
+        Update: {
+          org_id?: string
+          widget_key?: string
+          role_key?: string
+          created_at?: string
+          created_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dashboard_widget_visibility_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dashboard_widget_visibility_role_key_fkey"
+            columns: ["role_key"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["key"]
           },
         ]
       }
@@ -2206,6 +4133,7 @@ export type Database = {
           approver_user_id: string | null
           created_at: string
           id: string
+          min_amount_kobo: number | null
           org_id: string
           request_type: string
           step_order: number
@@ -2216,6 +4144,7 @@ export type Database = {
           approver_user_id?: string | null
           created_at?: string
           id?: string
+          min_amount_kobo?: number | null
           org_id: string
           request_type: string
           step_order: number
@@ -2226,6 +4155,7 @@ export type Database = {
           approver_user_id?: string | null
           created_at?: string
           id?: string
+          min_amount_kobo?: number | null
           org_id?: string
           request_type?: string
           step_order?: number
@@ -2377,6 +4307,375 @@ export type Database = {
           },
         ]
       }
+      statutory_remittances: {
+        Row: {
+          amount_kobo: number
+          created_at: string
+          id: string
+          notes: string | null
+          org_id: string
+          pay_run_id: string
+          recorded_by: string
+          reference: string | null
+          remitted_on: string
+          scheme: string
+        }
+        Insert: {
+          amount_kobo: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          org_id: string
+          pay_run_id: string
+          recorded_by: string
+          reference?: string | null
+          remitted_on: string
+          scheme: string
+        }
+        Update: {
+          amount_kobo?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          org_id?: string
+          pay_run_id?: string
+          recorded_by?: string
+          reference?: string | null
+          remitted_on?: string
+          scheme?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "statutory_remittances_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "statutory_remittances_pay_run_id_fkey"
+            columns: ["pay_run_id"]
+            isOneToOne: false
+            referencedRelation: "pay_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_revaluations: {
+        Row: {
+          adjustment_kobo: number
+          asset_id: string
+          id: string
+          journal_entry_id: string
+          note: string | null
+          org_id: string
+          revalued_at: string
+          revalued_by: string
+        }
+        Insert: {
+          adjustment_kobo: number
+          asset_id: string
+          id?: string
+          journal_entry_id: string
+          note?: string | null
+          org_id: string
+          revalued_at?: string
+          revalued_by: string
+        }
+        Update: {
+          adjustment_kobo?: number
+          asset_id?: string
+          id?: string
+          journal_entry_id?: string
+          note?: string | null
+          org_id?: string
+          revalued_at?: string
+          revalued_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_revaluations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_revaluations_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_revaluations_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employment_contract_signatures: {
+        Row: {
+          document_hash: string
+          employee_id: string
+          id: string
+          ip_address: string | null
+          org_id: string
+          party: string
+          signed_at: string
+          signed_by: string
+        }
+        Insert: {
+          document_hash: string
+          employee_id: string
+          id?: string
+          ip_address?: string | null
+          org_id: string
+          party: string
+          signed_at?: string
+          signed_by: string
+        }
+        Update: {
+          document_hash?: string
+          employee_id?: string
+          id?: string
+          ip_address?: string | null
+          org_id?: string
+          party?: string
+          signed_at?: string
+          signed_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employment_contract_signatures_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_contract_signatures_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_transfers: {
+        Row: {
+          asset_id: string
+          from_department_id: string | null
+          id: string
+          note: string | null
+          org_id: string
+          to_department_id: string | null
+          transferred_at: string
+          transferred_by: string
+        }
+        Insert: {
+          asset_id: string
+          from_department_id?: string | null
+          id?: string
+          note?: string | null
+          org_id: string
+          to_department_id?: string | null
+          transferred_at?: string
+          transferred_by: string
+        }
+        Update: {
+          asset_id?: string
+          from_department_id?: string | null
+          id?: string
+          note?: string | null
+          org_id?: string
+          to_department_id?: string | null
+          transferred_at?: string
+          transferred_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_transfers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_transfers_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_transfers_from_department_id_fkey"
+            columns: ["from_department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_transfers_to_department_id_fkey"
+            columns: ["to_department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      employees_masked: {
+        Row: {
+          annual_leave_balance_days: number | null
+          annual_rent_kobo: number | null
+          bank_account_name: string | null
+          bank_account_number: string | null
+          bank_name: string | null
+          basic_kobo: number | null
+          branch_id: string | null
+          branch_name: string | null
+          confirmed: boolean | null
+          contract_end_date: string | null
+          created_at: string | null
+          date_of_birth: string | null
+          department_id: string | null
+          department_name: string | null
+          email: string | null
+          employee_id: string | null
+          employment_type: string | null
+          full_name: string | null
+          hire_date: string | null
+          housing_kobo: number | null
+          id: string | null
+          job_grade_id: string | null
+          job_grade_name: string | null
+          linked_at: string | null
+          manager_id: string | null
+          nationality: string | null
+          org_id: string | null
+          pfa: string | null
+          photo_path: string | null
+          probation_end_date: string | null
+          residential_address: string | null
+          salary_masked: boolean | null
+          state_of_residence: string | null
+          status: string | null
+          tin: string | null
+          tin_valid_from: string | null
+          tin_valid_to: string | null
+          transport_kobo: number | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employees_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_job_grade_id_fkey"
+            columns: ["job_grade_id"]
+            isOneToOne: false
+            referencedRelation: "job_grades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      posted_payslips: {
+        Row: {
+          attendance_absence_deduction_kobo: number | null
+          benefit_employee_deduction_kobo: number | null
+          benefit_employer_cost_kobo: number | null
+          chargeable_income_kobo: number | null
+          created_at: string | null
+          cumulative_chargeable_income_before_kobo: number | null
+          cumulative_paye_paid_before_kobo: number | null
+          employee_deductions_kobo: number | null
+          employee_id: string | null
+          gross_kobo: number | null
+          id: string | null
+          leave_encashment_kobo: number | null
+          net_kobo: number | null
+          new_hire_proration_deduction_kobo: number | null
+          nhf_kobo: number | null
+          non_taxable_reimbursement_kobo: number | null
+          org_id: string | null
+          overtime_pay_kobo: number | null
+          pay_run_id: string | null
+          paye_kobo: number | null
+          pension_employee_kobo: number | null
+          pension_employer_kobo: number | null
+          pensionable_kobo: number | null
+          rent_relief_kobo: number | null
+          salary_change_adjustment_kobo: number | null
+          taxable_reimbursement_kobo: number | null
+          unpaid_leave_deduction_kobo: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payslips_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payslips_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payslips_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payslips_pay_run_id_fkey"
+            columns: ["pay_run_id"]
+            isOneToOne: false
+            referencedRelation: "pay_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       apply_org_wide_raise: {
@@ -2464,7 +4763,7 @@ export type Database = {
         Returns: undefined
       }
       get_org_audit_log: {
-        Args: { p_limit?: number; p_org_id: string }
+        Args: { p_before?: string; p_limit?: number; p_org_id: string }
         Returns: {
           action: string
           actor_id: string
@@ -2473,6 +4772,16 @@ export type Database = {
           created_at: string
           ip_address: string
           log_type: string
+        }[]
+      }
+      get_payroll_register_totals: {
+        Args: { p_org_id: string }
+        Returns: {
+          gross_kobo: number
+          net_kobo: number
+          nhf_kobo: number
+          paye_kobo: number
+          pension_kobo: number
         }[]
       }
       get_current_billing_estimate: {
@@ -2504,6 +4813,7 @@ export type Database = {
           date_of_birth: string | null
           department_id: string | null
           email: string | null
+          employee_id: string | null
           employment_type: string
           full_name: string
           hire_date: string | null
@@ -2533,7 +4843,7 @@ export type Database = {
         }
       }
       reverse_pay_run: {
-        Args: { p_pay_run_id: string; p_reason: string }
+        Args: { p_pay_run_id: string; p_reason: string; p_acknowledge_remitted?: boolean }
         Returns: {
           created_at: string
           id: string
@@ -2596,6 +4906,586 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      approve_vendor_bill: {
+        Args: { p_bill_id: string; p_expense_account_code?: string }
+        Returns: {
+          amount_kobo: number
+          approved_at: string | null
+          approved_by: string | null
+          bill_date: string
+          bill_number: string | null
+          created_at: string
+          description: string
+          due_date: string | null
+          id: string
+          journal_entry_id: string | null
+          org_id: string
+          paid_at: string | null
+          payment_journal_entry_id: string | null
+          requested_by: string
+          status: string
+          vendor_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "vendor_bills"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      reject_vendor_bill: {
+        Args: { p_bill_id: string }
+        Returns: {
+          amount_kobo: number
+          approved_at: string | null
+          approved_by: string | null
+          bill_date: string
+          bill_number: string | null
+          created_at: string
+          description: string
+          due_date: string | null
+          id: string
+          journal_entry_id: string | null
+          org_id: string
+          paid_at: string | null
+          payment_journal_entry_id: string | null
+          requested_by: string
+          status: string
+          vendor_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "vendor_bills"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      pay_vendor_bill: {
+        Args: { p_bill_id: string }
+        Returns: {
+          amount_kobo: number
+          approved_at: string | null
+          approved_by: string | null
+          bill_date: string
+          bill_number: string | null
+          created_at: string
+          description: string
+          due_date: string | null
+          id: string
+          journal_entry_id: string | null
+          org_id: string
+          paid_at: string | null
+          payment_journal_entry_id: string | null
+          requested_by: string
+          status: string
+          vendor_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "vendor_bills"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      pay_vendor_bills_batch: {
+        Args: { p_org_id: string; p_bill_ids: string[] }
+        Returns: {
+          amount_kobo: number
+          approved_at: string | null
+          approved_by: string | null
+          bill_date: string
+          bill_number: string | null
+          created_at: string
+          description: string
+          due_date: string | null
+          id: string
+          journal_entry_id: string | null
+          org_id: string
+          paid_at: string | null
+          payment_journal_entry_id: string | null
+          requested_by: string
+          status: string
+          vendor_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "vendor_bills"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      schedule_vendor_bill_payment: {
+        Args: { p_bill_id: string; p_payment_date: string }
+        Returns: {
+          amount_kobo: number
+          approved_at: string | null
+          approved_by: string | null
+          bill_date: string
+          bill_number: string | null
+          created_at: string
+          description: string
+          due_date: string | null
+          id: string
+          journal_entry_id: string | null
+          org_id: string
+          paid_at: string | null
+          payment_journal_entry_id: string | null
+          requested_by: string
+          scheduled_payment_date: string | null
+          status: string
+          vendor_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "vendor_bills"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      cancel_vendor_bill: {
+        Args: { p_bill_id: string; p_reason: string }
+        Returns: {
+          amount_kobo: number
+          approved_at: string | null
+          approved_by: string | null
+          bill_date: string
+          bill_number: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          created_at: string
+          description: string
+          due_date: string | null
+          id: string
+          journal_entry_id: string | null
+          org_id: string
+          paid_at: string | null
+          payment_journal_entry_id: string | null
+          requested_by: string
+          status: string
+          vendor_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "vendor_bills"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_vendor_bill_with_lines: {
+        Args: {
+          p_vendor_id: string
+          p_description: string
+          p_bill_date: string
+          p_due_date?: string | null
+          p_subtotal_kobo: number
+          p_vat_category?: string | null
+          p_vat_kobo: number
+          p_vat_exempt: boolean
+          p_wht_category?: string | null
+          p_wht_kobo: number
+          p_rule_version_id?: string | null
+          p_lines: Json
+        }
+        Returns: {
+          amount_kobo: number
+          approved_at: string | null
+          approved_by: string | null
+          bill_date: string
+          bill_number: string | null
+          created_at: string
+          description: string
+          due_date: string | null
+          id: string
+          journal_entry_id: string | null
+          net_payable_kobo: number
+          org_id: string
+          paid_at: string | null
+          payment_journal_entry_id: string | null
+          requested_by: string
+          rule_version_id: string | null
+          status: string
+          subtotal_kobo: number
+          vat_category: string | null
+          vat_exempt: boolean
+          vat_kobo: number
+          vendor_id: string
+          wht_category: string | null
+          wht_kobo: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "vendor_bills"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      issue_customer_invoice: {
+        Args: { p_invoice_id: string; p_revenue_account_code?: string }
+        Returns: {
+          amount_kobo: number
+          created_at: string
+          created_by: string
+          customer_id: string
+          description: string
+          due_date: string | null
+          id: string
+          invoice_date: string
+          invoice_number: string | null
+          issued_at: string | null
+          issued_by: string | null
+          journal_entry_id: string | null
+          org_id: string
+          paid_at: string | null
+          payment_journal_entry_id: string | null
+          status: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "customer_invoices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_customer_invoice_with_lines: {
+        Args: {
+          p_customer_id: string
+          p_description: string
+          p_invoice_date: string
+          p_due_date?: string | null
+          p_subtotal_kobo: number
+          p_vat_category?: string | null
+          p_vat_kobo: number
+          p_vat_exempt: boolean
+          p_rule_version_id?: string | null
+          p_lines: Json
+        }
+        Returns: {
+          amount_kobo: number
+          created_at: string
+          created_by: string
+          customer_id: string
+          description: string
+          due_date: string | null
+          id: string
+          invoice_date: string
+          invoice_number: string | null
+          issued_at: string | null
+          issued_by: string | null
+          journal_entry_id: string | null
+          org_id: string
+          paid_at: string | null
+          payment_journal_entry_id: string | null
+          rule_version_id: string | null
+          status: string
+          subtotal_kobo: number
+          vat_category: string | null
+          vat_exempt: boolean
+          vat_kobo: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "customer_invoices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      void_customer_invoice: {
+        Args: { p_invoice_id: string }
+        Returns: {
+          amount_kobo: number
+          created_at: string
+          created_by: string
+          customer_id: string
+          description: string
+          due_date: string | null
+          id: string
+          invoice_date: string
+          invoice_number: string | null
+          issued_at: string | null
+          issued_by: string | null
+          journal_entry_id: string | null
+          org_id: string
+          paid_at: string | null
+          payment_journal_entry_id: string | null
+          status: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "customer_invoices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      receive_customer_payment: {
+        Args: { p_invoice_id: string; p_amount_kobo?: number }
+        Returns: {
+          amount_kobo: number
+          created_at: string
+          created_by: string
+          customer_id: string
+          description: string
+          due_date: string | null
+          id: string
+          invoice_date: string
+          invoice_number: string | null
+          issued_at: string | null
+          issued_by: string | null
+          journal_entry_id: string | null
+          org_id: string
+          paid_at: string | null
+          payment_journal_entry_id: string | null
+          status: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "customer_invoices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      issue_credit_note: {
+        Args: { p_invoice_id: string; p_amount_kobo: number; p_reason: string }
+        Returns: {
+          amount_kobo: number
+          created_at: string
+          created_by: string
+          customer_id: string
+          description: string
+          due_date: string | null
+          id: string
+          invoice_date: string
+          invoice_number: string | null
+          issued_at: string | null
+          issued_by: string | null
+          journal_entry_id: string | null
+          org_id: string
+          paid_at: string | null
+          payment_journal_entry_id: string | null
+          status: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "customer_invoices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      match_bank_statement_line: {
+        Args: { p_line_id: string; p_posting_id: string }
+        Returns: {
+          amount_kobo: number
+          created_at: string
+          created_by: string
+          description: string
+          id: string
+          line_date: string
+          matched_at: string | null
+          matched_by: string | null
+          matched_posting_id: string | null
+          org_id: string
+          reconciliation_id: string
+          type: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "bank_statement_lines"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      unmatch_bank_statement_line: {
+        Args: { p_line_id: string }
+        Returns: {
+          amount_kobo: number
+          created_at: string
+          created_by: string
+          description: string
+          id: string
+          line_date: string
+          matched_at: string | null
+          matched_by: string | null
+          matched_posting_id: string | null
+          org_id: string
+          reconciliation_id: string
+          type: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "bank_statement_lines"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      complete_bank_reconciliation: {
+        Args: { p_reconciliation_id: string }
+        Returns: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          created_by: string
+          id: string
+          org_id: string
+          period_end: string
+          statement_balance_kobo: number
+          status: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "bank_reconciliations"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      reopen_bank_reconciliation: {
+        Args: { p_reconciliation_id: string }
+        Returns: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          created_by: string
+          id: string
+          org_id: string
+          period_end: string
+          statement_balance_kobo: number
+          status: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "bank_reconciliations"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      post_bank_statement_item: {
+        Args: { p_line_id: string; p_account_code: string }
+        Returns: {
+          amount_kobo: number
+          created_at: string
+          created_by: string
+          description: string
+          id: string
+          line_date: string
+          matched_at: string | null
+          matched_by: string | null
+          matched_posting_id: string | null
+          org_id: string
+          reconciliation_id: string
+          type: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "bank_statement_lines"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      run_depreciation: {
+        Args: { p_org_id: string; p_period_start: string; p_period_end: string }
+        Returns: {
+          created_at: string
+          created_by: string
+          id: string
+          journal_entry_id: string
+          org_id: string
+          period_end: string
+          period_start: string
+          total_amount_kobo: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "depreciation_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      record_itf_assessment: {
+        Args: {
+          p_org_id: string
+          p_assessment_year: number
+          p_annual_payroll_base_kobo: number
+          p_employee_count: number
+          p_annual_turnover_kobo: number
+          p_qualifies: boolean
+          p_employer_kobo: number
+          p_rule_version_id: string
+        }
+        Returns: {
+          annual_payroll_base_kobo: number
+          annual_turnover_kobo: number
+          assessment_year: number
+          created_at: string
+          created_by: string
+          employee_count: number
+          employer_kobo: number
+          id: string
+          journal_entry_id: string | null
+          org_id: string
+          qualifies: boolean
+          rule_version_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "itf_assessments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      dispose_fixed_asset: {
+        Args: { p_asset_id: string; p_disposal_date: string; p_proceeds_kobo?: number }
+        Returns: {
+          accumulated_depreciation_kobo: number
+          acquisition_date: string
+          category: string | null
+          cost_kobo: number
+          created_at: string
+          created_by: string
+          declining_balance_rate_percent: number | null
+          department_id: string | null
+          depreciation_method: string
+          disposal_journal_entry_id: string | null
+          disposal_proceeds_kobo: number | null
+          disposed_at: string | null
+          id: string
+          name: string
+          org_id: string
+          revaluation_adjustment_kobo: number
+          salvage_value_kobo: number
+          status: string
+          useful_life_months: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "fixed_assets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      acknowledge_performance_appraisal: {
+        Args: { p_appraisal_id: string; p_employee_comments?: string }
+        Returns: {
+          acknowledged_at: string | null
+          areas_for_improvement: string | null
+          created_at: string
+          cycle_id: string
+          employee_comments: string | null
+          employee_id: string
+          id: string
+          manager_comments: string | null
+          org_id: string
+          rating: number | null
+          reviewed_by: string | null
+          status: string
+          strengths: string | null
+          submitted_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "performance_appraisals"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       review_loan: {
         Args: { p_approve: boolean; p_loan_id: string }
         Returns: {
@@ -2615,6 +5505,32 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "loans"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      resolve_employee_relations_case: {
+        Args: { p_case_id: string; p_resolution: string }
+        Returns: {
+          case_type: string
+          created_at: string
+          created_by: string
+          description: string | null
+          employee_id: string
+          id: string
+          org_id: string
+          raised_by_user_id: string | null
+          resolution: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "employee_relations_cases"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -2642,6 +5558,26 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      mark_training_enrollment_complete: {
+        Args: { p_enrollment_id: string }
+        Returns: {
+          assigned_by: string
+          completed_at: string | null
+          course_id: string
+          created_at: string
+          due_date: string | null
+          employee_id: string
+          id: string
+          org_id: string
+          status: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "training_enrollments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       review_overtime_request: {
         Args: { p_approve: boolean; p_overtime_request_id: string; p_rate_multiplier_bps?: number }
         Returns: {
@@ -2662,6 +5598,132 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "overtime_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      get_training_quiz_questions: {
+        Args: { p_course_id: string }
+        Returns: {
+          question_id: string
+          question_text: string
+          question_sort_order: number
+          option_id: string
+          option_text: string
+          option_sort_order: number
+        }[]
+      }
+      submit_training_quiz_attempt: {
+        Args: { p_enrollment_id: string; p_answers: Json }
+        Returns: {
+          score_percent: number
+          passed: boolean
+          submitted_at: string
+        }[]
+      }
+      revalue_fixed_asset: {
+        Args: { p_asset_id: string; p_adjustment_kobo: number; p_revaluation_date: string; p_note?: string | null }
+        Returns: {
+          accumulated_depreciation_kobo: number
+          acquisition_date: string
+          category: string | null
+          cost_kobo: number
+          created_at: string
+          created_by: string
+          declining_balance_rate_percent: number | null
+          department_id: string | null
+          depreciation_method: string
+          disposal_journal_entry_id: string | null
+          disposal_proceeds_kobo: number | null
+          disposed_at: string | null
+          id: string
+          name: string
+          org_id: string
+          revaluation_adjustment_kobo: number
+          salvage_value_kobo: number
+          status: string
+          useful_life_months: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "fixed_assets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      transfer_fixed_asset: {
+        Args: { p_asset_id: string; p_to_department_id?: string | null; p_note?: string | null }
+        Returns: {
+          accumulated_depreciation_kobo: number
+          acquisition_date: string
+          category: string | null
+          cost_kobo: number
+          created_at: string
+          created_by: string
+          declining_balance_rate_percent: number | null
+          department_id: string | null
+          depreciation_method: string
+          disposal_journal_entry_id: string | null
+          disposal_proceeds_kobo: number | null
+          disposed_at: string | null
+          id: string
+          name: string
+          org_id: string
+          revaluation_adjustment_kobo: number
+          salvage_value_kobo: number
+          status: string
+          useful_life_months: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "fixed_assets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      record_statutory_remittance: {
+        Args: {
+          p_pay_run_id: string
+          p_scheme: string
+          p_amount_kobo: number
+          p_remitted_on: string
+          p_reference?: string | null
+          p_notes?: string | null
+        }
+        Returns: {
+          amount_kobo: number
+          created_at: string
+          id: string
+          notes: string | null
+          org_id: string
+          pay_run_id: string
+          recorded_by: string
+          reference: string | null
+          remitted_on: string
+          scheme: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "statutory_remittances"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      sign_employment_contract: {
+        Args: { p_employee_id: string; p_party: string; p_document_hash: string; p_ip_address?: string | null }
+        Returns: {
+          document_hash: string
+          employee_id: string
+          id: string
+          ip_address: string | null
+          org_id: string
+          party: string
+          signed_at: string
+          signed_by: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "employment_contract_signatures"
           isOneToOne: true
           isSetofReturn: false
         }

@@ -1,0 +1,251 @@
+"use client";
+
+import Link from "next/link";
+import { useState, useTransition } from "react";
+import { formatKobo } from "@/lib/format";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { VendorBillStatusBadge, OverdueBadge } from "@/components/Badge";
+import { useToast } from "@/components/Toast";
+import { payVendorBillsBatch } from "./actions";
+import { ScheduleBillPaymentForm } from "./ScheduleBillPaymentForm";
+import { CancelBillForm } from "./CancelBillForm";
+
+type ApprovedBill = {
+  id: string;
+  vendor_id: string;
+  bill_number: string | null;
+  description: string;
+  amount_kobo: number;
+  wht_kobo: number;
+  net_payable_kobo: number;
+  due_date: string | null;
+  status: string;
+  scheduled_payment_date: string | null;
+  vendors: { name: string } | null;
+};
+
+const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
+const tdClass = "px-3 py-[10px] text-[13px]";
+
+// Select several bills — approved or already scheduled for payment,
+// pay_vendor_bills_batch accepts either — and pay them together in one
+// action — one aggregate journal entry for the whole batch, the same
+// way a pay run posts once per run rather than once per employee —
+// instead of clicking "mark as paid" on each bill individually.
+export function ApprovedBillsTable({
+  bills,
+  canManage,
+  today,
+}: {
+  bills: ApprovedBill[];
+  canManage: boolean;
+  today: string;
+}) {
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [confirming, setConfirming] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const { showToast } = useToast();
+
+  function toggle(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
+
+  const selectedBills = bills.filter((bill) => selected.has(bill.id));
+  const totalKobo = selectedBills.reduce((sum, bill) => sum + BigInt(bill.amount_kobo), 0n);
+  const totalWhtKobo = selectedBills.reduce((sum, bill) => sum + BigInt(bill.wht_kobo), 0n);
+  const totalNetPayableKobo = selectedBills.reduce((sum, bill) => sum + BigInt(bill.net_payable_kobo), 0n);
+
+  function runBatchPay() {
+    setConfirming(false);
+    const count = selected.size;
+    startTransition(async () => {
+      const result = await payVendorBillsBatch(Array.from(selected));
+      setSelected(new Set());
+      if (result?.error) {
+        showToast(result.error, "bad");
+      } else {
+        showToast(`${count} bill${count === 1 ? "" : "s"} paid`, "good");
+      }
+    });
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 md:hidden">
+        {bills.map((bill) => {
+          const overdue = Boolean(bill.due_date && bill.due_date < today);
+          return (
+            <div key={bill.id} className="rounded-card border border-border bg-surface p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-2.5">
+                  {canManage && (
+                    <input
+                      type="checkbox"
+                      checked={selected.has(bill.id)}
+                      disabled={pending}
+                      onChange={() => toggle(bill.id)}
+                      className="mt-1 h-4 w-4 accent-primary"
+                    />
+                  )}
+                  <div className="flex flex-col gap-0.5">
+                    <Link href={`/bills/${bill.id}`} className="text-[13px] font-bold text-primary">
+                      {bill.bill_number ?? "View"}
+                    </Link>
+                    {bill.vendors?.name ? (
+                      <Link href={`/vendors/${bill.vendor_id}`} className="text-[12.5px] font-bold text-ink">
+                        {bill.vendors.name}
+                      </Link>
+                    ) : (
+                      <span className="text-[12.5px] font-bold text-ink">—</span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <VendorBillStatusBadge status={bill.status} />
+                  {bill.scheduled_payment_date && (
+                    <span className="text-[10.5px] text-ink-soft">for {bill.scheduled_payment_date}</span>
+                  )}
+                </div>
+              </div>
+              <p className="mt-2 text-[12.5px] text-ink-soft">{bill.description}</p>
+              <div className="mt-1 flex items-center justify-between text-[11px] text-ink-soft">
+                <span className="flex items-center gap-1.5">
+                  Due {bill.due_date ?? "—"}
+                  {overdue && <OverdueBadge />}
+                </span>
+                <span>{formatKobo(BigInt(bill.amount_kobo))}</span>
+              </div>
+              {canManage && (
+                <div className="mt-3 flex items-center justify-end gap-3 border-t border-border pt-3">
+                  {bill.status === "approved" && <ScheduleBillPaymentForm billId={bill.id} />}
+                  <CancelBillForm billId={bill.id} billDescription={bill.description} />
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-card border border-border bg-surface md:block">
+        <table className="w-full min-w-[820px] border-collapse">
+          <thead>
+            <tr className="border-b border-border">
+              {canManage && <th className={thClass}></th>}
+              <th className={`${thClass} text-left`}>Bill #</th>
+              <th className={`${thClass} text-left`}>Vendor</th>
+              <th className={`${thClass} text-left`}>Description</th>
+              <th className={`${thClass} text-right`}>Amount</th>
+              <th className={`${thClass} text-right`}>WHT</th>
+              <th className={`${thClass} text-right`}>Net payable</th>
+              <th className={`${thClass} text-left`}>Due date</th>
+              <th className={`${thClass} text-left`}>Status</th>
+              {canManage && <th className={thClass}></th>}
+            </tr>
+          </thead>
+          <tbody>
+            {bills.map((bill) => {
+              const overdue = Boolean(bill.due_date && bill.due_date < today);
+              return (
+                <tr key={bill.id} className="border-b border-border last:border-b-0">
+                  {canManage && (
+                    <td className={tdClass}>
+                      <input
+                        type="checkbox"
+                        checked={selected.has(bill.id)}
+                        disabled={pending}
+                        onChange={() => toggle(bill.id)}
+                        className="h-4 w-4 accent-primary"
+                      />
+                    </td>
+                  )}
+                  <td className={`${tdClass} text-ink-soft`}>
+                    <Link href={`/bills/${bill.id}`} className="text-primary">
+                      {bill.bill_number ?? "View"}
+                    </Link>
+                  </td>
+                  <td className={`${tdClass} font-bold`}>
+                    {bill.vendors?.name ? (
+                      <Link href={`/vendors/${bill.vendor_id}`} className="text-primary">
+                        {bill.vendors.name}
+                      </Link>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td className={`${tdClass} text-ink-soft`}>{bill.description}</td>
+                  <td className={`${tdClass} text-right text-ink`}>{formatKobo(BigInt(bill.amount_kobo))}</td>
+                  <td className={`${tdClass} text-right text-ink-soft`}>{formatKobo(BigInt(bill.wht_kobo))}</td>
+                  <td className={`${tdClass} text-right font-bold text-ink`}>
+                    {formatKobo(BigInt(bill.net_payable_kobo))}
+                  </td>
+                  <td className={`${tdClass} text-ink-soft`}>
+                    <div className="flex items-center gap-1.5">
+                      <span>{bill.due_date ?? "—"}</span>
+                      {overdue && <OverdueBadge />}
+                    </div>
+                  </td>
+                  <td className={tdClass}>
+                    <div className="flex flex-col gap-1">
+                      <VendorBillStatusBadge status={bill.status} />
+                      {bill.scheduled_payment_date && (
+                        <span className="text-[11px] text-ink-soft">for {bill.scheduled_payment_date}</span>
+                      )}
+                    </div>
+                  </td>
+                  {canManage && (
+                    <td className={`${tdClass} text-right`}>
+                      <div className="flex flex-col items-end gap-1.5">
+                        {bill.status === "approved" && <ScheduleBillPaymentForm billId={bill.id} />}
+                        <CancelBillForm billId={bill.id} billDescription={bill.description} />
+                      </div>
+                    </td>
+                  )}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {canManage && selected.size > 0 && (
+        <div className="flex items-center justify-between rounded-card border border-border bg-surface px-4 py-3">
+          <span className="text-[13px] font-bold text-ink">
+            {selected.size} bill{selected.size === 1 ? "" : "s"} selected · {formatKobo(totalKobo)}
+            {totalWhtKobo > 0n && <span className="text-ink-soft"> · {formatKobo(totalNetPayableKobo)} net after WHT</span>}
+          </span>
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => setConfirming(true)}
+            className="rounded-button bg-primary px-[18px] py-[9px] text-[12.5px] font-extrabold text-white disabled:opacity-60"
+          >
+            {pending ? "Paying…" : "Pay selected"}
+          </button>
+        </div>
+      )}
+
+      {confirming && (
+        <ConfirmDialog
+          title="Pay the selected bills?"
+          message={
+            totalWhtKobo > 0n
+              ? `${selected.size} bill${selected.size === 1 ? "" : "s"} totalling ${formatKobo(totalKobo)} will be marked paid in one batch: Accounts Payable is debited for the full amount, Cash & Bank is credited ${formatKobo(totalNetPayableKobo)}, and WHT Payable is credited ${formatKobo(totalWhtKobo)} to remit separately — all in one balanced journal entry.`
+              : `${selected.size} bill${selected.size === 1 ? "" : "s"} totalling ${formatKobo(totalKobo)} will be marked paid in one batch, debiting Accounts Payable and crediting Cash & Bank in a single journal entry.`
+          }
+          confirmLabel="Pay bills"
+          tone="primary"
+          onConfirm={runBatchPay}
+          onCancel={() => setConfirming(false)}
+        />
+      )}
+    </div>
+  );
+}
