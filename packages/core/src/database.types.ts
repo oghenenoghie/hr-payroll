@@ -4073,6 +4073,7 @@ export type Database = {
           approver_user_id: string | null
           created_at: string
           id: string
+          min_amount_kobo: number | null
           org_id: string
           request_type: string
           step_order: number
@@ -4083,6 +4084,7 @@ export type Database = {
           approver_user_id?: string | null
           created_at?: string
           id?: string
+          min_amount_kobo?: number | null
           org_id: string
           request_type: string
           step_order: number
@@ -4093,6 +4095,7 @@ export type Database = {
           approver_user_id?: string | null
           created_at?: string
           id?: string
+          min_amount_kobo?: number | null
           org_id?: string
           request_type?: string
           step_order?: number

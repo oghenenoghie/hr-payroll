@@ -5,6 +5,7 @@ import { getMembership } from "@/lib/membership";
 import { formatKobo } from "@/lib/format";
 import { ACCOUNT_LABEL } from "@/lib/accounts";
 import { VendorBillStatusBadge, OverdueBadge } from "@/components/Badge";
+import { Timeline, TimelineStep } from "@/components/Timeline";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const tdClass = "px-3 py-[10px] text-[13px]";
@@ -14,17 +15,6 @@ function SummaryTile({ label, value }: { label: string; value: string }) {
     <div className="rounded-card border border-border bg-surface p-4">
       <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">{label}</span>
       <p className="mt-1 text-[17px] font-extrabold text-ink">{value}</p>
-    </div>
-  );
-}
-
-function TimelineStep({ label, detail }: { label: string; detail: string }) {
-  return (
-    <div className="flex items-start gap-3 rounded-panel border border-border bg-bg px-3 py-2.5">
-      <div className="flex flex-col gap-0.5">
-        <span className="text-[12.5px] font-bold text-ink">{label}</span>
-        <span className="text-[11px] text-ink-soft">{detail}</span>
-      </div>
     </div>
   );
 }
@@ -96,33 +86,72 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
   const { data: bill } = await supabase.from("vendor_bills").select("*, vendors(id, name)").eq("id", id).maybeSingle();
   if (!bill) notFound();
 
-  const { data: lines } = await supabase
-    .from("vendor_bill_lines")
-    .select("id, description, quantity, unit_price_kobo, discount_kobo, line_total_kobo, sort_order")
-    .eq("bill_id", id)
-    .order("sort_order", { ascending: true });
+  const [{ data: lines }, { data: approvalInstance }] = await Promise.all([
+    supabase
+      .from("vendor_bill_lines")
+      .select("id, description, quantity, unit_price_kobo, discount_kobo, line_total_kobo, sort_order")
+      .eq("bill_id", id)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("approval_instances")
+      .select("id, current_step_order, total_steps, status")
+      .eq("request_table", "vendor_bills")
+      .eq("request_id", id)
+      .maybeSingle(),
+  ]);
+
+  const { data: decisions } = approvalInstance
+    ? await supabase
+        .from("approval_instance_decisions")
+        .select("step_order, decision, decided_at")
+        .eq("approval_instance_id", approvalInstance.id)
+        .order("step_order", { ascending: true })
+    : { data: null };
 
   const today = new Date().toISOString().slice(0, 10);
   const overdue = Boolean(bill.due_date && bill.due_date < today && bill.status !== "paid" && bill.status !== "cancelled");
 
-  const timeline: { label: string; detail: string }[] = [
-    { label: "Raised", detail: bill.created_at.slice(0, 10) },
+  const timelineSteps: { label: string; detail: string; tone: "neutral" | "good" | "bad" }[] = [
+    { label: "Raised", detail: bill.created_at.slice(0, 10), tone: "neutral" },
   ];
-  if (bill.status === "rejected") {
-    timeline.push({ label: "Rejected", detail: bill.approved_at ? bill.approved_at.slice(0, 10) : "—" });
+
+  // A multi-step bill (an org-configured chain with more than one step)
+  // gets its actual per-step decision trail; everything else keeps the
+  // simple single "Approved"/"Rejected" line the prior single-step-only
+  // world always showed, so a bill with no custom workflow reads exactly
+  // as it did before this existed.
+  if (approvalInstance && approvalInstance.total_steps > 1 && decisions && decisions.length > 0) {
+    for (const decision of decisions) {
+      timelineSteps.push({
+        label: `Step ${decision.step_order} ${decision.decision}`,
+        detail: decision.decided_at.slice(0, 10),
+        tone: decision.decision === "approved" ? "good" : "bad",
+      });
+    }
+    if (bill.status === "pending_approval" && approvalInstance.status === "pending") {
+      timelineSteps.push({
+        label: `Awaiting step ${approvalInstance.current_step_order} of ${approvalInstance.total_steps}`,
+        detail: "Not yet decided",
+        tone: "neutral",
+      });
+    }
+  } else if (bill.status === "rejected") {
+    timelineSteps.push({ label: "Rejected", detail: bill.approved_at ? bill.approved_at.slice(0, 10) : "—", tone: "bad" });
   } else if (bill.approved_at) {
-    timeline.push({ label: "Approved", detail: bill.approved_at.slice(0, 10) });
+    timelineSteps.push({ label: "Approved", detail: bill.approved_at.slice(0, 10), tone: "good" });
   }
+
   if (bill.scheduled_payment_date) {
-    timeline.push({ label: "Scheduled for payment", detail: bill.scheduled_payment_date });
+    timelineSteps.push({ label: "Scheduled for payment", detail: bill.scheduled_payment_date, tone: "neutral" });
   }
   if (bill.paid_at) {
-    timeline.push({ label: "Paid", detail: bill.paid_at.slice(0, 10) });
+    timelineSteps.push({ label: "Paid", detail: bill.paid_at.slice(0, 10), tone: "good" });
   }
   if (bill.cancelled_at) {
-    timeline.push({
+    timelineSteps.push({
       label: "Cancelled",
       detail: `${bill.cancelled_at.slice(0, 10)}${bill.cancellation_reason ? ` — ${bill.cancellation_reason}` : ""}`,
+      tone: "bad",
     });
   }
 
@@ -150,6 +179,12 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
           {overdue && <OverdueBadge />}
         </div>
         <p className="text-[13px] text-ink-soft">{bill.description}</p>
+        {approvalInstance && approvalInstance.total_steps > 1 && approvalInstance.status === "pending" && (
+          <p className="text-[12px] font-bold text-warn">
+            Awaiting step {approvalInstance.current_step_order} of {approvalInstance.total_steps} —
+            see /workflows for who can act on it.
+          </p>
+        )}
       </header>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -205,11 +240,11 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
 
       <div className="flex flex-col gap-2">
         <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Timeline</span>
-        <div className="flex flex-col gap-2">
-          {timeline.map((step) => (
-            <TimelineStep key={step.label} label={step.label} detail={step.detail} />
+        <Timeline>
+          {timelineSteps.map((step, i) => (
+            <TimelineStep key={i} label={step.label} detail={step.detail} tone={step.tone} />
           ))}
-        </div>
+        </Timeline>
       </div>
 
       {(bill.journal_entry_id || bill.payment_journal_entry_id) && (

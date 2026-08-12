@@ -3,16 +3,14 @@ import { redirect } from "next/navigation";
 import { toNaira } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
-import { formatKobo } from "@/lib/format";
-import { VendorBillStatusBadge } from "@/components/Badge";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
-import { BillForm } from "./BillForm";
+import { Tabs } from "@/components/Tabs";
 import { ApprovedBillsTable } from "./ApprovedBillsTable";
 import { PendingBillsTable } from "./PendingBillsTable";
+import { SettledBillsTable } from "./SettledBillsTable";
+import { RaiseBillDrawer } from "./RaiseBillDrawer";
 
-const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
-const tdClass = "px-3 py-[10px] text-[13px]";
 const PAGE_SIZE = 25;
 
 const SETTLED_STATUSES = ["rejected", "paid", "cancelled"];
@@ -127,7 +125,7 @@ export default async function BillsPage({ searchParams }: { searchParams: Promis
       if (value) params.set(key, value);
     }
     const qs = params.toString();
-    return qs ? `/bills?${qs}#settled` : "/bills#settled";
+    return qs ? `/bills?${qs}` : "/bills";
   }
 
   // Scoped to the actionable queue plus this page of settled history —
@@ -164,14 +162,148 @@ export default async function BillsPage({ searchParams }: { searchParams: Promis
     ]),
   );
 
+  // A filter/pagination round-trip on the Settled tab is a full page
+  // navigation (plain form + Links, no client-side tab state survives
+  // it) — defaulting back to Settled whenever any of its params are in
+  // the URL means submitting the filter form doesn't visually bounce the
+  // viewer back to Pending.
+  const settledParamsActive = Boolean(filtersActive || pageParam);
+  const defaultTabId = settledParamsActive
+    ? "settled"
+    : pending.length > 0
+      ? "pending"
+      : awaitingPayment.length > 0
+        ? "awaiting"
+        : "settled";
+
+  const settledTabContent = (
+    <div className="flex flex-col gap-2">
+      <form className="flex flex-wrap items-end gap-3 rounded-card border border-border bg-surface p-4" action="/bills">
+        <div className="flex min-w-[180px] flex-1 flex-col gap-1">
+          <label className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft" htmlFor="q">
+            Search
+          </label>
+          <input
+            id="q"
+            name="q"
+            type="text"
+            placeholder="Bill # or description"
+            defaultValue={searchQuery}
+            className="rounded-control border border-border bg-surface px-[13px] py-[9px] text-[13px] text-ink outline-none focus:border-primary"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft" htmlFor="status">
+            Status
+          </label>
+          <select
+            id="status"
+            name="status"
+            defaultValue={statusFilter ?? ""}
+            className="rounded-control border border-border bg-surface px-[13px] py-[9px] text-[13px] text-ink outline-none focus:border-primary"
+          >
+            <option value="">All settled</option>
+            {SETTLED_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {SETTLED_STATUS_LABEL[s]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft" htmlFor="vendor">
+            Vendor
+          </label>
+          <select
+            id="vendor"
+            name="vendor"
+            defaultValue={vendorFilter ?? ""}
+            className="rounded-control border border-border bg-surface px-[13px] py-[9px] text-[13px] text-ink outline-none focus:border-primary"
+          >
+            <option value="">All vendors</option>
+            {(vendors ?? []).map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft" htmlFor="from">
+            From
+          </label>
+          <input
+            id="from"
+            name="from"
+            type="date"
+            defaultValue={fromFilter}
+            className="rounded-control border border-border bg-surface px-[13px] py-[9px] text-[13px] text-ink outline-none focus:border-primary"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft" htmlFor="to">
+            To
+          </label>
+          <input
+            id="to"
+            name="to"
+            type="date"
+            defaultValue={toFilter}
+            className="rounded-control border border-border bg-surface px-[13px] py-[9px] text-[13px] text-ink outline-none focus:border-primary"
+          />
+        </div>
+        <button type="submit" className="rounded-button border border-border px-[18px] py-[9px] text-[12.5px] font-extrabold text-ink">
+          Filter
+        </button>
+        {filtersActive && (
+          <Link href="/bills" className="px-2 py-[9px] text-[12.5px] font-bold text-primary">
+            Clear filters
+          </Link>
+        )}
+      </form>
+
+      <SettledBillsTable
+        bills={rest}
+        emptyMessage={filtersActive ? "No bills match these filters." : "No settled bills yet."}
+      />
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <span className="text-[12px] text-ink-soft">
+            Page {currentPage} of {totalPages}
+          </span>
+          <div className="flex gap-3">
+            {currentPage > 1 ? (
+              <Link href={filterHref({ page: String(currentPage - 1) })} className="text-[12.5px] font-bold text-primary">
+                ← Previous
+              </Link>
+            ) : (
+              <span className="text-[12.5px] font-bold text-ink-soft">← Previous</span>
+            )}
+            {currentPage < totalPages ? (
+              <Link href={filterHref({ page: String(currentPage + 1) })} className="text-[12.5px] font-bold text-primary">
+                Next →
+              </Link>
+            ) : (
+              <span className="text-[12.5px] font-bold text-ink-soft">Next →</span>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5 px-6 py-10">
       <header className="flex flex-col gap-1">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Accounts Payable</span>
-          {(pending.length > 0 || awaitingPayment.length > 0 || rest.length > 0) && (
-            <ExportCsvButton csv={csv} filename="vendor-bills.csv" label="Export queue + this page (CSV)" />
-          )}
+          <div className="flex items-center gap-3">
+            {(pending.length > 0 || awaitingPayment.length > 0 || rest.length > 0) && (
+              <ExportCsvButton csv={csv} filename="vendor-bills.csv" label="Export queue + this page (CSV)" />
+            )}
+            {canManage && <RaiseBillDrawer vendors={vendors ?? []} defaultVendorId={defaultVendorId} autoOpen={Boolean(defaultVendorId)} />}
+          </div>
         </div>
         <h1 className="text-[22px] font-extrabold text-ink">Vendor bills</h1>
         <p className="text-[13px] text-ink-soft">
@@ -183,190 +315,43 @@ export default async function BillsPage({ searchParams }: { searchParams: Promis
         </Link>
       </header>
 
-      {pending.length > 0 && (
-        <div className="flex flex-col gap-2">
-          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Pending approval</span>
-          <PendingBillsTable bills={pending} canManage={canManage} />
-        </div>
-      )}
-
-      {awaitingPayment.length > 0 && (
-        <div className="flex flex-col gap-2">
-          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
-            Approved — awaiting payment
-          </span>
-          <ApprovedBillsTable bills={awaitingPayment} canManage={canManage} today={today} />
-        </div>
-      )}
-
-      <div id="settled" className="flex flex-col gap-2 scroll-mt-6">
-        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
-          Settled ({totalSettled} total)
-        </span>
-
-        <form className="flex flex-wrap items-end gap-3 rounded-card border border-border bg-surface p-4" action="/bills#settled">
-          <div className="flex min-w-[180px] flex-1 flex-col gap-1">
-            <label className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft" htmlFor="q">
-              Search
-            </label>
-            <input
-              id="q"
-              name="q"
-              type="text"
-              placeholder="Bill # or description"
-              defaultValue={searchQuery}
-              className="rounded-control border border-border bg-surface px-[13px] py-[9px] text-[13px] text-ink outline-none focus:border-primary"
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft" htmlFor="status">
-              Status
-            </label>
-            <select
-              id="status"
-              name="status"
-              defaultValue={statusFilter ?? ""}
-              className="rounded-control border border-border bg-surface px-[13px] py-[9px] text-[13px] text-ink outline-none focus:border-primary"
-            >
-              <option value="">All settled</option>
-              {SETTLED_STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {SETTLED_STATUS_LABEL[s]}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft" htmlFor="vendor">
-              Vendor
-            </label>
-            <select
-              id="vendor"
-              name="vendor"
-              defaultValue={vendorFilter ?? ""}
-              className="rounded-control border border-border bg-surface px-[13px] py-[9px] text-[13px] text-ink outline-none focus:border-primary"
-            >
-              <option value="">All vendors</option>
-              {(vendors ?? []).map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft" htmlFor="from">
-              From
-            </label>
-            <input
-              id="from"
-              name="from"
-              type="date"
-              defaultValue={fromFilter}
-              className="rounded-control border border-border bg-surface px-[13px] py-[9px] text-[13px] text-ink outline-none focus:border-primary"
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft" htmlFor="to">
-              To
-            </label>
-            <input
-              id="to"
-              name="to"
-              type="date"
-              defaultValue={toFilter}
-              className="rounded-control border border-border bg-surface px-[13px] py-[9px] text-[13px] text-ink outline-none focus:border-primary"
-            />
-          </div>
-          <button type="submit" className="rounded-button border border-border px-[18px] py-[9px] text-[12.5px] font-extrabold text-ink">
-            Filter
-          </button>
-          {filtersActive && (
-            <Link href="/bills#settled" className="px-2 py-[9px] text-[12.5px] font-bold text-primary">
-              Clear filters
-            </Link>
-          )}
-        </form>
-
-        <div className="overflow-x-auto rounded-card border border-border bg-surface">
-          <table className="w-full min-w-[720px] border-collapse">
-            <thead>
-              <tr className="border-b border-border">
-                <th className={`${thClass} text-left`}>Bill #</th>
-                <th className={`${thClass} text-left`}>Vendor</th>
-                <th className={`${thClass} text-left`}>Description</th>
-                <th className={`${thClass} text-right`}>Amount</th>
-                <th className={`${thClass} text-center`}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rest.length > 0 ? (
-                rest.map((bill) => (
-                  <tr key={bill.id} className="border-b border-border last:border-b-0">
-                    <td className={`${tdClass} text-ink-soft`}>
-                      <Link href={`/bills/${bill.id}`} className="text-primary">
-                        {bill.bill_number ?? "View"}
-                      </Link>
-                    </td>
-                    <td className={`${tdClass} font-bold`}>
-                      {bill.vendors?.name ? (
-                        <Link href={`/vendors/${bill.vendor_id}`} className="text-primary">
-                          {bill.vendors.name}
-                        </Link>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td className={`${tdClass} text-ink-soft`}>{bill.description}</td>
-                    <td className={`${tdClass} text-right text-ink`}>{formatKobo(BigInt(bill.amount_kobo))}</td>
-                    <td className={`${tdClass} text-center`}>
-                      <VendorBillStatusBadge status={bill.status} />
-                    </td>
-                  </tr>
-                ))
+      <Tabs
+        defaultTabId={defaultTabId}
+        tabs={[
+          {
+            id: "pending",
+            label: "Pending approval",
+            badge: pending.length,
+            content:
+              pending.length > 0 ? (
+                <PendingBillsTable bills={pending} canManage={canManage} />
               ) : (
-                <tr>
-                  <td colSpan={5} className="px-3 py-10 text-center text-[13px] text-ink-soft">
-                    {filtersActive ? "No bills match these filters." : "No settled bills yet."}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between">
-            <span className="text-[12px] text-ink-soft">
-              Page {currentPage} of {totalPages}
-            </span>
-            <div className="flex gap-3">
-              {currentPage > 1 ? (
-                <Link href={filterHref({ page: String(currentPage - 1) })} className="text-[12.5px] font-bold text-primary">
-                  ← Previous
-                </Link>
+                <div className="rounded-card border border-border bg-surface px-3 py-10 text-center text-[13px] text-ink-soft">
+                  Nothing awaiting approval.
+                </div>
+              ),
+          },
+          {
+            id: "awaiting",
+            label: "Awaiting payment",
+            badge: awaitingPayment.length,
+            content:
+              awaitingPayment.length > 0 ? (
+                <ApprovedBillsTable bills={awaitingPayment} canManage={canManage} today={today} />
               ) : (
-                <span className="text-[12.5px] font-bold text-ink-soft">← Previous</span>
-              )}
-              {currentPage < totalPages ? (
-                <Link href={filterHref({ page: String(currentPage + 1) })} className="text-[12.5px] font-bold text-primary">
-                  Next →
-                </Link>
-              ) : (
-                <span className="text-[12.5px] font-bold text-ink-soft">Next →</span>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {canManage && (
-        <div id="raise-bill" className="rounded-card border border-border bg-surface p-6 scroll-mt-6">
-          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Raise a bill</span>
-          <div className="mt-3">
-            <BillForm vendors={vendors ?? []} defaultVendorId={defaultVendorId} />
-          </div>
-        </div>
-      )}
+                <div className="rounded-card border border-border bg-surface px-3 py-10 text-center text-[13px] text-ink-soft">
+                  Nothing approved and awaiting payment.
+                </div>
+              ),
+          },
+          {
+            id: "settled",
+            label: "Settled",
+            badge: totalSettled,
+            content: settledTabContent,
+          },
+        ]}
+      />
     </div>
   );
 }

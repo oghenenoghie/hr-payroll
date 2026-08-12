@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 import { resolveNavSections } from "@/lib/nav-sections";
+import { ToastProvider } from "@/components/Toast";
 import { AppShell } from "./AppShell";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -76,14 +77,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const sections = await resolveNavSections(supabase, membership.orgId, user.id, membership.role);
 
   return (
-    <AppShell
-      role={membership.role}
-      sections={sections}
-      isManager={isManager}
-      unreadNotifications={unreadNotifications ?? 0}
-      orgName={membership.orgName ?? "Your organization"}
-    >
-      {children}
-    </AppShell>
+    <ToastProvider>
+      <AppShell
+        role={membership.role}
+        sections={sections}
+        isManager={isManager}
+        unreadNotifications={unreadNotifications ?? 0}
+        orgName={membership.orgName ?? "Your organization"}
+      >
+        {children}
+      </AppShell>
+    </ToastProvider>
   );
 }

@@ -105,22 +105,43 @@ async function requireApprover() {
   return supabase;
 }
 
-export async function approveVendorBill(billId: string) {
+export type BillActionResult = { error?: string } | null;
+
+// Now that approval routes through the configurable step engine
+// (20260815010000_bill_approval_engine.sql), a permission error here is
+// an ordinary, expected outcome — not just a bug case — the moment an org
+// configures more than one step: a step-1 approver clicking Approve on a
+// bill still waiting on step 2's specific role gets this exact error.
+// Silently ignoring supabase.rpc()'s error field (as this used to) would
+// leave that reviewer with no idea anything happened.
+export async function approveVendorBill(billId: string): Promise<BillActionResult> {
   const supabase = await requireApprover();
-  await supabase.rpc("approve_vendor_bill", { p_bill_id: billId });
+  const { error } = await supabase.rpc("approve_vendor_bill", { p_bill_id: billId });
+  if (error) {
+    return { error: error.message };
+  }
   revalidatePath("/bills");
+  return null;
 }
 
-export async function rejectVendorBill(billId: string) {
+export async function rejectVendorBill(billId: string): Promise<BillActionResult> {
   const supabase = await requireApprover();
-  await supabase.rpc("reject_vendor_bill", { p_bill_id: billId });
+  const { error } = await supabase.rpc("reject_vendor_bill", { p_bill_id: billId });
+  if (error) {
+    return { error: error.message };
+  }
   revalidatePath("/bills");
+  return null;
 }
 
-export async function payVendorBill(billId: string) {
+export async function payVendorBill(billId: string): Promise<BillActionResult> {
   const supabase = await requireApprover();
-  await supabase.rpc("pay_vendor_bill", { p_bill_id: billId });
+  const { error } = await supabase.rpc("pay_vendor_bill", { p_bill_id: billId });
+  if (error) {
+    return { error: error.message };
+  }
   revalidatePath("/bills");
+  return null;
 }
 
 export type ScheduleBillPaymentState = { error?: string } | null;
@@ -172,7 +193,7 @@ export async function cancelVendorBill(
   return null;
 }
 
-export async function payVendorBillsBatch(billIds: string[]) {
+export async function payVendorBillsBatch(billIds: string[]): Promise<BillActionResult> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -188,11 +209,15 @@ export async function payVendorBillsBatch(billIds: string[]) {
   }
 
   if (billIds.length === 0) {
-    return;
+    return null;
   }
 
-  await supabase.rpc("pay_vendor_bills_batch", { p_org_id: membership.orgId, p_bill_ids: billIds });
+  const { error } = await supabase.rpc("pay_vendor_bills_batch", { p_org_id: membership.orgId, p_bill_ids: billIds });
+  if (error) {
+    return { error: error.message };
+  }
   revalidatePath("/bills");
+  return null;
 }
 
 // Unlike pay_vendor_bills_batch, approving/rejecting has no aggregate-
@@ -200,19 +225,41 @@ export async function payVendorBillsBatch(billIds: string[]) {
 // its own distinct expense/AP entry, and there's nothing analogous to
 // batch's single netted cash credit. So a "batch" here is just calling the
 // existing single-bill RPC per id; each call is still its own atomic,
-// RLS-checked transaction, so one bad row can't roll back the rest.
-export async function approveVendorBillsBatch(billIds: string[]) {
+// RLS-checked transaction, so one bad row can't roll back the rest. Errors
+// are collected rather than thrown, since a mixed batch (e.g. some bills
+// at a step this reviewer can act on, others not) should still apply to
+// every bill it can and report the rest by exception, not abort the whole
+// batch on the first failure.
+export type BillBatchResult = { succeededCount: number; errors: string[] };
+
+export async function approveVendorBillsBatch(billIds: string[]): Promise<BillBatchResult> {
   const supabase = await requireApprover();
+  let succeededCount = 0;
+  const errors: string[] = [];
   for (const billId of billIds) {
-    await supabase.rpc("approve_vendor_bill", { p_bill_id: billId });
+    const { error } = await supabase.rpc("approve_vendor_bill", { p_bill_id: billId });
+    if (error) {
+      errors.push(error.message);
+    } else {
+      succeededCount++;
+    }
   }
   revalidatePath("/bills");
+  return { succeededCount, errors };
 }
 
-export async function rejectVendorBillsBatch(billIds: string[]) {
+export async function rejectVendorBillsBatch(billIds: string[]): Promise<BillBatchResult> {
   const supabase = await requireApprover();
+  let succeededCount = 0;
+  const errors: string[] = [];
   for (const billId of billIds) {
-    await supabase.rpc("reject_vendor_bill", { p_bill_id: billId });
+    const { error } = await supabase.rpc("reject_vendor_bill", { p_bill_id: billId });
+    if (error) {
+      errors.push(error.message);
+    } else {
+      succeededCount++;
+    }
   }
   revalidatePath("/bills");
+  return { succeededCount, errors };
 }

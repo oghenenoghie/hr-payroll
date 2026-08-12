@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { formatKobo } from "@/lib/format";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ConfirmActionButton } from "@/components/ConfirmActionButton";
+import { useToast } from "@/components/Toast";
 import { approveVendorBill, rejectVendorBill, approveVendorBillsBatch, rejectVendorBillsBatch } from "./actions";
 
 type PendingBill = {
@@ -26,6 +27,7 @@ export function PendingBillsTable({ bills, canManage }: { bills: PendingBill[]; 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirming, setConfirming] = useState<"approve" | "reject" | null>(null);
   const [pending, startTransition] = useTransition();
+  const { showToast } = useToast();
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -46,14 +48,101 @@ export function PendingBillsTable({ bills, canManage }: { bills: PendingBill[]; 
     setConfirming(null);
     const ids = Array.from(selected);
     startTransition(async () => {
-      await (kind === "approve" ? approveVendorBillsBatch(ids) : rejectVendorBillsBatch(ids));
+      const result = await (kind === "approve" ? approveVendorBillsBatch(ids) : rejectVendorBillsBatch(ids));
       setSelected(new Set());
+      const verb = kind === "approve" ? "approved" : "rejected";
+      if (result.errors.length === 0) {
+        showToast(`${result.succeededCount} bill${result.succeededCount === 1 ? "" : "s"} ${verb}`, "good");
+      } else if (result.succeededCount === 0) {
+        showToast(result.errors[0], "bad");
+      } else {
+        showToast(
+          `${result.succeededCount} bill${result.succeededCount === 1 ? "" : "s"} ${verb}, ${result.errors.length} failed: ${result.errors[0]}`,
+          "bad",
+        );
+      }
     });
+  }
+
+  async function approveOne(bill: PendingBill) {
+    const result = await approveVendorBill(bill.id);
+    if (result?.error) {
+      showToast(result.error, "bad");
+    } else {
+      showToast("Bill approved", "good");
+    }
+  }
+
+  async function rejectOne(bill: PendingBill) {
+    const result = await rejectVendorBill(bill.id);
+    if (result?.error) {
+      showToast(result.error, "bad");
+    } else {
+      showToast("Bill rejected", "good");
+    }
   }
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="overflow-x-auto rounded-card border border-border bg-surface">
+      <div className="flex flex-col gap-2 md:hidden">
+        {bills.map((bill) => (
+          <div key={bill.id} className="rounded-card border border-border bg-surface p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-2.5">
+                {canManage && (
+                  <input
+                    type="checkbox"
+                    checked={selected.has(bill.id)}
+                    disabled={pending}
+                    onChange={() => toggle(bill.id)}
+                    className="mt-1 h-4 w-4 accent-primary"
+                  />
+                )}
+                <div className="flex flex-col gap-0.5">
+                  <Link href={`/bills/${bill.id}`} className="text-[13px] font-bold text-primary">
+                    {bill.bill_number ?? "View"}
+                  </Link>
+                  {bill.vendors?.name ? (
+                    <Link href={`/vendors/${bill.vendor_id}`} className="text-[12.5px] font-bold text-ink">
+                      {bill.vendors.name}
+                    </Link>
+                  ) : (
+                    <span className="text-[12.5px] font-bold text-ink">—</span>
+                  )}
+                </div>
+              </div>
+              <span className="text-[12.5px] font-bold text-ink">{formatKobo(BigInt(bill.amount_kobo))}</span>
+            </div>
+            <p className="mt-2 text-[12.5px] text-ink-soft">{bill.description}</p>
+            <div className="mt-1 flex items-center justify-between text-[11px] text-ink-soft">
+              <span>{bill.bill_date}</span>
+              <span>Net {formatKobo(BigInt(bill.net_payable_kobo))}</span>
+            </div>
+            {canManage && (
+              <div className="mt-3 flex justify-end gap-3 border-t border-border pt-3">
+                <ConfirmActionButton
+                  action={() => approveOne(bill)}
+                  label="Approve"
+                  tone="primary"
+                  className="text-[12px] font-bold text-good disabled:opacity-50"
+                  confirmTitle="Approve this bill?"
+                  confirmMessage={`"${bill.description}" from ${bill.vendors?.name ?? "this vendor"} (${formatKobo(BigInt(bill.amount_kobo))}) will be approved. If this org has a multi-step chain configured for bills, this may only advance it to the next step rather than fully approving it.`}
+                  confirmLabel="Approve"
+                />
+                <ConfirmActionButton
+                  action={() => rejectOne(bill)}
+                  label="Reject"
+                  confirmTitle="Reject this bill?"
+                  confirmMessage={`"${bill.description}" from ${bill.vendors?.name ?? "this vendor"} will be rejected.`}
+                  confirmLabel="Reject"
+                />
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-card border border-border bg-surface md:block">
         <table className="w-full min-w-[760px] border-collapse">
           <thead>
             <tr className="border-b border-border">
@@ -107,16 +196,16 @@ export function PendingBillsTable({ bills, canManage }: { bills: PendingBill[]; 
                   <td className={`${tdClass} text-right`}>
                     <div className="flex justify-end gap-2">
                       <ConfirmActionButton
-                        action={approveVendorBill.bind(null, bill.id)}
+                        action={() => approveOne(bill)}
                         label="Approve"
                         tone="primary"
                         className="text-[12px] font-bold text-good disabled:opacity-50"
                         confirmTitle="Approve this bill?"
-                        confirmMessage={`"${bill.description}" from ${bill.vendors?.name ?? "this vendor"} (${formatKobo(BigInt(bill.amount_kobo))}) will be approved, debiting an expense account and crediting Accounts Payable immediately.`}
+                        confirmMessage={`"${bill.description}" from ${bill.vendors?.name ?? "this vendor"} (${formatKobo(BigInt(bill.amount_kobo))}) will be approved. If this org has a multi-step chain configured for bills, this may only advance it to the next step rather than fully approving it.`}
                         confirmLabel="Approve"
                       />
                       <ConfirmActionButton
-                        action={rejectVendorBill.bind(null, bill.id)}
+                        action={() => rejectOne(bill)}
                         label="Reject"
                         confirmTitle="Reject this bill?"
                         confirmMessage={`"${bill.description}" from ${bill.vendors?.name ?? "this vendor"} will be rejected.`}
@@ -160,7 +249,7 @@ export function PendingBillsTable({ bills, canManage }: { bills: PendingBill[]; 
       {confirming === "approve" && (
         <ConfirmDialog
           title="Approve the selected bills?"
-          message={`${selected.size} bill${selected.size === 1 ? "" : "s"} totalling ${formatKobo(totalKobo)} will each be approved individually, debiting an expense account and crediting Accounts Payable for its own amount.`}
+          message={`${selected.size} bill${selected.size === 1 ? "" : "s"} totalling ${formatKobo(totalKobo)} will each be approved individually. A bill on a multi-step chain may only advance rather than fully approve.`}
           confirmLabel="Approve bills"
           tone="primary"
           onConfirm={() => runBatch("approve")}

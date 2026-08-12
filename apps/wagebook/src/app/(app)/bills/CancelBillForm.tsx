@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useState, useTransition } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { useToast } from "@/components/Toast";
 import { cancelVendorBill } from "./actions";
 
 // Cancelling reverses a posted journal entry if one exists (see
@@ -10,9 +11,24 @@ import { cancelVendorBill } from "./actions";
 // reversal's ReversalForm, not the lighter reveal-inline pattern
 // ScheduleBillPaymentForm uses for a non-destructive action.
 export function CancelBillForm({ billId, billDescription }: { billId: string; billDescription: string }) {
-  const [state, formAction, isPending] = useActionState(cancelVendorBill.bind(null, billId), null);
   const [open, setOpen] = useState(false);
+  const [error, setError] = useState<string | undefined>();
   const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const { showToast } = useToast();
+
+  function submit(formData: FormData) {
+    startTransition(async () => {
+      const result = await cancelVendorBill(billId, null, formData);
+      if (result?.error) {
+        setError(result.error);
+        return;
+      }
+      setError(undefined);
+      showToast("Bill cancelled", "good");
+      setOpen(false);
+    });
+  }
 
   if (!open) {
     return (
@@ -31,7 +47,7 @@ export function CancelBillForm({ billId, billDescription }: { billId: string; bi
         }}
         className="flex flex-col items-end gap-1"
       >
-        {state?.error && <span className="text-[11px] text-bad">{state.error}</span>}
+        {error && <span className="text-[11px] text-bad">{error}</span>}
         <div className="flex items-center gap-1.5">
           <input
             type="text"
@@ -57,7 +73,7 @@ export function CancelBillForm({ billId, billDescription }: { billId: string; bi
           onConfirm={() => {
             const formData = pendingFormData;
             setPendingFormData(null);
-            formAction(formData);
+            submit(formData);
           }}
           onCancel={() => setPendingFormData(null)}
         />

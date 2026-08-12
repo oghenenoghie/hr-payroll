@@ -177,7 +177,70 @@ export default async function PayrollRegisterPage({
         </Link>
       </header>
 
-      <div className="overflow-x-auto rounded-card border border-border bg-surface">
+      <div className="flex flex-col gap-2 md:hidden">
+        {payRuns && payRuns.length > 0 ? (
+          payRuns.map((run) => {
+            const liability = liabilityByRun.get(run.id) ?? { payeKobo: 0n, pensionKobo: 0n, nhfKobo: 0n };
+            const balanced = isBalanced(run.id);
+            return (
+              <div key={run.id} className="rounded-card border border-border bg-surface p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <Link href={`/payroll/${run.id}`} className="text-[13px] font-bold text-primary">
+                    {run.period_start} – {run.period_end}
+                  </Link>
+                  <Badge tone={run.status === "reversed" ? "bad" : run.status === "draft" ? "warn" : "good"}>
+                    {run.status === "reversed" ? "Reversed" : run.status === "draft" ? "Draft" : "Posted"}
+                  </Badge>
+                </div>
+                <div className="mt-1 flex items-center justify-between text-[11px] text-ink-soft capitalize">
+                  <span>{FREQUENCY_LABEL[run.frequency] ?? run.frequency}</span>
+                  <span>{run.employee_count} employees</span>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2 text-[12.5px]">
+                  <div className="flex flex-col">
+                    <span className="text-[10.5px] font-bold uppercase tracking-[0.03em] text-ink-soft">Gross</span>
+                    <span className="font-bold text-ink">{formatKobo(BigInt(run.gross_kobo))}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10.5px] font-bold uppercase tracking-[0.03em] text-ink-soft">Net</span>
+                    <span className="font-bold text-ink">{formatKobo(BigInt(run.net_kobo))}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10.5px] font-bold uppercase tracking-[0.03em] text-ink-soft">PAYE</span>
+                    <span className="text-ink-soft">{formatKobo(liability.payeKobo)}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10.5px] font-bold uppercase tracking-[0.03em] text-ink-soft">Pension</span>
+                    <span className="text-ink-soft">{formatKobo(liability.pensionKobo)}</span>
+                  </div>
+                </div>
+                <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
+                  <span className="text-[10.5px] font-bold uppercase tracking-[0.03em] text-ink-soft">NHF {formatKobo(liability.nhfKobo)}</span>
+                  <Badge tone={balanced ? "good" : "bad"}>{balanced ? "Balanced" : "Out of balance"}</Badge>
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div className="rounded-card border border-border bg-surface px-3 py-10 text-center text-[13px] text-ink-soft">
+            No payroll runs yet.
+          </div>
+        )}
+        {totalRuns > 0 && (
+          <div className="rounded-card border border-border bg-bg p-4 text-[12.5px]">
+            <p className="font-extrabold text-ink">Totals (posted runs only, all history)</p>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <span className="text-ink-soft">Gross <span className="font-bold text-ink">{formatKobo(totals.grossKobo)}</span></span>
+              <span className="text-ink-soft">Net <span className="font-bold text-ink">{formatKobo(totals.netKobo)}</span></span>
+              <span className="text-ink-soft">PAYE <span className="font-bold text-ink">{formatKobo(totals.payeKobo)}</span></span>
+              <span className="text-ink-soft">Pension <span className="font-bold text-ink">{formatKobo(totals.pensionKobo)}</span></span>
+              <span className="text-ink-soft">NHF <span className="font-bold text-ink">{formatKobo(totals.nhfKobo)}</span></span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-card border border-border bg-surface md:block">
         <table className="w-full min-w-[880px] border-collapse">
           <thead>
             <tr className="border-b border-border">

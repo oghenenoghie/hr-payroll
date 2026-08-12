@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { formatKobo } from "@/lib/format";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { VendorBillStatusBadge, OverdueBadge } from "@/components/Badge";
+import { useToast } from "@/components/Toast";
 import { payVendorBillsBatch } from "./actions";
 import { ScheduleBillPaymentForm } from "./ScheduleBillPaymentForm";
 import { CancelBillForm } from "./CancelBillForm";
@@ -43,6 +44,7 @@ export function ApprovedBillsTable({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirming, setConfirming] = useState(false);
   const [pending, startTransition] = useTransition();
+  const { showToast } = useToast();
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -63,15 +65,76 @@ export function ApprovedBillsTable({
 
   function runBatchPay() {
     setConfirming(false);
+    const count = selected.size;
     startTransition(async () => {
-      await payVendorBillsBatch(Array.from(selected));
+      const result = await payVendorBillsBatch(Array.from(selected));
       setSelected(new Set());
+      if (result?.error) {
+        showToast(result.error, "bad");
+      } else {
+        showToast(`${count} bill${count === 1 ? "" : "s"} paid`, "good");
+      }
     });
   }
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="overflow-x-auto rounded-card border border-border bg-surface">
+      <div className="flex flex-col gap-2 md:hidden">
+        {bills.map((bill) => {
+          const overdue = Boolean(bill.due_date && bill.due_date < today);
+          return (
+            <div key={bill.id} className="rounded-card border border-border bg-surface p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-2.5">
+                  {canManage && (
+                    <input
+                      type="checkbox"
+                      checked={selected.has(bill.id)}
+                      disabled={pending}
+                      onChange={() => toggle(bill.id)}
+                      className="mt-1 h-4 w-4 accent-primary"
+                    />
+                  )}
+                  <div className="flex flex-col gap-0.5">
+                    <Link href={`/bills/${bill.id}`} className="text-[13px] font-bold text-primary">
+                      {bill.bill_number ?? "View"}
+                    </Link>
+                    {bill.vendors?.name ? (
+                      <Link href={`/vendors/${bill.vendor_id}`} className="text-[12.5px] font-bold text-ink">
+                        {bill.vendors.name}
+                      </Link>
+                    ) : (
+                      <span className="text-[12.5px] font-bold text-ink">—</span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <VendorBillStatusBadge status={bill.status} />
+                  {bill.scheduled_payment_date && (
+                    <span className="text-[10.5px] text-ink-soft">for {bill.scheduled_payment_date}</span>
+                  )}
+                </div>
+              </div>
+              <p className="mt-2 text-[12.5px] text-ink-soft">{bill.description}</p>
+              <div className="mt-1 flex items-center justify-between text-[11px] text-ink-soft">
+                <span className="flex items-center gap-1.5">
+                  Due {bill.due_date ?? "—"}
+                  {overdue && <OverdueBadge />}
+                </span>
+                <span>{formatKobo(BigInt(bill.amount_kobo))}</span>
+              </div>
+              {canManage && (
+                <div className="mt-3 flex items-center justify-end gap-3 border-t border-border pt-3">
+                  {bill.status === "approved" && <ScheduleBillPaymentForm billId={bill.id} />}
+                  <CancelBillForm billId={bill.id} billDescription={bill.description} />
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-card border border-border bg-surface md:block">
         <table className="w-full min-w-[820px] border-collapse">
           <thead>
             <tr className="border-b border-border">

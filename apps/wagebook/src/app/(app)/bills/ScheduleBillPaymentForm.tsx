@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useState, useTransition } from "react";
+import { useToast } from "@/components/Toast";
 import { scheduleVendorBillPayment } from "./actions";
 
 // An optional waypoint, not a required gate — "Pay now" (via
@@ -11,8 +12,10 @@ import { scheduleVendorBillPayment } from "./actions";
 // is (typing a date and clicking Schedule is already the deliberate
 // step; a confirm dialog on top would be pure friction).
 export function ScheduleBillPaymentForm({ billId }: { billId: string }) {
-  const [state, formAction, isPending] = useActionState(scheduleVendorBillPayment.bind(null, billId), null);
   const [open, setOpen] = useState(false);
+  const [error, setError] = useState<string | undefined>();
+  const [isPending, startTransition] = useTransition();
+  const { showToast } = useToast();
 
   if (!open) {
     return (
@@ -23,7 +26,23 @@ export function ScheduleBillPaymentForm({ billId }: { billId: string }) {
   }
 
   return (
-    <form action={formAction} className="flex flex-col items-end gap-1">
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        const formData = new FormData(event.currentTarget);
+        startTransition(async () => {
+          const result = await scheduleVendorBillPayment(billId, null, formData);
+          if (result?.error) {
+            setError(result.error);
+            return;
+          }
+          setError(undefined);
+          showToast("Payment scheduled", "good");
+          setOpen(false);
+        });
+      }}
+      className="flex flex-col items-end gap-1"
+    >
       <div className="flex items-center gap-1.5">
         <input
           type="date"
@@ -39,7 +58,7 @@ export function ScheduleBillPaymentForm({ billId }: { billId: string }) {
           ×
         </button>
       </div>
-      {state?.error && <span className="text-[11px] text-bad">{state.error}</span>}
+      {error && <span className="text-[11px] text-bad">{error}</span>}
     </form>
   );
 }
