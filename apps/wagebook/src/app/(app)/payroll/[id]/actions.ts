@@ -9,7 +9,7 @@ export type ApprovePayRunState = { error?: string } | null;
 export async function approvePayRun(
   payRunId: string,
   _prevState: ApprovePayRunState,
-  _formData: FormData,
+  formData: FormData,
 ): Promise<ApprovePayRunState> {
   const supabase = await createClient();
   const {
@@ -20,7 +20,12 @@ export async function approvePayRun(
     redirect("/login");
   }
 
-  const { error } = await supabase.rpc("approve_pay_run", { p_pay_run_id: payRunId });
+  const acknowledgeVariance = formData.get("acknowledge_variance") === "true";
+
+  const { error } = await supabase.rpc("approve_pay_run", {
+    p_pay_run_id: payRunId,
+    p_acknowledge_variance: acknowledgeVariance,
+  });
 
   if (error) {
     return { error: error.message };

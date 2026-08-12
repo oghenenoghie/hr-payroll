@@ -140,6 +140,18 @@ const AUDIT_LOG_NAV_ITEM: NavItem = { href: "/security/audit-log", label: "Audit
 const PERFORMANCE_NAV_ITEM: NavItem = { href: "/performance", label: "Performance", icon: TargetIcon };
 const EMPLOYEE_RELATIONS_NAV_ITEM: NavItem = { href: "/employee-relations", label: "Employee Relations", icon: ShieldIcon };
 const LEARNING_NAV_ITEM: NavItem = { href: "/learning", label: "Learning", icon: CapIcon };
+const BILLING_NAV_ITEM: NavItem = { href: "/billing", label: "Billing & Subscription", icon: BanknoteIcon };
+const WORKFLOWS_NAV_ITEM: NavItem = { href: "/workflows", label: "Approval Workflows", icon: SlidersIcon };
+
+// Department Manager has no "workforce" section (dept-scoped, not free
+// rein over Branches/Job Grades/Recruitment) but RLS still scopes them
+// to their own department's employees and org-chart entry via
+// core.is_department_manager_of() — give them narrow direct links
+// instead of the full Workforce section.
+const DEPARTMENT_MANAGER_WORKFORCE_ITEMS: NavItem[] = [
+  { href: "/employees", label: "Employees", icon: PeopleIcon },
+  { href: "/org-chart", label: "Org Chart", icon: HierarchyIcon },
+];
 
 // Pure — no hooks, no pathname dependency — so it can be called both from
 // this component's render and from AppShell (to derive the current page's
@@ -173,10 +185,18 @@ export function buildNavGroups(role: string | undefined, sections: SectionKey[],
   // a manager, matching the pre-reorg behavior of showing it either inside
   // Workforce or, for a manager without the workforce section (e.g. a
   // department manager), as its own fallback below.
-  const hasHr = has("workforce") || has("requests");
+  const hasHr = has("workforce") || has("requests") || role === "department_manager";
   if (hasHr) {
     const hrItems: NavItem[] = [];
-    if (has("workforce")) hrItems.push(...WORKFORCE_ITEMS);
+    if (has("workforce")) {
+      hrItems.push(...WORKFORCE_ITEMS);
+    } else if (role === "department_manager") {
+      // No "workforce" section by default (scoped to their own
+      // department, not free rein over Branches/Job Grades/
+      // Recruitment/other departments) — narrow direct links instead,
+      // RLS-scoped by core.is_department_manager_of().
+      hrItems.push(...DEPARTMENT_MANAGER_WORKFORCE_ITEMS);
+    }
     if (has("requests")) hrItems.push(...REQUESTS_ITEMS);
     hrItems.push(LEARNING_NAV_ITEM);
     if (isManager) hrItems.push(MANAGER_NAV_ITEM);
@@ -209,7 +229,14 @@ export function buildNavGroups(role: string | undefined, sections: SectionKey[],
     // page it normally lives under.
     let companyItems = COMPANY_ITEMS;
     if (role === "admin") {
-      companyItems = [...COMPANY_ITEMS, INTEGRATIONS_NAV_ITEM, SECURITY_NAV_ITEM, AUDIT_LOG_NAV_ITEM];
+      companyItems = [
+        ...COMPANY_ITEMS,
+        INTEGRATIONS_NAV_ITEM,
+        BILLING_NAV_ITEM,
+        WORKFLOWS_NAV_ITEM,
+        SECURITY_NAV_ITEM,
+        AUDIT_LOG_NAV_ITEM,
+      ];
     } else if (role === "auditor" || role === "finance_manager" || role === "legal_compliance") {
       companyItems = [...COMPANY_ITEMS, AUDIT_LOG_NAV_ITEM];
     }

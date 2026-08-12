@@ -105,4 +105,10 @@ export const DASHBOARD_WIDGETS: DashboardWidget[] = [
     description: "Department roster size and pending leave for a department manager's own department.",
     defaultRoles: ["department_manager"],
   },
+  {
+    key: "compliance_deadlines",
+    label: "Upcoming filings",
+    description: "Next PAYE, NSITF, WHT/VAT and ITF filing deadlines, plus active employees missing a TIN.",
+    defaultRoles: ["admin", "payroll_manager", "accountant", "finance_manager"],
+  },
 ];

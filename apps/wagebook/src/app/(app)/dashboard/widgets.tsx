@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@plutus/core";
+import { NG_2026_1 } from "@plutus/compliance";
 import { formatKobo } from "@/lib/format";
 import { AnimatedCount } from "@/components/AnimatedCount";
 import { PayrollTrendChart } from "./PayrollTrendChart";
@@ -17,6 +18,7 @@ import {
   TargetIcon,
   CapIcon,
   CalculatorIcon,
+  CalendarIcon,
 } from "@/components/icons";
 
 type WidgetProps = { supabase: SupabaseClient<Database>; orgId: string };
@@ -526,6 +528,83 @@ export async function MyTeamSnapshotWidget({ supabase, orgId, userId }: WidgetPr
             <span>Pending leave requests</span>
             <span className="font-bold text-ink">{pendingLeave ?? 0}</span>
           </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+const DEADLINE_MONTH_LABEL = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** Next calendar occurrence of a fixed day-of-month from `today` —
+ * payment-relative schemes (pension, NHF) have no fixed calendar day and
+ * are deliberately left out of this list rather than guessed. */
+function nextMonthlyDeadline(dayOfMonth: number, today: Date): Date {
+  const candidate = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), dayOfMonth));
+  if (candidate < today) {
+    candidate.setUTCMonth(candidate.getUTCMonth() + 1);
+  }
+  return candidate;
+}
+
+function nextAnnualDeadline(monthDay: string, today: Date): Date {
+  const [month, day] = monthDay.split("-").map(Number);
+  const candidate = new Date(Date.UTC(today.getUTCFullYear(), (month ?? 1) - 1, day ?? 1));
+  if (candidate < today) {
+    candidate.setUTCFullYear(candidate.getUTCFullYear() + 1);
+  }
+  return candidate;
+}
+
+function formatDeadlineDate(date: Date): string {
+  return `${date.getUTCDate()} ${DEADLINE_MONTH_LABEL[date.getUTCMonth()]}`;
+}
+
+// Upcoming statutory filing deadlines plus a TIN-missing gap count — the
+// two "am I about to miss something" signals from the compliance/ page
+// worth surfacing on the dashboard itself rather than requiring a click
+// through. TIN-missing is shown here rather than in WorkforceSnapshotWidget
+// since it's a compliance risk (TIN gating, per the statutory reference),
+// not a headcount/lifecycle fact.
+export async function ComplianceDeadlinesWidget({ supabase, orgId }: WidgetProps) {
+  const { count: tinMissingCount } = await supabase
+    .from("employees")
+    .select("id", { count: "exact", head: true })
+    .eq("org_id", orgId)
+    .eq("status", "active")
+    .is("tin", null);
+
+  const rv = NG_2026_1;
+  const today = new Date();
+  const deadlines = [
+    { date: nextMonthlyDeadline(rv.paye.remittance.dueDayOfFollowingMonth, today), title: "PAYE remittance", authority: "State IRS" },
+    { date: nextMonthlyDeadline(rv.nsitf.remittance.dueDayOfFollowingMonth, today), title: "NSITF remittance", authority: "NSITF" },
+    { date: nextMonthlyDeadline(rv.wht.remittance.dueDayOfFollowingMonth, today), title: "WHT & VAT remittance", authority: "NRS / FIRS" },
+    { date: nextAnnualDeadline(rv.itf.remittance.dueAnnuallyOn, today), title: "ITF annual filing", authority: "ITF" },
+  ].sort((a, b) => a.date.getTime() - b.date.getTime());
+
+  return (
+    <Link href="/compliance" className="block transition-opacity hover:opacity-80">
+      <div className={cardClass}>
+        <WidgetHeader icon={CalendarIcon} label="Upcoming filings" />
+        {(tinMissingCount ?? 0) > 0 && (
+          <div className={`${rowClass} mt-1`}>
+            <span>Active employees missing a TIN</span>
+            <span className="font-bold text-bad">{tinMissingCount}</span>
+          </div>
+        )}
+        <div className="mt-3 flex flex-col gap-2 text-[13px] text-ink-soft">
+          {deadlines.map((deadline) => (
+            <div key={deadline.title} className="flex items-start gap-3 rounded-panel border border-border bg-bg px-3 py-2.5">
+              <div className="flex w-11 shrink-0 flex-col items-center rounded-control border border-border bg-surface py-1.5">
+                <span className="text-[13px] font-extrabold text-ink">{formatDeadlineDate(deadline.date)}</span>
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[12.5px] font-bold text-ink">{deadline.title}</span>
+                <span className="text-[11px] text-ink-soft">{deadline.authority}</span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </Link>

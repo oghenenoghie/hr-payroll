@@ -222,6 +222,20 @@ export function VendorBillStatusBadge({ status }: { status: string }) {
   return <Badge tone={tone}>{VENDOR_BILL_STATUS_LABEL[status] ?? status}</Badge>;
 }
 
+// Subscription/billing invoices (billing/page.tsx) — distinct from
+// vendor bills above and customer invoices below, a simpler tone map
+// since billing invoices have no "void" state.
+const INVOICE_STATUS_TONE = {
+  issued: "warn",
+  paid: "good",
+  void: "neutral",
+} as const;
+
+export function InvoiceStatusBadge({ status }: { status: string }) {
+  const tone = INVOICE_STATUS_TONE[status as keyof typeof INVOICE_STATUS_TONE] ?? "neutral";
+  return <Badge tone={tone}>{status}</Badge>;
+}
+
 const CUSTOMER_INVOICE_STATUS_TONE = {
   draft: "neutral",
   issued: "warn",

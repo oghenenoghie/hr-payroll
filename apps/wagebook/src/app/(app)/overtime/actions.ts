@@ -38,17 +38,17 @@ export async function approveOvertime(overtimeRequestId: string, rateMultiplierB
     redirect("/login");
   }
 
-  await supabase
-    .from("overtime_requests")
-    .update({
-      status: "approved",
-      rate_multiplier_bps: rateMultiplierBps,
-      approved_by: user.id,
-      approved_at: new Date().toISOString(),
-    })
-    .eq("id", overtimeRequestId);
+  // review_overtime_request() only finalizes (and only then applies the
+  // rate) on the last approval step — see its own comment.
+  const { data: request } = await supabase.rpc("review_overtime_request", {
+    p_overtime_request_id: overtimeRequestId,
+    p_approve: true,
+    p_rate_multiplier_bps: rateMultiplierBps,
+  });
 
-  await notifyOvertimeDecision(supabase, overtimeRequestId, "approved");
+  if (request?.status === "approved") {
+    await notifyOvertimeDecision(supabase, overtimeRequestId, "approved");
+  }
 
   revalidatePath("/overtime");
 }
@@ -63,10 +63,7 @@ export async function rejectOvertime(overtimeRequestId: string) {
     redirect("/login");
   }
 
-  await supabase
-    .from("overtime_requests")
-    .update({ status: "rejected", approved_by: user.id, approved_at: new Date().toISOString() })
-    .eq("id", overtimeRequestId);
+  await supabase.rpc("review_overtime_request", { p_overtime_request_id: overtimeRequestId, p_approve: false });
 
   await notifyOvertimeDecision(supabase, overtimeRequestId, "rejected");
 

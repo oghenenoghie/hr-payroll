@@ -38,12 +38,17 @@ export async function approveExpense(expenseId: string, taxable: boolean) {
     redirect("/login");
   }
 
-  await supabase
-    .from("expenses")
-    .update({ status: "approved", taxable, approved_by: user.id, approved_at: new Date().toISOString() })
-    .eq("id", expenseId);
+  // review_expense() only finalizes (and only then requires/stores
+  // taxable) on the last approval step — see its own comment.
+  const { data: expense } = await supabase.rpc("review_expense", {
+    p_expense_id: expenseId,
+    p_approve: true,
+    p_taxable: taxable,
+  });
 
-  await notifyExpenseDecision(supabase, expenseId, "approved");
+  if (expense?.status === "approved") {
+    await notifyExpenseDecision(supabase, expenseId, "approved");
+  }
 
   revalidatePath("/expenses");
 }
@@ -58,10 +63,7 @@ export async function rejectExpense(expenseId: string) {
     redirect("/login");
   }
 
-  await supabase
-    .from("expenses")
-    .update({ status: "rejected", approved_by: user.id, approved_at: new Date().toISOString() })
-    .eq("id", expenseId);
+  await supabase.rpc("review_expense", { p_expense_id: expenseId, p_approve: false });
 
   await notifyExpenseDecision(supabase, expenseId, "rejected");
 

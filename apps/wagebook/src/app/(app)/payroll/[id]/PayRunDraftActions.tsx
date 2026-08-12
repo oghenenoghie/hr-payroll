@@ -10,6 +10,18 @@ export function PayRunDraftActions({ payRunId }: { payRunId: string }) {
   const [discardState, discardAction, discardPending] = useActionState(discardPayRunDraft.bind(null, payRunId), null);
   const [confirming, setConfirming] = useState<"approve" | "discard" | null>(null);
 
+  // approve_pay_run() raises this exact message when the run has
+  // unreviewed variance flags — seeing it once means the reviewer has
+  // been stopped and shown the flags above; confirming again is treated
+  // as the explicit acknowledgment to proceed anyway.
+  const awaitingVarianceAck = Boolean(approveState?.error?.includes("unreviewed variance flag"));
+
+  function submitApprove() {
+    const formData = new FormData();
+    formData.set("acknowledge_variance", awaitingVarianceAck ? "true" : "false");
+    approveAction(formData);
+  }
+
   return (
     <div className="flex flex-col gap-3">
       <p className="text-[13px] text-ink-soft">
@@ -27,7 +39,11 @@ export function PayRunDraftActions({ payRunId }: { payRunId: string }) {
           disabled={approvePending || discardPending}
           className="w-full rounded-button bg-primary px-[22px] py-[11px] text-[13px] font-extrabold text-white disabled:opacity-50"
         >
-          {approvePending ? "Working…" : "Approve & post"}
+          {approvePending
+            ? "Working…"
+            : awaitingVarianceAck
+              ? "Acknowledge flags & approve anyway"
+              : "Approve & post"}
         </button>
         <button
           type="button"
@@ -47,7 +63,7 @@ export function PayRunDraftActions({ payRunId }: { payRunId: string }) {
           confirmLabel="Approve & post"
           onConfirm={() => {
             setConfirming(null);
-            approveAction(new FormData());
+            submitApprove();
           }}
           onCancel={() => setConfirming(null)}
         />

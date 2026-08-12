@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { FormError, FormField, FormNotice, SubmitButton } from "@/components/AuthCard";
 import { createRecurringBill } from "./actions";
@@ -13,9 +14,9 @@ export function RecurringBillForm({ vendors }: { vendors: Vendor[] }) {
     return (
       <p className="text-[13px] text-ink-soft">
         Add a vendor from{" "}
-        <a href="/vendors" className="font-bold text-primary">
+        <Link href="/vendors" className="font-bold text-primary">
           Vendors
-        </a>{" "}
+        </Link>{" "}
         first, then come back here to set up a recurring bill.
       </p>
     );

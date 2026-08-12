@@ -26,7 +26,7 @@ export async function processFinalSettlement(
     .from("org_memberships")
     .select("org_id")
     .eq("user_id", user.id)
-    .in("role", ["admin", "payroll_manager"]);
+    .in("role", ["admin", "payroll_manager", "accountant"]);
 
   if (!memberships || memberships.length === 0) {
     return { error: "You don't have permission to process a final settlement." };

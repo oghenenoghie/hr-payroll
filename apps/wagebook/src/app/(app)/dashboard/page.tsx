@@ -20,6 +20,7 @@ import {
   PerformanceSnapshotWidget,
   LearningSnapshotWidget,
   MyTeamSnapshotWidget,
+  ComplianceDeadlinesWidget,
 } from "./widgets";
 
 export default async function DashboardPage({
@@ -147,6 +148,8 @@ async function WidgetSwitch({ widgetKey, orgId, userId }: { widgetKey: string; o
       return <LearningSnapshotWidget supabase={supabase} orgId={orgId} />;
     case "my_team_snapshot":
       return <MyTeamSnapshotWidget supabase={supabase} orgId={orgId} userId={userId} />;
+    case "compliance_deadlines":
+      return <ComplianceDeadlinesWidget supabase={supabase} orgId={orgId} />;
     default:
       return null;
   }

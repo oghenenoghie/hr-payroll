@@ -45,8 +45,10 @@
 -- indicates has occurred would be speculative engineering.
 --
 -- Idempotent throughout (IF NOT EXISTS / DROP POLICY IF EXISTS / DROP
--- TRIGGER IF EXISTS / CREATE OR REPLACE / ADD CONSTRAINT IF NOT EXISTS),
--- matching every migration since 20260730010000: this project's operator
+-- TRIGGER IF EXISTS / CREATE OR REPLACE / a pg_constraint existence guard
+-- around the one CHECK constraint, since ADD CONSTRAINT has no IF NOT
+-- EXISTS of its own), matching every migration since 20260730010000:
+-- this project's operator
 -- applies migrations by hand in the SQL Editor.
 
 -- === 1. customer_invoices: VAT breakdown, mirroring vendor_bills ===
@@ -65,9 +67,19 @@ where subtotal_kobo is null;
 alter table public.customer_invoices
   alter column subtotal_kobo set not null;
 
-alter table public.customer_invoices
-  add constraint if not exists customer_invoices_amount_equals_subtotal_plus_vat
-  check (amount_kobo = subtotal_kobo + vat_kobo);
+-- Postgres has no "ADD CONSTRAINT IF NOT EXISTS" for a CHECK constraint
+-- (unlike ADD COLUMN) — guarded manually via pg_constraint instead, same
+-- idempotency goal as everywhere else in this migration.
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'customer_invoices_amount_equals_subtotal_plus_vat'
+  ) then
+    alter table public.customer_invoices
+      add constraint customer_invoices_amount_equals_subtotal_plus_vat
+      check (amount_kobo = subtotal_kobo + vat_kobo);
+  end if;
+end $$;
 
 -- === 2. Line items — dumb storage, no VAT/WHT logic of their own ===
 
