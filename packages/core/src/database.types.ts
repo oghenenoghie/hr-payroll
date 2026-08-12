@@ -2860,6 +2860,66 @@ export type Database = {
           },
         ]
       }
+      itf_assessments: {
+        Row: {
+          annual_payroll_base_kobo: number
+          annual_turnover_kobo: number
+          assessment_year: number
+          created_at: string
+          created_by: string
+          employee_count: number
+          employer_kobo: number
+          id: string
+          journal_entry_id: string | null
+          org_id: string
+          qualifies: boolean
+          rule_version_id: string
+        }
+        Insert: {
+          annual_payroll_base_kobo: number
+          annual_turnover_kobo: number
+          assessment_year: number
+          created_at?: string
+          created_by: string
+          employee_count: number
+          employer_kobo: number
+          id?: string
+          journal_entry_id?: string | null
+          org_id: string
+          qualifies: boolean
+          rule_version_id: string
+        }
+        Update: {
+          annual_payroll_base_kobo?: number
+          annual_turnover_kobo?: number
+          assessment_year?: number
+          created_at?: string
+          created_by?: string
+          employee_count?: number
+          employer_kobo?: number
+          id?: string
+          journal_entry_id?: string | null
+          org_id?: string
+          qualifies?: boolean
+          rule_version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itf_assessments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itf_assessments_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       depreciation_lines: {
         Row: {
           amount_kobo: number
@@ -5335,6 +5395,38 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "depreciation_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      record_itf_assessment: {
+        Args: {
+          p_org_id: string
+          p_assessment_year: number
+          p_annual_payroll_base_kobo: number
+          p_employee_count: number
+          p_annual_turnover_kobo: number
+          p_qualifies: boolean
+          p_employer_kobo: number
+          p_rule_version_id: string
+        }
+        Returns: {
+          annual_payroll_base_kobo: number
+          annual_turnover_kobo: number
+          assessment_year: number
+          created_at: string
+          created_by: string
+          employee_count: number
+          employer_kobo: number
+          id: string
+          journal_entry_id: string | null
+          org_id: string
+          qualifies: boolean
+          rule_version_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "itf_assessments"
           isOneToOne: true
           isSetofReturn: false
         }

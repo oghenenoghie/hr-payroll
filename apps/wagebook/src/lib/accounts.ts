@@ -26,6 +26,8 @@ export const ACCOUNT_LABEL: Record<string, string> = {
   vendor_expense: "Vendor expense",
   accounts_payable: "Accounts payable",
   wht_payable: "WHT payable (due FIRS/State IRS, by the 21st)",
+  itf_expense: "ITF expense",
+  itf_payable: "ITF payable (due ITF, on/before 1 April annually)",
   accounts_receivable: "Accounts receivable",
   sales_revenue: "Sales revenue",
   cash_and_bank: "Cash and bank",
