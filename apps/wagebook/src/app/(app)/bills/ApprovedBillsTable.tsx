@@ -103,7 +103,11 @@ export function ApprovedBillsTable({
                       />
                     </td>
                   )}
-                  <td className={`${tdClass} text-ink-soft`}>{bill.bill_number}</td>
+                  <td className={`${tdClass} text-ink-soft`}>
+                    <Link href={`/bills/${bill.id}`} className="text-primary">
+                      {bill.bill_number ?? "View"}
+                    </Link>
+                  </td>
                   <td className={`${tdClass} font-bold`}>
                     {bill.vendors?.name ? (
                       <Link href={`/vendors/${bill.vendor_id}`} className="text-primary">

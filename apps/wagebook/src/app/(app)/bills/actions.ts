@@ -194,3 +194,25 @@ export async function payVendorBillsBatch(billIds: string[]) {
   await supabase.rpc("pay_vendor_bills_batch", { p_org_id: membership.orgId, p_bill_ids: billIds });
   revalidatePath("/bills");
 }
+
+// Unlike pay_vendor_bills_batch, approving/rejecting has no aggregate-
+// journal-entry benefit to batch for — each bill's approval already posts
+// its own distinct expense/AP entry, and there's nothing analogous to
+// batch's single netted cash credit. So a "batch" here is just calling the
+// existing single-bill RPC per id; each call is still its own atomic,
+// RLS-checked transaction, so one bad row can't roll back the rest.
+export async function approveVendorBillsBatch(billIds: string[]) {
+  const supabase = await requireApprover();
+  for (const billId of billIds) {
+    await supabase.rpc("approve_vendor_bill", { p_bill_id: billId });
+  }
+  revalidatePath("/bills");
+}
+
+export async function rejectVendorBillsBatch(billIds: string[]) {
+  const supabase = await requireApprover();
+  for (const billId of billIds) {
+    await supabase.rpc("reject_vendor_bill", { p_bill_id: billId });
+  }
+  revalidatePath("/bills");
+}
