@@ -337,7 +337,7 @@ export function SidebarNav({
                         <ItemIcon className="relative h-4 w-4 shrink-0" />
                         <span className="relative flex-1">{item.label}</span>
                         {item.href === "/notifications" && unreadNotifications > 0 && (
-                          <span className="relative rounded-badge bg-white px-[7px] py-[1px] text-[11px] font-extrabold text-primary-dark">
+                          <span className="relative rounded-badge bg-primary-tint px-[7px] py-[1px] text-[11px] font-extrabold text-primary-dark">
                             {unreadNotifications}
                           </span>
                         )}

@@ -8,9 +8,19 @@ import { FREQUENCY_LABEL } from "@/lib/accounts";
 import { PayRunStatusBadge } from "@/components/Badge";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { DataTable, type DataTableColumn } from "@/components/DataTable";
 
-const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
-const tdClass = "px-3 py-[10px] text-[13px]";
+type PayRunRow = {
+  id: string;
+  period_start: string;
+  period_end: string;
+  frequency: string;
+  employee_count: number;
+  gross_kobo: number;
+  net_kobo: number;
+  rule_version_id: string;
+  status: string;
+};
 
 export default async function PayrollPage() {
   const supabase = await createClient();
@@ -64,50 +74,73 @@ export default async function PayrollPage() {
         </div>
       </header>
 
-      <div className="overflow-x-auto rounded-card border border-border bg-surface">
-        <table className="w-full min-w-[640px] border-collapse">
-          <thead>
-            <tr className="border-b border-border">
-              <th className={`${thClass} text-left`}>Period</th>
-              <th className={`${thClass} text-left`}>Frequency</th>
-              <th className={`${thClass} text-center`}>Employees</th>
-              <th className={`${thClass} text-right`}>Gross</th>
-              <th className={`${thClass} text-right`}>Net</th>
-              <th className={`${thClass} text-left`}>Rule version</th>
-              <th className={`${thClass} text-center`}>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {payRuns && payRuns.length > 0 ? (
-              payRuns.map((run) => (
-                <tr key={run.id} className="border-b border-border last:border-b-0 hover:bg-bg">
-                  <td className={tdClass}>
-                    <Link href={`/payroll/${run.id}`} className="font-bold text-primary">
-                      {run.period_start} – {run.period_end}
-                    </Link>
-                  </td>
-                  <td className={`${tdClass} text-ink-soft capitalize`}>
-                    {FREQUENCY_LABEL[run.frequency] ?? run.frequency}
-                  </td>
-                  <td className={`${tdClass} text-center text-ink`}>{run.employee_count}</td>
-                  <td className={`${tdClass} text-right font-bold text-ink`}>{formatKobo(BigInt(run.gross_kobo))}</td>
-                  <td className={`${tdClass} text-right font-bold text-ink`}>{formatKobo(BigInt(run.net_kobo))}</td>
-                  <td className={`${tdClass} text-ink-soft`}>{run.rule_version_id}</td>
-                  <td className={`${tdClass} text-center`}>
-                    <PayRunStatusBadge status={run.status} />
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={7} className="px-3 py-10 text-center text-[13px] text-ink-soft">
-                  No payroll runs yet.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <PayRunsTable payRuns={payRuns ?? []} />
     </div>
+  );
+}
+
+function PayRunsTable({ payRuns }: { payRuns: PayRunRow[] }) {
+  const columns: DataTableColumn<PayRunRow>[] = [
+    {
+      key: "period",
+      header: "Period",
+      sortValue: (run) => run.period_start,
+      render: (run) => (
+        <Link href={`/payroll/${run.id}`} className="font-bold text-primary">
+          {run.period_start} – {run.period_end}
+        </Link>
+      ),
+    },
+    {
+      key: "frequency",
+      header: "Frequency",
+      sortValue: (run) => run.frequency,
+      render: (run) => (
+        <span className="text-ink-soft capitalize">{FREQUENCY_LABEL[run.frequency] ?? run.frequency}</span>
+      ),
+    },
+    {
+      key: "employee_count",
+      header: "Employees",
+      align: "center",
+      sortValue: (run) => run.employee_count,
+      render: (run) => <span className="text-ink">{run.employee_count}</span>,
+    },
+    {
+      key: "gross",
+      header: "Gross",
+      align: "right",
+      sortValue: (run) => run.gross_kobo,
+      render: (run) => <span className="font-bold text-ink">{formatKobo(BigInt(run.gross_kobo))}</span>,
+    },
+    {
+      key: "net",
+      header: "Net",
+      align: "right",
+      sortValue: (run) => run.net_kobo,
+      render: (run) => <span className="font-bold text-ink">{formatKobo(BigInt(run.net_kobo))}</span>,
+    },
+    {
+      key: "rule_version",
+      header: "Rule version",
+      sortValue: (run) => run.rule_version_id,
+      render: (run) => <span className="text-ink-soft">{run.rule_version_id}</span>,
+    },
+    {
+      key: "status",
+      header: "Status",
+      align: "center",
+      render: (run) => <PayRunStatusBadge status={run.status} />,
+    },
+  ];
+
+  return (
+    <DataTable
+      columns={columns}
+      rows={payRuns}
+      rowKey={(run) => run.id}
+      emptyMessage="No payroll runs yet."
+      rowClassName={() => "hover:bg-bg"}
+    />
   );
 }

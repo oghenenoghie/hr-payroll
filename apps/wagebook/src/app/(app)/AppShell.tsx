@@ -124,7 +124,7 @@ export function AppShell({
       </aside>
 
       <main className="flex-1 overflow-y-auto bg-bg p-0 md:p-4 print:h-auto print:overflow-visible print:bg-transparent print:p-0">
-        <div className="flex min-h-full flex-col rounded-none border-0 bg-bg shadow-none md:rounded-container md:border md:border-border md:bg-surface md:shadow-sm print:rounded-none print:border-0 print:bg-transparent print:shadow-none">
+        <div className="flex min-h-full flex-col rounded-none border-0 bg-bg md:rounded-container md:border md:border-border md:bg-surface print:rounded-none print:border-0 print:bg-transparent">
           <TopBar title={pageTitle} orgName={orgName} role={role} unreadNotifications={unreadNotifications} />
           <div className="flex-1">{children}</div>
         </div>

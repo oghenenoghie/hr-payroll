@@ -46,3 +46,15 @@ export function getContractStatus(employmentType: string, contractEndDate: strin
   if (daysUntilEnd <= 14) return "ends_soon";
   return "active";
 }
+
+const PENDING_AGE_WARN_DAYS = 7;
+
+/** Same plain-data-function reasoning as getProbationStatus/getContractStatus.
+ * A row-level "this has been waiting a while" signal for approval queues
+ * (loans, expenses, bills) that have no due-date concept of their own —
+ * computed from created_at, never a stored column, so it can't drift from
+ * reality. */
+export function getPendingAgeTone(createdAt: string): "neutral" | "warn" {
+  const daysPending = Math.round((Date.now() - Date.parse(createdAt)) / 86_400_000);
+  return daysPending > PENDING_AGE_WARN_DAYS ? "warn" : "neutral";
+}

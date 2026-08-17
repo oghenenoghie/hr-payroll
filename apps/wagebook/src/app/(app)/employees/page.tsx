@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { toNaira } from "@plutus/compliance";
+import type { Tables } from "@plutus/core";
 import { createClient } from "@/lib/supabase/server";
 import { formatKobo, getProbationStatus, getContractStatus } from "@/lib/format";
 import { TinBadge, EmployeeStatusBadge, BankDetailsBadge, ProbationBadge, ContractStatusBadge } from "@/components/Badge";
@@ -9,9 +10,8 @@ import { notifyLifecycleDeadlines } from "@/lib/lifecycle-alerts";
 import { getCachedDepartments, getCachedBranches } from "@/lib/reference-data";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { DataTable, type DataTableColumn } from "@/components/DataTable";
 
-const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
-const tdClass = "px-3 py-[10px] text-[13px]";
 const PAGE_SIZE = 50;
 
 export default async function EmployeesPage({
@@ -212,83 +212,10 @@ export default async function EmployeesPage({
         )}
       </form>
 
-      <div className="overflow-x-auto rounded-card border border-border bg-surface">
-        <table className="w-full min-w-[640px] border-collapse">
-          <thead>
-            <tr className="border-b border-border">
-              <th className={`${thClass} text-left`}>Name</th>
-              <th className={`${thClass} text-left`}>Department</th>
-              <th className={`${thClass} text-left`}>Branch</th>
-              <th className={`${thClass} text-left`}>State</th>
-              <th className={`${thClass} text-right`}>Basic</th>
-              <th className={`${thClass} text-center`}>TIN</th>
-              <th className={`${thClass} text-center`}>Bank details</th>
-              <th className={`${thClass} text-center`}>Status</th>
-              <th className={`${thClass} text-center`}>Probation</th>
-              <th className={`${thClass} text-center`}>Contract</th>
-              <th className={thClass}></th>
-            </tr>
-          </thead>
-          <tbody>
-            {employees && employees.length > 0 ? (
-              employees.map((employee) => (
-                <tr key={employee.id} className="border-b border-border last:border-b-0">
-                  <td className={`${tdClass} font-bold text-ink`}>{employee.full_name}</td>
-                  <td className={`${tdClass} text-ink-soft`}>{employee.department_name ?? "—"}</td>
-                  <td className={`${tdClass} text-ink-soft`}>{employee.branch_name ?? "—"}</td>
-                  <td className={`${tdClass} text-ink-soft`}>{employee.state_of_residence ?? "—"}</td>
-                  <td className={`${tdClass} text-right font-bold text-ink`}>
-                    {employee.basic_kobo !== null ? (
-                      formatKobo(BigInt(employee.basic_kobo))
-                    ) : (
-                      <span className="font-normal text-ink-soft">Restricted</span>
-                    )}
-                  </td>
-                  <td className={`${tdClass} text-center`}>
-                    <TinBadge tin={employee.tin} />
-                  </td>
-                  <td className={`${tdClass} text-center`}>
-                    {employee.salary_masked && employee.bank_account_number === null ? (
-                      <span className="text-ink-soft">Restricted</span>
-                    ) : (
-                      <BankDetailsBadge bankAccountNumber={employee.bank_account_number} />
-                    )}
-                  </td>
-                  <td className={`${tdClass} text-center`}>
-                    <EmployeeStatusBadge status={employee.status ?? "active"} />
-                  </td>
-                  <td className={`${tdClass} text-center`}>
-                    <ProbationBadge
-                      status={getProbationStatus(employee.probation_end_date, employee.confirmed ?? false)}
-                    />
-                  </td>
-                  <td className={`${tdClass} text-center`}>
-                    <ContractStatusBadge
-                      status={getContractStatus(employee.employment_type ?? "permanent", employee.contract_end_date)}
-                    />
-                  </td>
-                  <td className={`${tdClass} text-right`}>
-                    <div className="flex justify-end gap-3">
-                      <Link href={`/employees/${employee.id}`} className="font-bold text-primary">
-                        View
-                      </Link>
-                      <Link href={`/employees/${employee.id}/edit`} className="font-bold text-primary">
-                        Edit
-                      </Link>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={11} className="px-3 py-10 text-center text-[13px] text-ink-soft">
-                  {hasActiveFilters ? "No employees match these filters." : "No employees yet."}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <EmployeesTable
+        employees={employees ?? []}
+        emptyMessage={hasActiveFilters ? "No employees match these filters." : "No employees yet."}
+      />
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
@@ -315,5 +242,116 @@ export default async function EmployeesPage({
         </div>
       )}
     </div>
+  );
+}
+
+function EmployeesTable({
+  employees,
+  emptyMessage,
+}: {
+  employees: Tables<"employees_masked">[];
+  emptyMessage: string;
+}) {
+  const columns: DataTableColumn<Tables<"employees_masked">>[] = [
+    {
+      key: "name",
+      header: "Name",
+      sortValue: (employee) => employee.full_name ?? "",
+      render: (employee) => <span className="font-bold text-ink">{employee.full_name}</span>,
+    },
+    {
+      key: "department",
+      header: "Department",
+      sortValue: (employee) => employee.department_name ?? "",
+      render: (employee) => <span className="text-ink-soft">{employee.department_name ?? "—"}</span>,
+    },
+    {
+      key: "branch",
+      header: "Branch",
+      sortValue: (employee) => employee.branch_name ?? "",
+      render: (employee) => <span className="text-ink-soft">{employee.branch_name ?? "—"}</span>,
+    },
+    {
+      key: "state",
+      header: "State",
+      sortValue: (employee) => employee.state_of_residence ?? "",
+      render: (employee) => <span className="text-ink-soft">{employee.state_of_residence ?? "—"}</span>,
+    },
+    {
+      key: "basic",
+      header: "Basic",
+      align: "right",
+      render: (employee) =>
+        employee.basic_kobo !== null ? (
+          <span className="font-bold text-ink">{formatKobo(BigInt(employee.basic_kobo))}</span>
+        ) : (
+          <span className="text-ink-soft">Restricted</span>
+        ),
+    },
+    {
+      key: "tin",
+      header: "TIN",
+      align: "center",
+      render: (employee) => <TinBadge tin={employee.tin} />,
+    },
+    {
+      key: "bank",
+      header: "Bank details",
+      align: "center",
+      render: (employee) =>
+        employee.salary_masked && employee.bank_account_number === null ? (
+          <span className="text-ink-soft">Restricted</span>
+        ) : (
+          <BankDetailsBadge bankAccountNumber={employee.bank_account_number} />
+        ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      align: "center",
+      render: (employee) => <EmployeeStatusBadge status={employee.status ?? "active"} />,
+    },
+    {
+      key: "probation",
+      header: "Probation",
+      align: "center",
+      render: (employee) => (
+        <ProbationBadge status={getProbationStatus(employee.probation_end_date, employee.confirmed ?? false)} />
+      ),
+    },
+    {
+      key: "contract",
+      header: "Contract",
+      align: "center",
+      render: (employee) => (
+        <ContractStatusBadge
+          status={getContractStatus(employee.employment_type ?? "permanent", employee.contract_end_date)}
+        />
+      ),
+    },
+    {
+      key: "actions",
+      header: "",
+      align: "right",
+      render: (employee) => (
+        <div className="flex justify-end gap-3">
+          <Link href={`/employees/${employee.id}`} className="font-bold text-primary">
+            View
+          </Link>
+          <Link href={`/employees/${employee.id}/edit`} className="font-bold text-primary">
+            Edit
+          </Link>
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <DataTable
+      columns={columns}
+      rows={employees}
+      rowKey={(employee) => employee.id!}
+      emptyMessage={emptyMessage}
+    />
   );
 }

@@ -37,7 +37,7 @@ export function Tabs({
               {tab.label}
               {typeof tab.badge === "number" && tab.badge > 0 && (
                 <span
-                  className={`rounded-full px-[7px] py-[1px] text-[11px] font-extrabold ${
+                  className={`rounded-badge px-[7px] py-[1px] text-[11px] font-extrabold ${
                     isActive ? "bg-primary-tint text-primary-dark" : "border border-border text-ink-soft"
                   }`}
                 >

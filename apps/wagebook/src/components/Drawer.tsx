@@ -27,7 +27,7 @@ export function Drawer({
   return createPortal(
     <div className="fixed inset-0 z-50 flex justify-end bg-black/50" role="dialog" aria-modal="true" onClick={onClose}>
       <div
-        className="flex h-full w-full max-w-[440px] flex-col overflow-y-auto border-l border-border bg-surface p-6 shadow-xl"
+        className="flex h-full w-full max-w-[440px] flex-col overflow-y-auto border-l border-border bg-surface p-6"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-5 flex items-center justify-between gap-3">

@@ -10,8 +10,6 @@ import { ScheduleInterviewForm } from "./ScheduleInterviewForm";
 import { RejectCandidateForm } from "./RejectCandidateForm";
 import { hireCandidate } from "../actions";
 
-const tdClass = "px-3 py-[10px] text-[13px]";
-
 export default async function RequisitionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: requisitionId } = await params;
   const supabase = await createClient();
@@ -100,7 +98,9 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
               )}
 
               {candidate.rejected_reason && (
-                <p className={`${tdClass} mt-1 text-bad`}>Rejected: {candidate.rejected_reason}</p>
+                <p className="mt-1 inline-block rounded-badge bg-bad-tint px-2 py-1 text-[12.5px] text-bad">
+                  Rejected: {candidate.rejected_reason}
+                </p>
               )}
 
               {candidate.candidate_interviews && candidate.candidate_interviews.length > 0 && (
