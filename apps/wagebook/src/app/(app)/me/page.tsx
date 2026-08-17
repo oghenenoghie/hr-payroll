@@ -62,6 +62,7 @@ export default async function MePage() {
     { data: leaveRequests },
     { data: leaveEncashmentRequests },
     { data: benefitEnrollments },
+    { data: unionDuesEnrollments },
     { data: unreadNotifications },
     { data: recentAttendance },
     { data: policies },
@@ -95,6 +96,12 @@ export default async function MePage() {
     supabase
       .from("employee_benefit_enrollments")
       .select("*, benefit_plans(name, category, employer_cost_kobo, employee_cost_kobo)")
+      .eq("employee_id", employee.id)
+      .eq("status", "active")
+      .order("enrolled_at", { ascending: false }),
+    supabase
+      .from("employee_union_due_enrollments")
+      .select("*, union_dues_plans(name, amount_kobo)")
       .eq("employee_id", employee.id)
       .eq("status", "active")
       .order("enrolled_at", { ascending: false }),
@@ -392,6 +399,28 @@ export default async function MePage() {
           </div>
         ) : (
           <p className="mt-2 text-[13px] text-ink-soft">Not enrolled in any benefit plans.</p>
+        )}
+      </div>
+
+      <div className="rounded-card border border-border bg-surface p-6">
+        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Union dues</span>
+
+        {unionDuesEnrollments && unionDuesEnrollments.length > 0 ? (
+          <div className="mt-3 flex flex-col gap-3">
+            {unionDuesEnrollments.map((enrollment) => (
+              <div
+                key={enrollment.id}
+                className="flex items-center justify-between border-b border-border pb-3 last:border-b-0"
+              >
+                <span className="text-[13px] font-bold text-ink">{enrollment.union_dues_plans?.name ?? "—"}</span>
+                <span className="text-[12px] text-ink-soft">
+                  {formatKobo(BigInt(enrollment.union_dues_plans?.amount_kobo ?? 0))}/period from your pay
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-2 text-[13px] text-ink-soft">Not enrolled with any trade union.</p>
         )}
       </div>
 

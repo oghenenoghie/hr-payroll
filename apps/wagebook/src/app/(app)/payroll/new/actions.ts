@@ -204,6 +204,7 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
     unpaid_leave_deduction_kobo?: number;
     benefit_employer_cost_kobo?: number;
     benefit_employee_deduction_kobo?: number;
+    union_dues_deduction_kobo?: number;
     attendance_absence_deduction_kobo?: number;
     overtime_pay_kobo?: number;
     new_hire_proration_deduction_kobo?: number;
@@ -501,6 +502,25 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
       enrollmentsByEmployee.set(enrollment.employee_id, list);
     }
 
+    // Active union dues enrollments apply every run too, same lifecycle as
+    // benefits: no claim to approve, applies automatically for as long as
+    // it stays active. Unlike benefits there's no employer_cost_kobo —
+    // it's a flat amount withheld from the employee's own pay and remitted
+    // to the union, never a company cost.
+    const { data: activeUnionDuesEnrollments } = await supabase
+      .from("employee_union_due_enrollments")
+      .select("employee_id, union_dues_plans(amount_kobo)")
+      .eq("org_id", membership.org_id)
+      .eq("status", "active")
+      .order("enrolled_at", { ascending: true });
+
+    const unionDuesByEmployee = new Map<string, NonNullable<typeof activeUnionDuesEnrollments>>();
+    for (const enrollment of activeUnionDuesEnrollments ?? []) {
+      const list = unionDuesByEmployee.get(enrollment.employee_id) ?? [];
+      list.push(enrollment);
+      unionDuesByEmployee.set(enrollment.employee_id, list);
+    }
+
     // Mid-period salary changes: an employee whose basic/housing/transport
     // changed inside this period was paid at more than one rate across it.
     // Every change within the period is its own segment boundary — the
@@ -717,9 +737,29 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
         benefitEmployeeDeductionKobo += employeeCostKobo;
       }
 
-      const netKobo = clampNonNegative(netBeforeLoanKobo - loanDeductionKobo - benefitEmployeeDeductionKobo);
+      // Union dues, same "last in line, skip whole if it can't be fully
+      // covered" priority as benefits, applied after benefits: statutory
+      // deductions are never skipped, loans are already capped against net
+      // pay, benefits already claimed their share of what's left, so union
+      // dues gets whatever net pay benefits left behind.
+      let unionDuesDeductionKobo = 0n;
+      const netAfterBenefitsKobo = netAfterLoansKobo - benefitEmployeeDeductionKobo;
+      for (const enrollment of unionDuesByEmployee.get(employee.id) ?? []) {
+        const dueKobo = BigInt(enrollment.union_dues_plans?.amount_kobo ?? 0);
+        if (unionDuesDeductionKobo + dueKobo > netAfterBenefitsKobo) continue;
+        unionDuesDeductionKobo += dueKobo;
+      }
+
+      const netKobo = clampNonNegative(
+        netBeforeLoanKobo - loanDeductionKobo - benefitEmployeeDeductionKobo - unionDuesDeductionKobo,
+      );
       const employeeDeductionsKobo =
-        result.pensionEmployeeKobo + result.nhfKobo + payeKobo + loanDeductionKobo + benefitEmployeeDeductionKobo;
+        result.pensionEmployeeKobo +
+        result.nhfKobo +
+        payeKobo +
+        loanDeductionKobo +
+        benefitEmployeeDeductionKobo +
+        unionDuesDeductionKobo;
       totalGrossKobo += grossKobo;
       totalNetKobo += netKobo;
 
@@ -754,6 +794,7 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
           direction: "credit",
           amount_kobo: benefitEmployerCostKobo + benefitEmployeeDeductionKobo,
         },
+        { account_code: "union_dues_payable", direction: "credit", amount_kobo: unionDuesDeductionKobo },
       ].filter((posting) => posting.amount_kobo > 0n);
 
       return {
@@ -775,6 +816,7 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
         unpaid_leave_deduction_kobo: Number(unpaidLeaveDeductionKobo),
         benefit_employer_cost_kobo: Number(benefitEmployerCostKobo),
         benefit_employee_deduction_kobo: Number(benefitEmployeeDeductionKobo),
+        union_dues_deduction_kobo: Number(unionDuesDeductionKobo),
         attendance_absence_deduction_kobo: Number(attendanceAbsenceDeductionKobo),
         overtime_pay_kobo: Number(overtimePayKobo),
         new_hire_proration_deduction_kobo: Number(newHireProrationDeductionKobo),
@@ -843,6 +885,7 @@ export async function createPayRun(_prevState: CreatePayRunState, formData: Form
   revalidatePath("/expenses");
   revalidatePath("/leave");
   revalidatePath("/benefits");
+  revalidatePath("/union-dues");
   revalidatePath("/attendance");
   revalidatePath("/overtime");
   redirect(`/payroll/${payRun.id}`);

@@ -21,6 +21,7 @@ export const ACCOUNT_LABEL: Record<string, string> = {
   nhf_payable: "NHF payable (due FMBN, before the 10th)",
   staff_loans_receivable: "Staff loans receivable",
   benefits_payable: "Benefits payable",
+  union_dues_payable: "Union dues payable",
   nsitf_expense: "NSITF expense",
   nsitf_payable: "NSITF payable (due NSITF, before the 16th)",
   vendor_expense: "Vendor expense",
