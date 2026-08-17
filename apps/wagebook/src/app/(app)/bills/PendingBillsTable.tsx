@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { formatKobo } from "@/lib/format";
+import { formatKobo, getPendingAgeTone } from "@/lib/format";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ConfirmActionButton } from "@/components/ConfirmActionButton";
 import { useToast } from "@/components/Toast";
+import { DataTable, type DataTableColumn } from "@/components/DataTable";
 import { approveVendorBill, rejectVendorBill, approveVendorBillsBatch, rejectVendorBillsBatch } from "./actions";
 
 type PendingBill = {
@@ -17,11 +18,9 @@ type PendingBill = {
   wht_kobo: number;
   net_payable_kobo: number;
   bill_date: string;
+  created_at: string;
   vendors: { name: string } | null;
 };
-
-const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
-const tdClass = "px-3 py-[10px] text-[13px]";
 
 export function PendingBillsTable({ bills, canManage }: { bills: PendingBill[]; canManage: boolean }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -82,11 +81,119 @@ export function PendingBillsTable({ bills, canManage }: { bills: PendingBill[]; 
     }
   }
 
+  const columns: DataTableColumn<PendingBill>[] = [
+    ...(canManage
+      ? [
+          {
+            key: "select",
+            header: "",
+            render: (bill: PendingBill) => (
+              <input
+                type="checkbox"
+                checked={selected.has(bill.id)}
+                disabled={pending}
+                onChange={() => toggle(bill.id)}
+                className="h-4 w-4 accent-primary"
+              />
+            ),
+          },
+        ]
+      : []),
+    {
+      key: "bill_number",
+      header: "Bill #",
+      sortValue: (bill) => bill.bill_number ?? "",
+      render: (bill) => (
+        <Link href={`/bills/${bill.id}`} className="text-primary">
+          {bill.bill_number ?? "View"}
+        </Link>
+      ),
+    },
+    {
+      key: "vendor",
+      header: "Vendor",
+      sortValue: (bill) => bill.vendors?.name ?? "",
+      render: (bill) =>
+        bill.vendors?.name ? (
+          <Link href={`/vendors/${bill.vendor_id}`} className="font-bold text-primary">
+            {bill.vendors.name}
+          </Link>
+        ) : (
+          <span className="font-bold">—</span>
+        ),
+    },
+    {
+      key: "description",
+      header: "Description",
+      render: (bill) => <span className="text-ink-soft">{bill.description}</span>,
+    },
+    {
+      key: "amount",
+      header: "Amount",
+      align: "right",
+      sortValue: (bill) => bill.amount_kobo,
+      render: (bill) => <span className="text-ink">{formatKobo(BigInt(bill.amount_kobo))}</span>,
+    },
+    {
+      key: "wht",
+      header: "WHT",
+      align: "right",
+      sortValue: (bill) => bill.wht_kobo,
+      render: (bill) => <span className="text-ink-soft">{formatKobo(BigInt(bill.wht_kobo))}</span>,
+    },
+    {
+      key: "net_payable",
+      header: "Net payable",
+      align: "right",
+      sortValue: (bill) => bill.net_payable_kobo,
+      render: (bill) => <span className="font-bold text-ink">{formatKobo(BigInt(bill.net_payable_kobo))}</span>,
+    },
+    {
+      key: "bill_date",
+      header: "Bill date",
+      sortValue: (bill) => bill.bill_date,
+      render: (bill) => <span className="text-ink-soft">{bill.bill_date}</span>,
+    },
+    ...(canManage
+      ? [
+          {
+            key: "actions",
+            header: "",
+            align: "right" as const,
+            render: (bill: PendingBill) => (
+              <div className="flex justify-end gap-2">
+                <ConfirmActionButton
+                  action={() => approveOne(bill)}
+                  label="Approve"
+                  tone="primary"
+                  className="text-[12px] font-bold text-good disabled:opacity-50"
+                  confirmTitle="Approve this bill?"
+                  confirmMessage={`"${bill.description}" from ${bill.vendors?.name ?? "this vendor"} (${formatKobo(BigInt(bill.amount_kobo))}) will be approved. If this org has a multi-step chain configured for bills, this may only advance it to the next step rather than fully approving it.`}
+                  confirmLabel="Approve"
+                />
+                <ConfirmActionButton
+                  action={() => rejectOne(bill)}
+                  label="Reject"
+                  confirmTitle="Reject this bill?"
+                  confirmMessage={`"${bill.description}" from ${bill.vendors?.name ?? "this vendor"} will be rejected.`}
+                  confirmLabel="Reject"
+                />
+              </div>
+            ),
+          },
+        ]
+      : []),
+  ];
+
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex flex-col gap-2 md:hidden">
-        {bills.map((bill) => (
-          <div key={bill.id} className="rounded-card border border-border bg-surface p-4">
+      <DataTable
+        columns={columns}
+        rows={bills}
+        rowKey={(bill) => bill.id}
+        rowClassName={(bill) => (getPendingAgeTone(bill.created_at) === "warn" ? "bg-warn-tint" : "")}
+        renderCard={(bill) => (
+          <div className="rounded-card border border-border bg-surface p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-2.5">
                 {canManage && (
@@ -139,86 +246,8 @@ export function PendingBillsTable({ bills, canManage }: { bills: PendingBill[]; 
               </div>
             )}
           </div>
-        ))}
-      </div>
-
-      <div className="hidden overflow-x-auto rounded-card border border-border bg-surface md:block">
-        <table className="w-full min-w-[760px] border-collapse">
-          <thead>
-            <tr className="border-b border-border">
-              {canManage && <th className={thClass}></th>}
-              <th className={`${thClass} text-left`}>Bill #</th>
-              <th className={`${thClass} text-left`}>Vendor</th>
-              <th className={`${thClass} text-left`}>Description</th>
-              <th className={`${thClass} text-right`}>Amount</th>
-              <th className={`${thClass} text-right`}>WHT</th>
-              <th className={`${thClass} text-right`}>Net payable</th>
-              <th className={`${thClass} text-left`}>Bill date</th>
-              {canManage && <th className={thClass}></th>}
-            </tr>
-          </thead>
-          <tbody>
-            {bills.map((bill) => (
-              <tr key={bill.id} className="border-b border-border last:border-b-0">
-                {canManage && (
-                  <td className={tdClass}>
-                    <input
-                      type="checkbox"
-                      checked={selected.has(bill.id)}
-                      disabled={pending}
-                      onChange={() => toggle(bill.id)}
-                      className="h-4 w-4 accent-primary"
-                    />
-                  </td>
-                )}
-                <td className={`${tdClass} text-ink-soft`}>
-                  <Link href={`/bills/${bill.id}`} className="text-primary">
-                    {bill.bill_number ?? "View"}
-                  </Link>
-                </td>
-                <td className={`${tdClass} font-bold`}>
-                  {bill.vendors?.name ? (
-                    <Link href={`/vendors/${bill.vendor_id}`} className="text-primary">
-                      {bill.vendors.name}
-                    </Link>
-                  ) : (
-                    "—"
-                  )}
-                </td>
-                <td className={`${tdClass} text-ink-soft`}>{bill.description}</td>
-                <td className={`${tdClass} text-right text-ink`}>{formatKobo(BigInt(bill.amount_kobo))}</td>
-                <td className={`${tdClass} text-right text-ink-soft`}>{formatKobo(BigInt(bill.wht_kobo))}</td>
-                <td className={`${tdClass} text-right font-bold text-ink`}>
-                  {formatKobo(BigInt(bill.net_payable_kobo))}
-                </td>
-                <td className={`${tdClass} text-ink-soft`}>{bill.bill_date}</td>
-                {canManage && (
-                  <td className={`${tdClass} text-right`}>
-                    <div className="flex justify-end gap-2">
-                      <ConfirmActionButton
-                        action={() => approveOne(bill)}
-                        label="Approve"
-                        tone="primary"
-                        className="text-[12px] font-bold text-good disabled:opacity-50"
-                        confirmTitle="Approve this bill?"
-                        confirmMessage={`"${bill.description}" from ${bill.vendors?.name ?? "this vendor"} (${formatKobo(BigInt(bill.amount_kobo))}) will be approved. If this org has a multi-step chain configured for bills, this may only advance it to the next step rather than fully approving it.`}
-                        confirmLabel="Approve"
-                      />
-                      <ConfirmActionButton
-                        action={() => rejectOne(bill)}
-                        label="Reject"
-                        confirmTitle="Reject this bill?"
-                        confirmMessage={`"${bill.description}" from ${bill.vendors?.name ?? "this vendor"} will be rejected.`}
-                        confirmLabel="Reject"
-                      />
-                    </div>
-                  </td>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+        )}
+      />
 
       {canManage && selected.size > 0 && (
         <div className="flex items-center justify-between rounded-card border border-border bg-surface px-4 py-3">

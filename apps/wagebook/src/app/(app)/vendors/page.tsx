@@ -1,16 +1,16 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import type { Tables } from "@plutus/core";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { ConfirmActionButton } from "@/components/ConfirmActionButton";
 import { TinBadge } from "@/components/Badge";
+import { DataTable, type DataTableColumn } from "@/components/DataTable";
 import { VendorForm } from "./VendorForm";
 import { deleteVendor } from "./actions";
 
-const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
-const tdClass = "px-3 py-[10px] text-[13px]";
 const PAGE_SIZE = 50;
 
 const MANAGE_ROLES = ["admin", "payroll_manager", "accountant"];
@@ -86,62 +86,7 @@ export default async function VendorsPage({ searchParams }: { searchParams: Prom
         </p>
       </header>
 
-      <div className="overflow-x-auto rounded-card border border-border bg-surface">
-        <table className="w-full min-w-[640px] border-collapse">
-          <thead>
-            <tr className="border-b border-border">
-              <th className={`${thClass} text-left`}>Vendor</th>
-              <th className={`${thClass} text-left`}>TIN</th>
-              <th className={`${thClass} text-left`}>Contact</th>
-              <th className={`${thClass} text-left`}>Bank details</th>
-              <th className={thClass}></th>
-              {canManage && <th className={thClass}></th>}
-            </tr>
-          </thead>
-          <tbody>
-            {vendors && vendors.length > 0 ? (
-              vendors.map((vendor) => (
-                <tr key={vendor.id} className="border-b border-border last:border-b-0">
-                  <td className={`${tdClass} font-bold`}>
-                    <Link href={`/vendors/${vendor.id}`} className="text-primary">
-                      {vendor.name}
-                    </Link>
-                  </td>
-                  <td className={tdClass}>
-                    <TinBadge tin={vendor.tin} />
-                  </td>
-                  <td className={`${tdClass} text-ink-soft`}>{vendor.contact_email ?? vendor.contact_phone ?? "—"}</td>
-                  <td className={`${tdClass} text-ink-soft`}>
-                    {vendor.bank_name ? `${vendor.bank_name} · ${vendor.bank_account_number ?? "—"}` : "—"}
-                  </td>
-                  <td className={`${tdClass} text-right`}>
-                    <Link href={`/vendors/${vendor.id}/statement`} className="font-bold text-primary">
-                      Statement
-                    </Link>
-                  </td>
-                  {canManage && (
-                    <td className={`${tdClass} text-right`}>
-                      <ConfirmActionButton
-                        action={deleteVendor.bind(null, vendor.id)}
-                        label="Delete"
-                        confirmTitle="Delete this vendor?"
-                        confirmMessage={`"${vendor.name}" will be removed. This can't be undone.`}
-                        confirmLabel="Delete"
-                      />
-                    </td>
-                  )}
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={canManage ? 6 : 5} className="px-3 py-10 text-center text-[13px] text-ink-soft">
-                  No vendors yet.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <VendorsTable vendors={vendors ?? []} canManage={canManage} />
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
@@ -177,4 +122,70 @@ export default async function VendorsPage({ searchParams }: { searchParams: Prom
       )}
     </div>
   );
+}
+
+function VendorsTable({ vendors, canManage }: { vendors: Tables<"vendors">[]; canManage: boolean }) {
+  const columns: DataTableColumn<Tables<"vendors">>[] = [
+    {
+      key: "name",
+      header: "Vendor",
+      sortValue: (vendor) => vendor.name,
+      render: (vendor) => (
+        <Link href={`/vendors/${vendor.id}`} className="font-bold text-primary">
+          {vendor.name}
+        </Link>
+      ),
+    },
+    {
+      key: "tin",
+      header: "TIN",
+      render: (vendor) => <TinBadge tin={vendor.tin} />,
+    },
+    {
+      key: "contact",
+      header: "Contact",
+      render: (vendor) => (
+        <span className="text-ink-soft">{vendor.contact_email ?? vendor.contact_phone ?? "—"}</span>
+      ),
+    },
+    {
+      key: "bank",
+      header: "Bank details",
+      render: (vendor) => (
+        <span className="text-ink-soft">
+          {vendor.bank_name ? `${vendor.bank_name} · ${vendor.bank_account_number ?? "—"}` : "—"}
+        </span>
+      ),
+    },
+    {
+      key: "statement",
+      header: "",
+      align: "right",
+      render: (vendor) => (
+        <Link href={`/vendors/${vendor.id}/statement`} className="font-bold text-primary">
+          Statement
+        </Link>
+      ),
+    },
+    ...(canManage
+      ? [
+          {
+            key: "actions",
+            header: "",
+            align: "right" as const,
+            render: (vendor: Tables<"vendors">) => (
+              <ConfirmActionButton
+                action={deleteVendor.bind(null, vendor.id)}
+                label="Delete"
+                confirmTitle="Delete this vendor?"
+                confirmMessage={`"${vendor.name}" will be removed. This can't be undone.`}
+                confirmLabel="Delete"
+              />
+            ),
+          },
+        ]
+      : []),
+  ];
+
+  return <DataTable columns={columns} rows={vendors} rowKey={(vendor) => vendor.id} emptyMessage="No vendors yet." />;
 }

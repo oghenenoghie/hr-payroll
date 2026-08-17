@@ -180,7 +180,7 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
         </div>
         <p className="text-[13px] text-ink-soft">{bill.description}</p>
         {approvalInstance && approvalInstance.total_steps > 1 && approvalInstance.status === "pending" && (
-          <p className="text-[12px] font-bold text-warn">
+          <p className="mt-1 inline-block w-fit rounded-badge bg-warn-tint px-2 py-1 text-[12px] font-bold text-warn">
             Awaiting step {approvalInstance.current_step_order} of {approvalInstance.total_steps} —
             see /workflows for who can act on it.
           </p>

@@ -9,6 +9,7 @@ import {
   LeaveStatusBadge,
   OvertimeStatusBadge,
   LeaveEncashmentStatusBadge,
+  PolicyAckBadge,
 } from "@/components/Badge";
 import { LoanRequestForm } from "./LoanRequestForm";
 import { ExpenseClaimForm } from "./ExpenseClaimForm";
@@ -337,7 +338,15 @@ export default async function MePage() {
               {recentAttendance.map((record) => (
                 <div key={record.date} className="flex items-center justify-between">
                   <span className="text-[12.5px] text-ink-soft">{record.date}</span>
-                  <span className={`text-[12.5px] font-bold capitalize ${record.status === "absent" ? "text-bad" : "text-warn"}`}>
+                  <span
+                    className={`rounded-badge px-[7px] py-[1px] text-[11.5px] font-bold capitalize ${
+                      record.status === "absent"
+                        ? "bg-bad-tint text-bad"
+                        : record.status === "late"
+                          ? "bg-warn-tint text-warn"
+                          : "text-ink-soft"
+                    }`}
+                  >
                     {record.status}
                   </span>
                 </div>
@@ -438,19 +447,9 @@ export default async function MePage() {
                   key={policy.id}
                   className="flex items-center justify-between border-b border-border pb-3 last:border-b-0"
                 >
-                  <div className="flex flex-col gap-0.5">
+                  <div className="flex flex-col gap-1">
                     <span className="text-[13px] font-bold text-ink">{policy.title}</span>
-                    <span
-                      className={`text-[12px] font-bold ${
-                        status === "acknowledged" ? "text-good" : status === "stale" ? "text-warn" : "text-bad"
-                      }`}
-                    >
-                      {status === "acknowledged"
-                        ? "Acknowledged"
-                        : status === "stale"
-                          ? "Needs re-acknowledgment"
-                          : "Not acknowledged"}
-                    </span>
+                    <PolicyAckBadge status={status} />
                   </div>
                   {status !== "acknowledged" && (
                     <form action={acknowledgePolicy.bind(null, policy.id)}>

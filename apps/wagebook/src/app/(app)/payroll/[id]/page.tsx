@@ -223,9 +223,11 @@ export default async function PayRunDetailPage({ params }: { params: Promise<{ i
                   {recorded.length > 0 ? (
                     <ul className="mt-1 flex flex-col gap-1">
                       {recorded.map((remittance) => (
-                        <li key={remittance.created_at} className="text-[12.5px] text-good">
-                          {formatKobo(BigInt(remittance.amount_kobo))} remitted {remittance.remitted_on}
-                          {remittance.reference ? ` · ${remittance.reference}` : ""}
+                        <li key={remittance.created_at}>
+                          <span className="inline-block rounded-badge bg-good-tint px-2 py-0.5 text-[12.5px] text-good">
+                            {formatKobo(BigInt(remittance.amount_kobo))} remitted {remittance.remitted_on}
+                            {remittance.reference ? ` · ${remittance.reference}` : ""}
+                          </span>
                         </li>
                       ))}
                     </ul>

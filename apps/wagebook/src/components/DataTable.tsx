@@ -26,6 +26,7 @@ export function DataTable<T>({
   emptyMessage = "Nothing to show.",
   defaultSortKey,
   renderCard,
+  rowClassName,
 }: {
   columns: DataTableColumn<T>[];
   rows: T[];
@@ -38,6 +39,10 @@ export function DataTable<T>({
   // rather than making it scroll horizontally. Omit to keep the table
   // as the only rendering (horizontal scroll) at every width.
   renderCard?: (row: T) => React.ReactNode;
+  // Optional per-row emphasis (e.g. a tint background for an overdue or
+  // aging item) — appended alongside the row's own border classes so a
+  // caller adds urgency signaling without reimplementing row markup.
+  rowClassName?: (row: T) => string;
 }) {
   const [sortKey, setSortKey] = useState<string | null>(defaultSortKey ?? null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
@@ -102,7 +107,10 @@ export function DataTable<T>({
           <tbody>
             {sortedRows.length > 0 ? (
               sortedRows.map((row) => (
-                <tr key={rowKey(row)} className="border-b border-border last:border-b-0">
+                <tr
+                  key={rowKey(row)}
+                  className={`border-b border-border last:border-b-0 ${rowClassName?.(row) ?? ""}`}
+                >
                   {columns.map((column) => (
                     <td key={column.key} className={`${tdClass} ${ALIGN_CLASS[column.align ?? "left"]}`}>
                       {column.render(row)}

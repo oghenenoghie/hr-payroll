@@ -46,7 +46,7 @@ export function ConfirmDialog({
       onClick={onCancel}
     >
       <div
-        className="w-full max-w-[400px] rounded-card border border-border bg-surface p-6 shadow-xl"
+        className="w-full max-w-[400px] rounded-card border border-border bg-surface p-6"
         onClick={(event) => event.stopPropagation()}
       >
         <h2 id="confirm-dialog-title" className="text-[15px] font-extrabold text-ink">
