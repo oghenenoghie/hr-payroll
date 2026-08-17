@@ -1,15 +1,12 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
-import { Badge } from "@/components/Badge";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
-import { ConfirmActionButton } from "@/components/ConfirmActionButton";
 import { AccountForm } from "./AccountForm";
-import { deleteAccount } from "./actions";
+import { EditAccountRow } from "./EditAccountRow";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
-const tdClass = "px-3 py-[10px] text-[13px]";
 
 const TYPE_ORDER = ["asset", "liability", "equity", "revenue", "expense"] as const;
 const TYPE_LABEL: Record<string, string> = {
@@ -67,7 +64,9 @@ export default async function ChartOfAccountsPage() {
         <h1 className="text-[22px] font-extrabold text-ink">Chart of Accounts</h1>
         <p className="text-[13px] text-ink-soft">
           Every account payroll, final settlement and accounts payable post to, plus any custom accounts you add.
-          System accounts (used by the code that generates postings) can&apos;t be deleted — everything else can be.
+          Name, type and description are always editable — fix a mistake without deleting the account. System
+          accounts (used by the code that generates postings) keep a locked code and can&apos;t be deleted; everything
+          else can be.
         </p>
       </header>
 
@@ -90,30 +89,7 @@ export default async function ChartOfAccountsPage() {
                 </thead>
                 <tbody>
                   {rows.map((account) => (
-                    <tr key={account.id} className="border-b border-border last:border-b-0">
-                      <td className={`${tdClass} font-mono text-ink-soft`}>{account.code}</td>
-                      <td className={`${tdClass} font-bold text-ink`}>{account.name}</td>
-                      <td className={`${tdClass} text-center`}>
-                        {account.is_system ? (
-                          <Badge tone="neutral">System</Badge>
-                        ) : (
-                          <Badge tone="good">Custom</Badge>
-                        )}
-                      </td>
-                      {canManage && (
-                        <td className={`${tdClass} text-right`}>
-                          {!account.is_system && (
-                            <ConfirmActionButton
-                              action={deleteAccount.bind(null, account.id)}
-                              label="Delete"
-                              confirmTitle="Delete this account?"
-                              confirmMessage={`"${account.code} · ${account.name}" will be removed from the chart of accounts. Any existing ledger postings already made against this code are unaffected, but nothing new can post to it once it's gone.`}
-                              confirmLabel="Delete"
-                            />
-                          )}
-                        </td>
-                      )}
-                    </tr>
+                    <EditAccountRow key={account.id} account={account} canManage={canManage} />
                   ))}
                 </tbody>
               </table>

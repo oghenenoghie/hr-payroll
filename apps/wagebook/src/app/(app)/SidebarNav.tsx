@@ -121,6 +121,7 @@ const REQUESTS_ITEMS: NavItem[] = [
   { href: "/shifts", label: "Shift Schedule", icon: CalendarIcon },
   { href: "/overtime", label: "Overtime", icon: ClockIcon },
   { href: "/benefits", label: "Benefits", icon: HeartIcon },
+  { href: "/union-dues", label: "Union Dues", icon: CoinsIcon },
 ];
 
 const COMPANY_ITEMS: NavItem[] = [
