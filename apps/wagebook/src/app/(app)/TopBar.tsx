@@ -69,7 +69,7 @@ export function TopBar({
                 onClick={() => setMenuOpen(false)}
                 className="fixed inset-0 z-40 cursor-default"
               />
-              <div className="absolute right-0 z-50 mt-2 w-56 rounded-panel border border-border bg-surface p-3 shadow-md">
+              <div className="absolute right-0 z-50 mt-2 w-56 rounded-panel border border-border bg-surface p-3">
                 <div className="flex flex-col gap-0.5 border-b border-border pb-2">
                   <span className="truncate text-[13px] font-bold text-ink">{orgName}</span>
                   <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">

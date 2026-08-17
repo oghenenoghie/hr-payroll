@@ -69,6 +69,96 @@ export type Database = {
           },
         ]
       }
+      union_dues_plans: {
+        Row: {
+          active: boolean
+          amount_kobo: number
+          created_at: string
+          id: string
+          name: string
+          org_id: string
+        }
+        Insert: {
+          active?: boolean
+          amount_kobo: number
+          created_at?: string
+          id?: string
+          name: string
+          org_id: string
+        }
+        Update: {
+          active?: boolean
+          amount_kobo?: number
+          created_at?: string
+          id?: string
+          name?: string
+          org_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "union_dues_plans_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_union_due_enrollments: {
+        Row: {
+          cancelled_at: string | null
+          employee_id: string
+          enrolled_at: string
+          enrolled_by: string
+          id: string
+          org_id: string
+          status: string
+          union_dues_plan_id: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          employee_id: string
+          enrolled_at?: string
+          enrolled_by: string
+          id?: string
+          org_id: string
+          status?: string
+          union_dues_plan_id: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          employee_id?: string
+          enrolled_at?: string
+          enrolled_by?: string
+          id?: string
+          org_id?: string
+          status?: string
+          union_dues_plan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_union_due_enrollments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_union_due_enrollments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_union_due_enrollments_union_dues_plan_id_fkey"
+            columns: ["union_dues_plan_id"]
+            isOneToOne: false
+            referencedRelation: "union_dues_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       benefit_plans: {
         Row: {
           active: boolean
@@ -1614,6 +1704,7 @@ export type Database = {
           rent_relief_kobo: number
           salary_change_adjustment_kobo: number
           taxable_reimbursement_kobo: number
+          union_dues_deduction_kobo: number
           unpaid_leave_deduction_kobo: number
         }
         Insert: {
@@ -1644,6 +1735,7 @@ export type Database = {
           rent_relief_kobo: number
           salary_change_adjustment_kobo?: number
           taxable_reimbursement_kobo?: number
+          union_dues_deduction_kobo?: number
           unpaid_leave_deduction_kobo?: number
         }
         Update: {
@@ -1674,6 +1766,7 @@ export type Database = {
           rent_relief_kobo?: number
           salary_change_adjustment_kobo?: number
           taxable_reimbursement_kobo?: number
+          union_dues_deduction_kobo?: number
           unpaid_leave_deduction_kobo?: number
         }
         Relationships: [
@@ -4643,6 +4736,7 @@ export type Database = {
           rent_relief_kobo: number | null
           salary_change_adjustment_kobo: number | null
           taxable_reimbursement_kobo: number | null
+          union_dues_deduction_kobo: number | null
           unpaid_leave_deduction_kobo: number | null
         }
         Relationships: [

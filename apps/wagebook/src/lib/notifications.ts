@@ -12,6 +12,7 @@ export type NotificationType =
   | "expense_approved"
   | "expense_rejected"
   | "benefit_enrolled"
+  | "union_dues_enrolled"
   | "pay_run_created"
   | "overtime_request_submitted"
   | "overtime_approved"

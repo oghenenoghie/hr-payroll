@@ -3,16 +3,34 @@ import { redirect } from "next/navigation";
 import { toNaira } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
-import { formatKobo } from "@/lib/format";
+import { formatKobo, getPendingAgeTone } from "@/lib/format";
 import { ExpenseStatusBadge } from "@/components/Badge";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { ConfirmActionButton } from "@/components/ConfirmActionButton";
+import { DataTable, type DataTableColumn } from "@/components/DataTable";
 import { approveExpense, rejectExpense } from "./actions";
 
-const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
-const tdClass = "px-3 py-[10px] text-[13px]";
 const PAGE_SIZE = 25;
+
+type PendingExpense = {
+  id: string;
+  amount_kobo: number;
+  description: string;
+  taxable: boolean | null;
+  status: string;
+  created_at: string;
+  employees: { full_name: string } | null;
+};
+
+type SettledExpense = {
+  id: string;
+  amount_kobo: number;
+  description: string;
+  taxable: boolean | null;
+  status: string;
+  employees: { full_name: string } | null;
+};
 
 export default async function ExpensesPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const supabase = await createClient();
@@ -39,7 +57,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
   const [{ data: pendingRaw }, { data: restRaw, count }] = await Promise.all([
     supabase
       .from("expenses")
-      .select("id, amount_kobo, description, taxable, status, employees(full_name)")
+      .select("id, amount_kobo, description, taxable, status, created_at, employees(full_name)")
       .eq("status", "pending")
       .order("created_at", { ascending: false }),
     supabase
@@ -89,97 +107,13 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
       {pending.length > 0 && (
         <div className="flex flex-col gap-2">
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Pending claims</span>
-          <div className="overflow-x-auto rounded-card border border-border bg-surface">
-            <table className="w-full min-w-[720px] border-collapse">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className={`${thClass} text-left`}>Employee</th>
-                  <th className={`${thClass} text-right`}>Amount</th>
-                  <th className={`${thClass} text-left`}>Description</th>
-                  <th className={thClass}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {pending.map((expense) => (
-                  <tr key={expense.id} className="border-b border-border last:border-b-0">
-                    <td className={`${tdClass} font-bold text-ink`}>{expense.employees?.full_name ?? "—"}</td>
-                    <td className={`${tdClass} text-right text-ink`}>{formatKobo(BigInt(expense.amount_kobo))}</td>
-                    <td className={`${tdClass} text-ink-soft`}>{expense.description}</td>
-                    <td className={`${tdClass} text-right`}>
-                      <div className="flex justify-end gap-2">
-                        <ConfirmActionButton
-                          action={approveExpense.bind(null, expense.id, true)}
-                          label="Approve · taxable"
-                          tone="primary"
-                          className="text-[12px] font-bold text-good disabled:opacity-50"
-                          confirmTitle="Approve this claim as taxable?"
-                          confirmMessage={`${expense.employees?.full_name ?? "This employee"}'s ${formatKobo(BigInt(expense.amount_kobo))} claim will be approved and added to chargeable income, re-taxed in the next pay run.`}
-                          confirmLabel="Approve"
-                        />
-                        <ConfirmActionButton
-                          action={approveExpense.bind(null, expense.id, false)}
-                          label="Approve · non-taxable"
-                          tone="primary"
-                          className="text-[12px] font-bold text-good disabled:opacity-50"
-                          confirmTitle="Approve this claim as non-taxable?"
-                          confirmMessage={`${expense.employees?.full_name ?? "This employee"}'s ${formatKobo(BigInt(expense.amount_kobo))} claim will be approved and paid out as pure cash in the next pay run.`}
-                          confirmLabel="Approve"
-                        />
-                        <ConfirmActionButton
-                          action={rejectExpense.bind(null, expense.id)}
-                          label="Reject"
-                          confirmTitle="Reject this claim?"
-                          confirmMessage={`${expense.employees?.full_name ?? "This employee"}'s ${formatKobo(BigInt(expense.amount_kobo))} claim will be rejected.`}
-                          confirmLabel="Reject"
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <PendingExpensesTable pending={pending} />
         </div>
       )}
 
       <div className="flex flex-col gap-2">
         <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">History</span>
-        <div className="overflow-x-auto rounded-card border border-border bg-surface">
-          <table className="w-full min-w-[720px] border-collapse">
-            <thead>
-              <tr className="border-b border-border">
-                <th className={`${thClass} text-left`}>Employee</th>
-                <th className={`${thClass} text-right`}>Amount</th>
-                <th className={`${thClass} text-left`}>Description</th>
-                <th className={`${thClass} text-center`}>Tax treatment</th>
-                <th className={`${thClass} text-center`}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rest.length > 0 ? (
-                rest.map((expense) => (
-                  <tr key={expense.id} className="border-b border-border last:border-b-0">
-                    <td className={`${tdClass} font-bold text-ink`}>{expense.employees?.full_name ?? "—"}</td>
-                    <td className={`${tdClass} text-right text-ink`}>{formatKobo(BigInt(expense.amount_kobo))}</td>
-                    <td className={`${tdClass} text-ink-soft`}>{expense.description}</td>
-                    <td className={`${tdClass} text-center text-ink-soft`}>
-                      {expense.taxable === null ? "—" : expense.taxable ? "Taxable" : "Non-taxable"}
-                    </td>
-                    <td className={`${tdClass} text-center`}>
-                      <ExpenseStatusBadge status={expense.status} />
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={5} className="px-3 py-10 text-center text-[13px] text-ink-soft">
-                    No expense history yet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <SettledExpensesTable expenses={rest} />
         {totalPages > 1 && (
           <div className="flex items-center justify-between">
             <span className="text-[12px] text-ink-soft">
@@ -205,5 +139,119 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
         )}
       </div>
     </div>
+  );
+}
+
+function PendingExpensesTable({ pending }: { pending: PendingExpense[] }) {
+  const columns: DataTableColumn<PendingExpense>[] = [
+    {
+      key: "employee",
+      header: "Employee",
+      sortValue: (expense) => expense.employees?.full_name ?? "",
+      render: (expense) => <span className="font-bold text-ink">{expense.employees?.full_name ?? "—"}</span>,
+    },
+    {
+      key: "amount",
+      header: "Amount",
+      align: "right",
+      sortValue: (expense) => expense.amount_kobo,
+      render: (expense) => <span className="text-ink">{formatKobo(BigInt(expense.amount_kobo))}</span>,
+    },
+    {
+      key: "description",
+      header: "Description",
+      render: (expense) => <span className="text-ink-soft">{expense.description}</span>,
+    },
+    {
+      key: "actions",
+      header: "",
+      align: "right",
+      render: (expense) => (
+        <div className="flex justify-end gap-2">
+          <ConfirmActionButton
+            action={approveExpense.bind(null, expense.id, true)}
+            label="Approve · taxable"
+            tone="primary"
+            className="text-[12px] font-bold text-good disabled:opacity-50"
+            confirmTitle="Approve this claim as taxable?"
+            confirmMessage={`${expense.employees?.full_name ?? "This employee"}'s ${formatKobo(BigInt(expense.amount_kobo))} claim will be approved and added to chargeable income, re-taxed in the next pay run.`}
+            confirmLabel="Approve"
+          />
+          <ConfirmActionButton
+            action={approveExpense.bind(null, expense.id, false)}
+            label="Approve · non-taxable"
+            tone="primary"
+            className="text-[12px] font-bold text-good disabled:opacity-50"
+            confirmTitle="Approve this claim as non-taxable?"
+            confirmMessage={`${expense.employees?.full_name ?? "This employee"}'s ${formatKobo(BigInt(expense.amount_kobo))} claim will be approved and paid out as pure cash in the next pay run.`}
+            confirmLabel="Approve"
+          />
+          <ConfirmActionButton
+            action={rejectExpense.bind(null, expense.id)}
+            label="Reject"
+            confirmTitle="Reject this claim?"
+            confirmMessage={`${expense.employees?.full_name ?? "This employee"}'s ${formatKobo(BigInt(expense.amount_kobo))} claim will be rejected.`}
+            confirmLabel="Reject"
+          />
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <DataTable
+      columns={columns}
+      rows={pending}
+      rowKey={(expense) => expense.id}
+      rowClassName={(expense) => (getPendingAgeTone(expense.created_at) === "warn" ? "bg-warn-tint" : "")}
+    />
+  );
+}
+
+function SettledExpensesTable({ expenses }: { expenses: SettledExpense[] }) {
+  const columns: DataTableColumn<SettledExpense>[] = [
+    {
+      key: "employee",
+      header: "Employee",
+      sortValue: (expense) => expense.employees?.full_name ?? "",
+      render: (expense) => <span className="font-bold text-ink">{expense.employees?.full_name ?? "—"}</span>,
+    },
+    {
+      key: "amount",
+      header: "Amount",
+      align: "right",
+      sortValue: (expense) => expense.amount_kobo,
+      render: (expense) => <span className="text-ink">{formatKobo(BigInt(expense.amount_kobo))}</span>,
+    },
+    {
+      key: "description",
+      header: "Description",
+      render: (expense) => <span className="text-ink-soft">{expense.description}</span>,
+    },
+    {
+      key: "tax_treatment",
+      header: "Tax treatment",
+      align: "center",
+      render: (expense) => (
+        <span className="text-ink-soft">
+          {expense.taxable === null ? "—" : expense.taxable ? "Taxable" : "Non-taxable"}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      align: "center",
+      render: (expense) => <ExpenseStatusBadge status={expense.status} />,
+    },
+  ];
+
+  return (
+    <DataTable
+      columns={columns}
+      rows={expenses}
+      rowKey={(expense) => expense.id}
+      emptyMessage="No expense history yet."
+    />
   );
 }

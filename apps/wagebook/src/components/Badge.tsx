@@ -67,6 +67,17 @@ export function ContractStatusBadge({ status }: { status: ContractStatus }) {
   }
 }
 
+export function PolicyAckBadge({ status }: { status: "acknowledged" | "stale" | "unacknowledged" }) {
+  switch (status) {
+    case "acknowledged":
+      return <Badge tone="good">Acknowledged</Badge>;
+    case "stale":
+      return <Badge tone="warn">Needs re-acknowledgment</Badge>;
+    case "unacknowledged":
+      return <Badge tone="bad">Not acknowledged</Badge>;
+  }
+}
+
 export function PayRunStatusBadge({ status }: { status: string }) {
   if (status === "draft") return <Badge tone="warn">Draft</Badge>;
   if (status === "reversed") return <Badge tone="bad">Reversed</Badge>;

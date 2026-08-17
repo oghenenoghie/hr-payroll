@@ -91,17 +91,19 @@ export function DerivationDetail({ slip, ruleVersion }: { slip: Tables<"payslips
   const bandResult = computeAnnualPaye(BigInt(slip.chargeable_income_kobo), ruleVersion);
 
   // employee_deductions_kobo is pension(EE) + NHF + PAYE plus any loan
-  // repayment and benefit employee contribution applied on top — back the
-  // loan portion out here (benefits has its own stored column) so the
-  // derivation still reconciles to net pay instead of silently going
-  // unaccounted for.
+  // repayment, benefit employee contribution and union dues applied on
+  // top — back the loan portion out here (benefits and union dues each
+  // have their own stored column) so the derivation still reconciles to
+  // net pay instead of silently going unaccounted for.
   const benefitEmployeeDeductionKobo = BigInt(slip.benefit_employee_deduction_kobo);
+  const unionDuesDeductionKobo = BigInt(slip.union_dues_deduction_kobo);
   const loanRepaymentKobo =
     BigInt(slip.employee_deductions_kobo) -
     BigInt(slip.pension_employee_kobo) -
     BigInt(slip.nhf_kobo) -
     BigInt(slip.paye_kobo) -
-    benefitEmployeeDeductionKobo;
+    benefitEmployeeDeductionKobo -
+    unionDuesDeductionKobo;
 
   const taxableReimbursementKobo = BigInt(slip.taxable_reimbursement_kobo);
   const nonTaxableReimbursementKobo = BigInt(slip.non_taxable_reimbursement_kobo);
@@ -248,6 +250,13 @@ export function DerivationDetail({ slip, ruleVersion }: { slip: Tables<"payslips
               deduction.
             </p>
           )}
+        </div>
+      )}
+
+      {unionDuesDeductionKobo > 0n && (
+        <div>
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Union dues</span>
+          <Row label="Withheld this period (post-tax)" value={`− ${formatKobo(unionDuesDeductionKobo)}`} />
         </div>
       )}
     </div>

@@ -36,7 +36,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               <div
                 key={toast.id}
                 role="status"
-                className={`pointer-events-auto flex items-center gap-2 rounded-button border px-4 py-2.5 text-[13px] font-bold shadow-xl ${
+                className={`pointer-events-auto flex items-center gap-2 rounded-button border px-4 py-2.5 text-[13px] font-bold ${
                   toast.tone === "good"
                     ? "border-good bg-good-tint text-good"
                     : toast.tone === "bad"

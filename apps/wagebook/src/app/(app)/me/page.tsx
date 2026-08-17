@@ -9,6 +9,7 @@ import {
   LeaveStatusBadge,
   OvertimeStatusBadge,
   LeaveEncashmentStatusBadge,
+  PolicyAckBadge,
 } from "@/components/Badge";
 import { LoanRequestForm } from "./LoanRequestForm";
 import { ExpenseClaimForm } from "./ExpenseClaimForm";
@@ -62,6 +63,7 @@ export default async function MePage() {
     { data: leaveRequests },
     { data: leaveEncashmentRequests },
     { data: benefitEnrollments },
+    { data: unionDuesEnrollments },
     { data: unreadNotifications },
     { data: recentAttendance },
     { data: policies },
@@ -95,6 +97,12 @@ export default async function MePage() {
     supabase
       .from("employee_benefit_enrollments")
       .select("*, benefit_plans(name, category, employer_cost_kobo, employee_cost_kobo)")
+      .eq("employee_id", employee.id)
+      .eq("status", "active")
+      .order("enrolled_at", { ascending: false }),
+    supabase
+      .from("employee_union_due_enrollments")
+      .select("*, union_dues_plans(name, amount_kobo)")
       .eq("employee_id", employee.id)
       .eq("status", "active")
       .order("enrolled_at", { ascending: false }),
@@ -330,7 +338,15 @@ export default async function MePage() {
               {recentAttendance.map((record) => (
                 <div key={record.date} className="flex items-center justify-between">
                   <span className="text-[12.5px] text-ink-soft">{record.date}</span>
-                  <span className={`text-[12.5px] font-bold capitalize ${record.status === "absent" ? "text-bad" : "text-warn"}`}>
+                  <span
+                    className={`rounded-badge px-[7px] py-[1px] text-[11.5px] font-bold capitalize ${
+                      record.status === "absent"
+                        ? "bg-bad-tint text-bad"
+                        : record.status === "late"
+                          ? "bg-warn-tint text-warn"
+                          : "text-ink-soft"
+                    }`}
+                  >
                     {record.status}
                   </span>
                 </div>
@@ -396,6 +412,28 @@ export default async function MePage() {
       </div>
 
       <div className="rounded-card border border-border bg-surface p-6">
+        <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Union dues</span>
+
+        {unionDuesEnrollments && unionDuesEnrollments.length > 0 ? (
+          <div className="mt-3 flex flex-col gap-3">
+            {unionDuesEnrollments.map((enrollment) => (
+              <div
+                key={enrollment.id}
+                className="flex items-center justify-between border-b border-border pb-3 last:border-b-0"
+              >
+                <span className="text-[13px] font-bold text-ink">{enrollment.union_dues_plans?.name ?? "—"}</span>
+                <span className="text-[12px] text-ink-soft">
+                  {formatKobo(BigInt(enrollment.union_dues_plans?.amount_kobo ?? 0))}/period from your pay
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-2 text-[13px] text-ink-soft">Not enrolled with any trade union.</p>
+        )}
+      </div>
+
+      <div className="rounded-card border border-border bg-surface p-6">
         <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Company policies</span>
 
         {policies && policies.length > 0 ? (
@@ -409,19 +447,9 @@ export default async function MePage() {
                   key={policy.id}
                   className="flex items-center justify-between border-b border-border pb-3 last:border-b-0"
                 >
-                  <div className="flex flex-col gap-0.5">
+                  <div className="flex flex-col gap-1">
                     <span className="text-[13px] font-bold text-ink">{policy.title}</span>
-                    <span
-                      className={`text-[12px] font-bold ${
-                        status === "acknowledged" ? "text-good" : status === "stale" ? "text-warn" : "text-bad"
-                      }`}
-                    >
-                      {status === "acknowledged"
-                        ? "Acknowledged"
-                        : status === "stale"
-                          ? "Needs re-acknowledgment"
-                          : "Not acknowledged"}
-                    </span>
+                    <PolicyAckBadge status={status} />
                   </div>
                   {status !== "acknowledged" && (
                     <form action={acknowledgePolicy.bind(null, policy.id)}>

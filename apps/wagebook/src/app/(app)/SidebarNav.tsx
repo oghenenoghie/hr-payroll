@@ -121,6 +121,7 @@ const REQUESTS_ITEMS: NavItem[] = [
   { href: "/shifts", label: "Shift Schedule", icon: CalendarIcon },
   { href: "/overtime", label: "Overtime", icon: ClockIcon },
   { href: "/benefits", label: "Benefits", icon: HeartIcon },
+  { href: "/union-dues", label: "Union Dues", icon: CoinsIcon },
 ];
 
 const COMPANY_ITEMS: NavItem[] = [
@@ -336,7 +337,7 @@ export function SidebarNav({
                         <ItemIcon className="relative h-4 w-4 shrink-0" />
                         <span className="relative flex-1">{item.label}</span>
                         {item.href === "/notifications" && unreadNotifications > 0 && (
-                          <span className="relative rounded-badge bg-white px-[7px] py-[1px] text-[11px] font-extrabold text-primary-dark">
+                          <span className="relative rounded-badge bg-primary-tint px-[7px] py-[1px] text-[11px] font-extrabold text-primary-dark">
                             {unreadNotifications}
                           </span>
                         )}
