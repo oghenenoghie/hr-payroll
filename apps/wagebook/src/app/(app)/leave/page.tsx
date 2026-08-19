@@ -6,11 +6,44 @@ import { LeaveStatusBadge, LeaveEncashmentStatusBadge } from "@/components/Badge
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { ConfirmActionButton } from "@/components/ConfirmActionButton";
+import { DataTable, type DataTableColumn } from "@/components/DataTable";
 import { approveLeave, rejectLeave, approveLeaveEncashment, rejectLeaveEncashment } from "./actions";
 
-const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
-const tdClass = "px-3 py-[10px] text-[13px]";
 const PAGE_SIZE = 25;
+
+type PendingLeave = {
+  id: string;
+  leave_type: string;
+  start_date: string;
+  end_date: string;
+  days: number;
+  status: string;
+  employees: { full_name: string; annual_leave_balance_days: number } | null;
+};
+
+type SettledLeave = {
+  id: string;
+  leave_type: string;
+  start_date: string;
+  end_date: string;
+  days: number;
+  status: string;
+  employees: { full_name: string } | null;
+};
+
+type PendingEncashment = {
+  id: string;
+  days_requested: number;
+  status: string;
+  employees: { full_name: string; annual_leave_balance_days: number } | null;
+};
+
+type SettledEncashment = {
+  id: string;
+  days_requested: number;
+  status: string;
+  employees: { full_name: string } | null;
+};
 
 export default async function LeavePage({
   searchParams,
@@ -134,96 +167,13 @@ export default async function LeavePage({
       {pending.length > 0 && (
         <div className="flex flex-col gap-2">
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Pending requests</span>
-          <div className="overflow-x-auto rounded-card border border-border bg-surface">
-            <table className="w-full min-w-[720px] border-collapse">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className={`${thClass} text-left`}>Employee</th>
-                  <th className={`${thClass} text-left`}>Type</th>
-                  <th className={`${thClass} text-left`}>Dates</th>
-                  <th className={`${thClass} text-right`}>Days</th>
-                  <th className={`${thClass} text-right`}>Balance</th>
-                  <th className={thClass}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {pending.map((leave) => (
-                  <tr key={leave.id} className="border-b border-border last:border-b-0">
-                    <td className={`${tdClass} font-bold text-ink`}>{leave.employees?.full_name ?? "—"}</td>
-                    <td className={`${tdClass} text-ink-soft capitalize`}>{leave.leave_type}</td>
-                    <td className={`${tdClass} text-ink-soft`}>
-                      {leave.start_date} – {leave.end_date}
-                    </td>
-                    <td className={`${tdClass} text-right text-ink`}>{leave.days}</td>
-                    <td className={`${tdClass} text-right text-ink-soft`}>
-                      {leave.employees ? Number(leave.employees.annual_leave_balance_days) : "—"}
-                    </td>
-                    <td className={`${tdClass} text-right`}>
-                      <div className="flex justify-end gap-2">
-                        <ConfirmActionButton
-                          action={approveLeave.bind(null, leave.id)}
-                          label="Approve"
-                          tone="primary"
-                          className="text-[12px] font-bold text-good disabled:opacity-50"
-                          confirmTitle="Approve this leave request?"
-                          confirmMessage={`${leave.employees?.full_name ?? "This employee"}'s ${leave.leave_type} leave (${leave.start_date} – ${leave.end_date}, ${leave.days} day${leave.days === 1 ? "" : "s"}) will be approved and their balance updated immediately.`}
-                          confirmLabel="Approve"
-                        />
-                        <ConfirmActionButton
-                          action={rejectLeave.bind(null, leave.id)}
-                          label="Reject"
-                          confirmTitle="Reject this leave request?"
-                          confirmMessage={`${leave.employees?.full_name ?? "This employee"}'s ${leave.leave_type} leave (${leave.start_date} – ${leave.end_date}) will be rejected.`}
-                          confirmLabel="Reject"
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <PendingLeaveTable pending={pending} />
         </div>
       )}
 
       <div className="flex flex-col gap-2">
         <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">History</span>
-        <div className="overflow-x-auto rounded-card border border-border bg-surface">
-          <table className="w-full min-w-[720px] border-collapse">
-            <thead>
-              <tr className="border-b border-border">
-                <th className={`${thClass} text-left`}>Employee</th>
-                <th className={`${thClass} text-left`}>Type</th>
-                <th className={`${thClass} text-left`}>Dates</th>
-                <th className={`${thClass} text-right`}>Days</th>
-                <th className={`${thClass} text-center`}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rest.length > 0 ? (
-                rest.map((leave) => (
-                  <tr key={leave.id} className="border-b border-border last:border-b-0">
-                    <td className={`${tdClass} font-bold text-ink`}>{leave.employees?.full_name ?? "—"}</td>
-                    <td className={`${tdClass} text-ink-soft capitalize`}>{leave.leave_type}</td>
-                    <td className={`${tdClass} text-ink-soft`}>
-                      {leave.start_date} – {leave.end_date}
-                    </td>
-                    <td className={`${tdClass} text-right text-ink`}>{leave.days}</td>
-                    <td className={`${tdClass} text-center`}>
-                      <LeaveStatusBadge status={leave.status} />
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={5} className="px-3 py-10 text-center text-[13px] text-ink-soft">
-                    No leave history yet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <SettledLeaveTable leaves={rest} />
         {totalPages > 1 && (
           <div className="flex items-center justify-between">
             <span className="text-[12px] text-ink-soft">
@@ -264,84 +214,13 @@ export default async function LeavePage({
       {pendingEncashments.length > 0 && (
         <div className="flex flex-col gap-2">
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Pending requests</span>
-          <div className="overflow-x-auto rounded-card border border-border bg-surface">
-            <table className="w-full min-w-[560px] border-collapse">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className={`${thClass} text-left`}>Employee</th>
-                  <th className={`${thClass} text-right`}>Days requested</th>
-                  <th className={`${thClass} text-right`}>Balance</th>
-                  <th className={thClass}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {pendingEncashments.map((request) => (
-                  <tr key={request.id} className="border-b border-border last:border-b-0">
-                    <td className={`${tdClass} font-bold text-ink`}>{request.employees?.full_name ?? "—"}</td>
-                    <td className={`${tdClass} text-right text-ink`}>{request.days_requested}</td>
-                    <td className={`${tdClass} text-right text-ink-soft`}>
-                      {request.employees ? Number(request.employees.annual_leave_balance_days) : "—"}
-                    </td>
-                    <td className={`${tdClass} text-right`}>
-                      <div className="flex justify-end gap-2">
-                        <ConfirmActionButton
-                          action={approveLeaveEncashment.bind(null, request.id)}
-                          label="Approve"
-                          tone="primary"
-                          className="text-[12px] font-bold text-good disabled:opacity-50"
-                          confirmTitle="Approve this leave encashment?"
-                          confirmMessage={`${request.employees?.full_name ?? "This employee"}'s request to cash out ${request.days_requested} day${request.days_requested === 1 ? "" : "s"} will be approved. Their balance is decremented immediately, and the taxable payout goes out with the next pay run.`}
-                          confirmLabel="Approve"
-                        />
-                        <ConfirmActionButton
-                          action={rejectLeaveEncashment.bind(null, request.id)}
-                          label="Reject"
-                          confirmTitle="Reject this leave encashment?"
-                          confirmMessage={`${request.employees?.full_name ?? "This employee"}'s request to cash out ${request.days_requested} day${request.days_requested === 1 ? "" : "s"} will be rejected.`}
-                          confirmLabel="Reject"
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <PendingEncashmentTable pending={pendingEncashments} />
         </div>
       )}
 
       <div className="flex flex-col gap-2">
         <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Encashment history</span>
-        <div className="overflow-x-auto rounded-card border border-border bg-surface">
-          <table className="w-full min-w-[560px] border-collapse">
-            <thead>
-              <tr className="border-b border-border">
-                <th className={`${thClass} text-left`}>Employee</th>
-                <th className={`${thClass} text-right`}>Days</th>
-                <th className={`${thClass} text-center`}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {restEncashments.length > 0 ? (
-                restEncashments.map((request) => (
-                  <tr key={request.id} className="border-b border-border last:border-b-0">
-                    <td className={`${tdClass} font-bold text-ink`}>{request.employees?.full_name ?? "—"}</td>
-                    <td className={`${tdClass} text-right text-ink`}>{request.days_requested}</td>
-                    <td className={`${tdClass} text-center`}>
-                      <LeaveEncashmentStatusBadge status={request.status} />
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={3} className="px-3 py-10 text-center text-[13px] text-ink-soft">
-                    No leave encashment history yet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <SettledEncashmentTable requests={restEncashments} />
         {totalEncashmentPages > 1 && (
           <div className="flex items-center justify-between">
             <span className="text-[12px] text-ink-soft">
@@ -368,5 +247,208 @@ export default async function LeavePage({
         )}
       </div>
     </div>
+  );
+}
+
+function PendingLeaveTable({ pending }: { pending: PendingLeave[] }) {
+  const columns: DataTableColumn<PendingLeave>[] = [
+    {
+      key: "employee",
+      header: "Employee",
+      sortValue: (leave) => leave.employees?.full_name ?? "",
+      render: (leave) => <span className="font-bold text-ink">{leave.employees?.full_name ?? "—"}</span>,
+    },
+    {
+      key: "type",
+      header: "Type",
+      sortValue: (leave) => leave.leave_type,
+      render: (leave) => <span className="text-ink-soft capitalize">{leave.leave_type}</span>,
+    },
+    {
+      key: "dates",
+      header: "Dates",
+      sortValue: (leave) => leave.start_date,
+      render: (leave) => (
+        <span className="text-ink-soft">
+          {leave.start_date} – {leave.end_date}
+        </span>
+      ),
+    },
+    {
+      key: "days",
+      header: "Days",
+      align: "right",
+      sortValue: (leave) => leave.days,
+      render: (leave) => <span className="text-ink">{leave.days}</span>,
+    },
+    {
+      key: "balance",
+      header: "Balance",
+      align: "right",
+      render: (leave) => (
+        <span className="text-ink-soft">
+          {leave.employees ? Number(leave.employees.annual_leave_balance_days) : "—"}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "",
+      align: "right",
+      render: (leave) => (
+        <div className="flex justify-end gap-2">
+          <ConfirmActionButton
+            action={approveLeave.bind(null, leave.id)}
+            label="Approve"
+            tone="primary"
+            className="text-[12px] font-bold text-good disabled:opacity-50"
+            confirmTitle="Approve this leave request?"
+            confirmMessage={`${leave.employees?.full_name ?? "This employee"}'s ${leave.leave_type} leave (${leave.start_date} – ${leave.end_date}, ${leave.days} day${leave.days === 1 ? "" : "s"}) will be approved and their balance updated immediately.`}
+            confirmLabel="Approve"
+          />
+          <ConfirmActionButton
+            action={rejectLeave.bind(null, leave.id)}
+            label="Reject"
+            confirmTitle="Reject this leave request?"
+            confirmMessage={`${leave.employees?.full_name ?? "This employee"}'s ${leave.leave_type} leave (${leave.start_date} – ${leave.end_date}) will be rejected.`}
+            confirmLabel="Reject"
+          />
+        </div>
+      ),
+    },
+  ];
+
+  return <DataTable columns={columns} rows={pending} rowKey={(leave) => leave.id} />;
+}
+
+function SettledLeaveTable({ leaves }: { leaves: SettledLeave[] }) {
+  const columns: DataTableColumn<SettledLeave>[] = [
+    {
+      key: "employee",
+      header: "Employee",
+      sortValue: (leave) => leave.employees?.full_name ?? "",
+      render: (leave) => <span className="font-bold text-ink">{leave.employees?.full_name ?? "—"}</span>,
+    },
+    {
+      key: "type",
+      header: "Type",
+      sortValue: (leave) => leave.leave_type,
+      render: (leave) => <span className="text-ink-soft capitalize">{leave.leave_type}</span>,
+    },
+    {
+      key: "dates",
+      header: "Dates",
+      sortValue: (leave) => leave.start_date,
+      render: (leave) => (
+        <span className="text-ink-soft">
+          {leave.start_date} – {leave.end_date}
+        </span>
+      ),
+    },
+    {
+      key: "days",
+      header: "Days",
+      align: "right",
+      sortValue: (leave) => leave.days,
+      render: (leave) => <span className="text-ink">{leave.days}</span>,
+    },
+    {
+      key: "status",
+      header: "Status",
+      align: "center",
+      render: (leave) => <LeaveStatusBadge status={leave.status} />,
+    },
+  ];
+
+  return (
+    <DataTable columns={columns} rows={leaves} rowKey={(leave) => leave.id} emptyMessage="No leave history yet." />
+  );
+}
+
+function PendingEncashmentTable({ pending }: { pending: PendingEncashment[] }) {
+  const columns: DataTableColumn<PendingEncashment>[] = [
+    {
+      key: "employee",
+      header: "Employee",
+      sortValue: (request) => request.employees?.full_name ?? "",
+      render: (request) => <span className="font-bold text-ink">{request.employees?.full_name ?? "—"}</span>,
+    },
+    {
+      key: "days_requested",
+      header: "Days requested",
+      align: "right",
+      sortValue: (request) => request.days_requested,
+      render: (request) => <span className="text-ink">{request.days_requested}</span>,
+    },
+    {
+      key: "balance",
+      header: "Balance",
+      align: "right",
+      render: (request) => (
+        <span className="text-ink-soft">
+          {request.employees ? Number(request.employees.annual_leave_balance_days) : "—"}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "",
+      align: "right",
+      render: (request) => (
+        <div className="flex justify-end gap-2">
+          <ConfirmActionButton
+            action={approveLeaveEncashment.bind(null, request.id)}
+            label="Approve"
+            tone="primary"
+            className="text-[12px] font-bold text-good disabled:opacity-50"
+            confirmTitle="Approve this leave encashment?"
+            confirmMessage={`${request.employees?.full_name ?? "This employee"}'s request to cash out ${request.days_requested} day${request.days_requested === 1 ? "" : "s"} will be approved. Their balance is decremented immediately, and the taxable payout goes out with the next pay run.`}
+            confirmLabel="Approve"
+          />
+          <ConfirmActionButton
+            action={rejectLeaveEncashment.bind(null, request.id)}
+            label="Reject"
+            confirmTitle="Reject this leave encashment?"
+            confirmMessage={`${request.employees?.full_name ?? "This employee"}'s request to cash out ${request.days_requested} day${request.days_requested === 1 ? "" : "s"} will be rejected.`}
+            confirmLabel="Reject"
+          />
+        </div>
+      ),
+    },
+  ];
+
+  return <DataTable columns={columns} rows={pending} rowKey={(request) => request.id} />;
+}
+
+function SettledEncashmentTable({ requests }: { requests: SettledEncashment[] }) {
+  const columns: DataTableColumn<SettledEncashment>[] = [
+    {
+      key: "employee",
+      header: "Employee",
+      sortValue: (request) => request.employees?.full_name ?? "",
+      render: (request) => <span className="font-bold text-ink">{request.employees?.full_name ?? "—"}</span>,
+    },
+    {
+      key: "days",
+      header: "Days",
+      align: "right",
+      sortValue: (request) => request.days_requested,
+      render: (request) => <span className="text-ink">{request.days_requested}</span>,
+    },
+    {
+      key: "status",
+      header: "Status",
+      align: "center",
+      render: (request) => <LeaveEncashmentStatusBadge status={request.status} />,
+    },
+  ];
+
+  return (
+    <DataTable
+      columns={columns}
+      rows={requests}
+      rowKey={(request) => request.id}
+      emptyMessage="No leave encashment history yet."
+    />
   );
 }

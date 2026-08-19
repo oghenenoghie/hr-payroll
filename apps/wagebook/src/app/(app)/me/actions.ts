@@ -330,6 +330,50 @@ export async function requestLeaveEncashment(
   return { success: true };
 }
 
+// Self-service "I was here today" — the employee-facing counterpart to the
+// admin/HR weekly grid at /attendance, which only ever records exceptions
+// (late/absent) and never a positive "present". A plain insert, not an
+// upsert: the unique (employee_id, date) constraint plus the RLS insert
+// policy (status = 'present', date = today, own employee row only) already
+// make this idempotent, and an employee has no UPDATE rights on this table
+// regardless — so a second clock-in the same day just hits the unique
+// constraint and is treated as a no-op, never an error. Any admin/HR
+// correction made before or after always wins, since only they can update
+// the row once it exists.
+export async function clockIn() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data: employee } = await supabase.from("employees").select("id, org_id").eq("user_id", user.id).maybeSingle();
+
+  if (!employee) return;
+
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Lagos" });
+
+  const { error } = await supabase.from("attendance_records").insert({
+    org_id: employee.org_id,
+    employee_id: employee.id,
+    date: today,
+    status: "present",
+    marked_by: user.id,
+  });
+
+  // 23505 = unique_violation: today's row already exists (already clocked
+  // in, or HR already marked the day) — not a failure, just a no-op.
+  if (error && error.code !== "23505") {
+    return;
+  }
+
+  revalidatePath("/me");
+  revalidatePath("/attendance");
+}
+
 // Upserts on the (policy_id, employee_id) unique constraint — the same
 // call handles a first-time acknowledgement and a re-acknowledgement after
 // a policy edit identically, both just moving acknowledged_at to now().

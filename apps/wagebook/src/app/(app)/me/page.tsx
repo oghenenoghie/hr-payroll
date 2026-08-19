@@ -16,7 +16,7 @@ import { ExpenseClaimForm } from "./ExpenseClaimForm";
 import { LeaveRequestForm } from "./LeaveRequestForm";
 import { OvertimeRequestForm } from "./OvertimeRequestForm";
 import { LeaveEncashmentForm } from "./LeaveEncashmentForm";
-import { acknowledgePolicy } from "./actions";
+import { acknowledgePolicy, clockIn } from "./actions";
 import { markNotificationRead } from "../notifications/actions";
 import { FormSubmitButton } from "@/components/FormSubmitButton";
 
@@ -129,6 +129,9 @@ export default async function MePage() {
       .eq("employee_id", employee.id)
       .order("uploaded_at", { ascending: false }),
   ]);
+
+  const todayDate = new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Lagos" });
+  const clockedInToday = (recentAttendance ?? []).some((record) => record.date === todayDate);
 
   const myDocuments = await Promise.all(
     (myDocumentsRaw ?? []).map(async (doc) => {
@@ -306,6 +309,26 @@ export default async function MePage() {
           <span className="text-[13px] font-bold text-ink">
             {Number(employee.annual_leave_balance_days)} days left
           </span>
+        </div>
+
+        <div className="mt-3 flex items-center justify-between rounded-control border border-border bg-bg px-4 py-3">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[13px] font-bold text-ink">Today · {todayDate}</span>
+            <span className="text-[12px] text-ink-soft">
+              {clockedInToday ? "You're marked present for today." : "Not clocked in yet."}
+            </span>
+          </div>
+          {clockedInToday ? (
+            <span className="rounded-badge bg-good-tint px-[9px] py-[3px] text-[11.5px] font-bold text-good">
+              Clocked in
+            </span>
+          ) : (
+            <form action={clockIn}>
+              <FormSubmitButton className="rounded-button bg-primary px-4 py-2 text-[12.5px] font-extrabold text-white">
+                Clock in
+              </FormSubmitButton>
+            </form>
+          )}
         </div>
 
         {leaveRequests && leaveRequests.length > 0 && (
