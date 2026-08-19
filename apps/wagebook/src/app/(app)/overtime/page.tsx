@@ -6,11 +6,28 @@ import { OvertimeStatusBadge } from "@/components/Badge";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { ConfirmActionButton } from "@/components/ConfirmActionButton";
+import { DataTable, type DataTableColumn } from "@/components/DataTable";
 import { approveOvertime, rejectOvertime } from "./actions";
 
-const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
-const tdClass = "px-3 py-[10px] text-[13px]";
 const PAGE_SIZE = 25;
+
+type PendingOvertime = {
+  id: string;
+  work_date: string;
+  hours: number;
+  reason: string | null;
+  status: string;
+  employees: { full_name: string } | null;
+};
+
+type SettledOvertime = {
+  id: string;
+  work_date: string;
+  hours: number;
+  rate_multiplier_bps: number | null;
+  status: string;
+  employees: { full_name: string } | null;
+};
 
 export default async function OvertimePage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const supabase = await createClient();
@@ -93,99 +110,13 @@ export default async function OvertimePage({ searchParams }: { searchParams: Pro
       {pending.length > 0 && (
         <div className="flex flex-col gap-2">
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Pending requests</span>
-          <div className="overflow-x-auto rounded-card border border-border bg-surface">
-            <table className="w-full min-w-[720px] border-collapse">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className={`${thClass} text-left`}>Employee</th>
-                  <th className={`${thClass} text-left`}>Date</th>
-                  <th className={`${thClass} text-right`}>Hours</th>
-                  <th className={`${thClass} text-left`}>Reason</th>
-                  <th className={thClass}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {pending.map((request) => (
-                  <tr key={request.id} className="border-b border-border last:border-b-0">
-                    <td className={`${tdClass} font-bold text-ink`}>{request.employees?.full_name ?? "—"}</td>
-                    <td className={`${tdClass} text-ink-soft`}>{request.work_date}</td>
-                    <td className={`${tdClass} text-right text-ink`}>{Number(request.hours)}</td>
-                    <td className={`${tdClass} text-ink-soft`}>{request.reason ?? "—"}</td>
-                    <td className={`${tdClass} text-right`}>
-                      <div className="flex justify-end gap-2">
-                        <ConfirmActionButton
-                          action={approveOvertime.bind(null, request.id, 150)}
-                          label="Approve · 1.5×"
-                          tone="primary"
-                          className="text-[12px] font-bold text-good disabled:opacity-50"
-                          confirmTitle="Approve at 1.5× rate?"
-                          confirmMessage={`${request.employees?.full_name ?? "This employee"}'s ${Number(request.hours)} overtime hours on ${request.work_date} will be approved at 1.5× and paid out in the next pay run.`}
-                          confirmLabel="Approve"
-                        />
-                        <ConfirmActionButton
-                          action={approveOvertime.bind(null, request.id, 200)}
-                          label="Approve · 2×"
-                          tone="primary"
-                          className="text-[12px] font-bold text-good disabled:opacity-50"
-                          confirmTitle="Approve at 2× rate?"
-                          confirmMessage={`${request.employees?.full_name ?? "This employee"}'s ${Number(request.hours)} overtime hours on ${request.work_date} will be approved at 2× and paid out in the next pay run.`}
-                          confirmLabel="Approve"
-                        />
-                        <ConfirmActionButton
-                          action={rejectOvertime.bind(null, request.id)}
-                          label="Reject"
-                          confirmTitle="Reject this overtime request?"
-                          confirmMessage={`${request.employees?.full_name ?? "This employee"}'s ${Number(request.hours)} overtime hours on ${request.work_date} will be rejected.`}
-                          confirmLabel="Reject"
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <PendingOvertimeTable pending={pending} />
         </div>
       )}
 
       <div className="flex flex-col gap-2">
         <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">History</span>
-        <div className="overflow-x-auto rounded-card border border-border bg-surface">
-          <table className="w-full min-w-[720px] border-collapse">
-            <thead>
-              <tr className="border-b border-border">
-                <th className={`${thClass} text-left`}>Employee</th>
-                <th className={`${thClass} text-left`}>Date</th>
-                <th className={`${thClass} text-right`}>Hours</th>
-                <th className={`${thClass} text-right`}>Rate</th>
-                <th className={`${thClass} text-center`}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rest.length > 0 ? (
-                rest.map((request) => (
-                  <tr key={request.id} className="border-b border-border last:border-b-0">
-                    <td className={`${tdClass} font-bold text-ink`}>{request.employees?.full_name ?? "—"}</td>
-                    <td className={`${tdClass} text-ink-soft`}>{request.work_date}</td>
-                    <td className={`${tdClass} text-right text-ink`}>{Number(request.hours)}</td>
-                    <td className={`${tdClass} text-right text-ink-soft`}>
-                      {request.status === "rejected" ? "—" : `${request.rate_multiplier_bps / 100}×`}
-                    </td>
-                    <td className={`${tdClass} text-center`}>
-                      <OvertimeStatusBadge status={request.status} />
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={5} className="px-3 py-10 text-center text-[13px] text-ink-soft">
-                    No overtime history yet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <SettledOvertimeTable requests={rest} />
         {totalPages > 1 && (
           <div className="flex items-center justify-between">
             <span className="text-[12px] text-ink-soft">
@@ -211,5 +142,121 @@ export default async function OvertimePage({ searchParams }: { searchParams: Pro
         )}
       </div>
     </div>
+  );
+}
+
+function PendingOvertimeTable({ pending }: { pending: PendingOvertime[] }) {
+  const columns: DataTableColumn<PendingOvertime>[] = [
+    {
+      key: "employee",
+      header: "Employee",
+      sortValue: (request) => request.employees?.full_name ?? "",
+      render: (request) => <span className="font-bold text-ink">{request.employees?.full_name ?? "—"}</span>,
+    },
+    {
+      key: "date",
+      header: "Date",
+      sortValue: (request) => request.work_date,
+      render: (request) => <span className="text-ink-soft">{request.work_date}</span>,
+    },
+    {
+      key: "hours",
+      header: "Hours",
+      align: "right",
+      sortValue: (request) => request.hours,
+      render: (request) => <span className="text-ink">{Number(request.hours)}</span>,
+    },
+    {
+      key: "reason",
+      header: "Reason",
+      render: (request) => <span className="text-ink-soft">{request.reason ?? "—"}</span>,
+    },
+    {
+      key: "actions",
+      header: "",
+      align: "right",
+      render: (request) => (
+        <div className="flex justify-end gap-2">
+          <ConfirmActionButton
+            action={approveOvertime.bind(null, request.id, 150)}
+            label="Approve · 1.5×"
+            tone="primary"
+            className="text-[12px] font-bold text-good disabled:opacity-50"
+            confirmTitle="Approve at 1.5× rate?"
+            confirmMessage={`${request.employees?.full_name ?? "This employee"}'s ${Number(request.hours)} overtime hours on ${request.work_date} will be approved at 1.5× and paid out in the next pay run.`}
+            confirmLabel="Approve"
+          />
+          <ConfirmActionButton
+            action={approveOvertime.bind(null, request.id, 200)}
+            label="Approve · 2×"
+            tone="primary"
+            className="text-[12px] font-bold text-good disabled:opacity-50"
+            confirmTitle="Approve at 2× rate?"
+            confirmMessage={`${request.employees?.full_name ?? "This employee"}'s ${Number(request.hours)} overtime hours on ${request.work_date} will be approved at 2× and paid out in the next pay run.`}
+            confirmLabel="Approve"
+          />
+          <ConfirmActionButton
+            action={rejectOvertime.bind(null, request.id)}
+            label="Reject"
+            confirmTitle="Reject this overtime request?"
+            confirmMessage={`${request.employees?.full_name ?? "This employee"}'s ${Number(request.hours)} overtime hours on ${request.work_date} will be rejected.`}
+            confirmLabel="Reject"
+          />
+        </div>
+      ),
+    },
+  ];
+
+  return <DataTable columns={columns} rows={pending} rowKey={(request) => request.id} />;
+}
+
+function SettledOvertimeTable({ requests }: { requests: SettledOvertime[] }) {
+  const columns: DataTableColumn<SettledOvertime>[] = [
+    {
+      key: "employee",
+      header: "Employee",
+      sortValue: (request) => request.employees?.full_name ?? "",
+      render: (request) => <span className="font-bold text-ink">{request.employees?.full_name ?? "—"}</span>,
+    },
+    {
+      key: "date",
+      header: "Date",
+      sortValue: (request) => request.work_date,
+      render: (request) => <span className="text-ink-soft">{request.work_date}</span>,
+    },
+    {
+      key: "hours",
+      header: "Hours",
+      align: "right",
+      sortValue: (request) => request.hours,
+      render: (request) => <span className="text-ink">{Number(request.hours)}</span>,
+    },
+    {
+      key: "rate",
+      header: "Rate",
+      align: "right",
+      render: (request) => (
+        <span className="text-ink-soft">
+          {request.status === "rejected" || request.rate_multiplier_bps === null
+            ? "—"
+            : `${request.rate_multiplier_bps / 100}×`}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      align: "center",
+      render: (request) => <OvertimeStatusBadge status={request.status} />,
+    },
+  ];
+
+  return (
+    <DataTable
+      columns={columns}
+      rows={requests}
+      rowKey={(request) => request.id}
+      emptyMessage="No overtime history yet."
+    />
   );
 }
