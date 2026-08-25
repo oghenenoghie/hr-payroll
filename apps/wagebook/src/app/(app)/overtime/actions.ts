@@ -63,9 +63,20 @@ export async function rejectOvertime(overtimeRequestId: string) {
     redirect("/login");
   }
 
-  await supabase.rpc("review_overtime_request", { p_overtime_request_id: overtimeRequestId, p_approve: false });
+  const { data: request } = await supabase.rpc("review_overtime_request", {
+    p_overtime_request_id: overtimeRequestId,
+    p_approve: false,
+  });
 
-  await notifyOvertimeDecision(supabase, overtimeRequestId, "rejected");
+  // Same reasoning as approveOvertime's status check above: review_overtime_request
+  // raises (returned as a null data/error, not a thrown exception here) when
+  // the request was already decided by someone else or the caller isn't
+  // eligible at the current step — without this check the employee would
+  // get told their request was rejected even when the RPC never actually
+  // touched it.
+  if (request?.status === "rejected") {
+    await notifyOvertimeDecision(supabase, overtimeRequestId, "rejected");
+  }
 
   revalidatePath("/overtime");
 }
