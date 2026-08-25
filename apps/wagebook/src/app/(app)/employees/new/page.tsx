@@ -15,6 +15,16 @@ export default async function NewEmployeePage() {
   }
 
   const membership = await getMembership(supabase, user.id);
+
+  // Matches addEmployee's own authorization check (actions.ts) — only
+  // admin/hr_manager can actually create an employee, so anyone else
+  // landing here (direct link, bookmark, back button) gets redirected
+  // before the form — and the reference data it needs — ever renders,
+  // rather than seeing a live-looking form they can't submit.
+  if (membership?.role !== "admin" && membership?.role !== "hr_manager") {
+    redirect("/employees");
+  }
+
   const [departments, branches, jobGrades, { data: managers }] = await Promise.all([
     membership ? getCachedDepartments(membership.orgId) : Promise.resolve([]),
     membership ? getCachedBranches(membership.orgId) : Promise.resolve([]),
