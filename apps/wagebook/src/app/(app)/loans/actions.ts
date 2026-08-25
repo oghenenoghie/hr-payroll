@@ -61,9 +61,16 @@ export async function rejectLoan(loanId: string) {
     redirect("/login");
   }
 
-  await supabase.rpc("review_loan", { p_loan_id: loanId, p_approve: false });
+  const { data: loan } = await supabase.rpc("review_loan", { p_loan_id: loanId, p_approve: false });
 
-  await notifyLoanDecision(supabase, loanId, "rejected");
+  // Same reasoning as approveLoan's status check above: review_loan raises
+  // (returned as a null data/error, not a thrown exception here) when the
+  // loan was already decided by someone else or the caller isn't eligible
+  // at the current step — without this check the employee would get told
+  // their loan was rejected even when the RPC never actually touched it.
+  if (loan?.status === "rejected") {
+    await notifyLoanDecision(supabase, loanId, "rejected");
+  }
 
   revalidatePath("/loans");
 }

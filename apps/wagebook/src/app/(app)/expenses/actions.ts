@@ -63,9 +63,17 @@ export async function rejectExpense(expenseId: string) {
     redirect("/login");
   }
 
-  await supabase.rpc("review_expense", { p_expense_id: expenseId, p_approve: false });
+  const { data: expense } = await supabase.rpc("review_expense", { p_expense_id: expenseId, p_approve: false });
 
-  await notifyExpenseDecision(supabase, expenseId, "rejected");
+  // Same reasoning as approveExpense's status check above: review_expense
+  // raises (returned as a null data/error, not a thrown exception here)
+  // when the claim was already decided by someone else or the caller
+  // isn't eligible at the current step — without this check the employee
+  // would get told their claim was rejected even when the RPC never
+  // actually touched it.
+  if (expense?.status === "rejected") {
+    await notifyExpenseDecision(supabase, expenseId, "rejected");
+  }
 
   revalidatePath("/expenses");
 }
