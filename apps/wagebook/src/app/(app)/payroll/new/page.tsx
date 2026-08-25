@@ -18,6 +18,15 @@ export default async function NewPayRunPage() {
     redirect("/dashboard");
   }
 
+  // Matches createPayRun's own authorization check (actions.ts) — only
+  // admin/payroll_manager/accountant can actually run payroll, so anyone
+  // else landing here (direct link, bookmark, back button) gets redirected
+  // before the form — and the active employee list it needs — ever
+  // renders, rather than seeing a live-looking form they can't submit.
+  if (!["admin", "payroll_manager", "accountant"].includes(membership.role)) {
+    redirect("/payroll");
+  }
+
   // Only needed for the Bonus frequency's per-employee amount inputs — every
   // other frequency pays whoever is active automatically, computed server-side.
   const { data: activeEmployees } = await supabase
