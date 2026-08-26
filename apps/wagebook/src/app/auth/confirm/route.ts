@@ -17,7 +17,11 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient();
     const { error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
     if (!error) {
-      redirect(type === "invite" ? "/auth/set-password" : next);
+      // Both an invite and a password-reset link land the user on the same
+      // "choose a password" form — the only difference is whether they had
+      // one before. Every other OTP type (email change confirmation, etc.)
+      // goes to `next`.
+      redirect(type === "invite" || type === "recovery" ? "/auth/set-password" : next);
     }
   }
 
