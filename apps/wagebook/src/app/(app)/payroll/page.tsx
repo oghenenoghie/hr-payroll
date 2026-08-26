@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { toNaira } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
@@ -6,6 +5,7 @@ import { getMembership } from "@/lib/membership";
 import { FREQUENCY_LABEL } from "@/lib/accounts";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { Button } from "@/components/Button";
 import { PayRunsTable } from "./PayRunsTable";
 
 export default async function PayrollPage() {
@@ -51,12 +51,7 @@ export default async function PayrollPage() {
         </div>
         <div className="flex items-center gap-2">
           {payRuns && payRuns.length > 0 && <ExportCsvButton csv={csv} filename="payroll-runs.csv" />}
-          <Link
-            href="/payroll/new"
-            className="rounded-button bg-primary px-[22px] py-[11px] text-[13px] font-extrabold text-white"
-          >
-            + Run payroll
-          </Link>
+          <Button href="/payroll/new">+ Run payroll</Button>
         </div>
       </header>
 

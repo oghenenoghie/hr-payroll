@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { formatKobo, getPendingAgeTone } from "@/lib/format";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ConfirmActionButton } from "@/components/ConfirmActionButton";
+import { Button } from "@/components/Button";
 import { useToast } from "@/components/Toast";
 import { DataTable, type DataTableColumn } from "@/components/DataTable";
 import { approveVendorBill, rejectVendorBill, approveVendorBillsBatch, rejectVendorBillsBatch } from "./actions";
@@ -165,8 +166,7 @@ export function PendingBillsTable({ bills, canManage }: { bills: PendingBill[]; 
                 <ConfirmActionButton
                   action={() => approveOne(bill)}
                   label="Approve"
-                  tone="primary"
-                  className="text-[12px] font-bold text-good disabled:opacity-50"
+                  variant="row"
                   confirmTitle="Approve this bill?"
                   confirmMessage={`"${bill.description}" from ${bill.vendors?.name ?? "this vendor"} (${formatKobo(BigInt(bill.amount_kobo))}) will be approved. If this org has a multi-step chain configured for bills, this may only advance it to the next step rather than fully approving it.`}
                   confirmLabel="Approve"
@@ -230,8 +230,7 @@ export function PendingBillsTable({ bills, canManage }: { bills: PendingBill[]; 
                 <ConfirmActionButton
                   action={() => approveOne(bill)}
                   label="Approve"
-                  tone="primary"
-                  className="text-[12px] font-bold text-good disabled:opacity-50"
+                  variant="row"
                   confirmTitle="Approve this bill?"
                   confirmMessage={`"${bill.description}" from ${bill.vendors?.name ?? "this vendor"} (${formatKobo(BigInt(bill.amount_kobo))}) will be approved. If this org has a multi-step chain configured for bills, this may only advance it to the next step rather than fully approving it.`}
                   confirmLabel="Approve"
@@ -255,22 +254,12 @@ export function PendingBillsTable({ bills, canManage }: { bills: PendingBill[]; 
             {selected.size} bill{selected.size === 1 ? "" : "s"} selected · {formatKobo(totalKobo)}
           </span>
           <div className="flex gap-2">
-            <button
-              type="button"
-              disabled={pending}
-              onClick={() => setConfirming("reject")}
-              className="rounded-button border border-border px-[18px] py-[9px] text-[12.5px] font-extrabold text-bad disabled:opacity-60"
-            >
+            <Button type="button" variant="danger" size="md" disabled={pending} onClick={() => setConfirming("reject")}>
               {pending ? "Working…" : "Reject selected"}
-            </button>
-            <button
-              type="button"
-              disabled={pending}
-              onClick={() => setConfirming("approve")}
-              className="rounded-button bg-primary px-[18px] py-[9px] text-[12.5px] font-extrabold text-white disabled:opacity-60"
-            >
+            </Button>
+            <Button type="button" size="md" disabled={pending} onClick={() => setConfirming("approve")}>
               {pending ? "Working…" : "Approve selected"}
-            </button>
+            </Button>
           </div>
         </div>
       )}

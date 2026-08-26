@@ -8,6 +8,7 @@ import { notifyLifecycleDeadlines } from "@/lib/lifecycle-alerts";
 import { getCachedDepartments, getCachedBranches } from "@/lib/reference-data";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { Button } from "@/components/Button";
 import { EmployeesTable } from "./EmployeesTable";
 
 const PAGE_SIZE = 50;
@@ -123,12 +124,7 @@ export default async function EmployeesPage({
           {employees && employees.length > 0 && (
             <ExportCsvButton csv={csv} filename="employees.csv" label="Export this page (CSV)" />
           )}
-          <Link
-            href="/employees/new"
-            className="rounded-button bg-primary px-[22px] py-[11px] text-[13px] font-extrabold text-white"
-          >
-            + Add employee
-          </Link>
+          <Button href="/employees/new">+ Add employee</Button>
         </div>
       </header>
 
@@ -197,12 +193,9 @@ export default async function EmployeesPage({
             ))}
           </select>
         </div>
-        <button
-          type="submit"
-          className="rounded-button border border-border px-[18px] py-[9px] text-[12.5px] font-extrabold text-ink"
-        >
+        <Button type="submit" variant="secondary" size="md">
           Filter
-        </button>
+        </Button>
         {hasActiveFilters && (
           <Link href="/employees" className="px-2 py-[9px] text-[12.5px] font-bold text-primary">
             Clear filters

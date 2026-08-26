@@ -94,14 +94,14 @@ export default async function IntegrationsPage() {
                         <ConfirmActionButton
                           action={toggleBankConnection.bind(null, provider, true)}
                           label="Disconnect"
-                          className="text-[12px] font-bold text-primary disabled:opacity-50"
+                          variant="row"
                           confirmTitle="Disconnect this bank?"
                           confirmMessage={`${label} will be disconnected. (Demo integration — nothing external actually changes.)`}
                           confirmLabel="Disconnect"
                         />
                       ) : (
                         <form action={toggleBankConnection.bind(null, provider, false)}>
-                          <FormSubmitButton className="text-[12px] font-bold text-primary">Connect</FormSubmitButton>
+                          <FormSubmitButton>Connect</FormSubmitButton>
                         </form>
                       )}
                     </td>
