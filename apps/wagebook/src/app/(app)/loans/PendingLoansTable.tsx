@@ -54,8 +54,7 @@ export function PendingLoansTable({ pending }: { pending: PendingLoan[] }) {
           <ConfirmActionButton
             action={approveLoan.bind(null, loan.id)}
             label="Approve"
-            tone="primary"
-            className="text-[12px] font-bold text-good disabled:opacity-50"
+            variant="row"
             confirmTitle="Approve this loan?"
             confirmMessage={`${loan.employees?.full_name ?? "This employee"}'s loan of ${formatKobo(BigInt(loan.principal_kobo))} will be approved, with ${formatKobo(BigInt(loan.monthly_repayment_kobo))} deducted from net pay each run until fully repaid.`}
             confirmLabel="Approve"

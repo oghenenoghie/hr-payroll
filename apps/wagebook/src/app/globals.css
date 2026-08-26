@@ -82,3 +82,13 @@ a.rounded-button:active {
     transform: none;
   }
 }
+
+/* Global fallback focus ring — approving a pay run by keyboard must be
+   visibly focused. Button.tsx's own focus-visible:outline-* classes
+   cover every control built on it; this catches everything else
+   (bare buttons/links outside that component, e.g. the nav). */
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}

@@ -121,14 +121,14 @@ export default async function BenefitsPage() {
                         <ConfirmActionButton
                           action={setBenefitPlanActive.bind(null, plan.id, false)}
                           label="Deactivate"
-                          className="text-[12px] font-bold text-primary disabled:opacity-50"
+                          variant="row"
                           confirmTitle="Deactivate this plan?"
                           confirmMessage={`"${plan.name}" will no longer be available for new enrollments. Existing enrollments are unaffected.`}
                           confirmLabel="Deactivate"
                         />
                       ) : (
                         <form action={setBenefitPlanActive.bind(null, plan.id, true)}>
-                          <FormSubmitButton className="text-[12px] font-bold text-primary">
+                          <FormSubmitButton>
                             Reactivate
                           </FormSubmitButton>
                         </form>

@@ -30,8 +30,8 @@ export function Tabs({
               role="tab"
               aria-selected={isActive}
               onClick={() => setActiveId(tab.id)}
-              className={`flex items-center gap-1.5 border-b-2 px-3 py-2.5 text-[13px] font-bold transition-colors ${
-                isActive ? "border-primary text-ink" : "border-transparent text-ink-soft hover:text-ink"
+              className={`flex items-center gap-1.5 border-b-2 px-3 py-2.5 text-[13px] transition-colors ${
+                isActive ? "border-primary font-extrabold text-ink" : "border-transparent font-bold text-ink-soft hover:text-ink"
               }`}
             >
               {tab.label}

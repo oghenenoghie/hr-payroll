@@ -47,8 +47,7 @@ export function PendingExpensesTable({ pending }: { pending: PendingExpense[] })
           <ConfirmActionButton
             action={approveExpense.bind(null, expense.id, true)}
             label="Approve · taxable"
-            tone="primary"
-            className="text-[12px] font-bold text-good disabled:opacity-50"
+            variant="row"
             confirmTitle="Approve this claim as taxable?"
             confirmMessage={`${expense.employees?.full_name ?? "This employee"}'s ${formatKobo(BigInt(expense.amount_kobo))} claim will be approved and added to chargeable income, re-taxed in the next pay run.`}
             confirmLabel="Approve"
@@ -56,8 +55,7 @@ export function PendingExpensesTable({ pending }: { pending: PendingExpense[] })
           <ConfirmActionButton
             action={approveExpense.bind(null, expense.id, false)}
             label="Approve · non-taxable"
-            tone="primary"
-            className="text-[12px] font-bold text-good disabled:opacity-50"
+            variant="row"
             confirmTitle="Approve this claim as non-taxable?"
             confirmMessage={`${expense.employees?.full_name ?? "This employee"}'s ${formatKobo(BigInt(expense.amount_kobo))} claim will be approved and paid out as pure cash in the next pay run.`}
             confirmLabel="Approve"

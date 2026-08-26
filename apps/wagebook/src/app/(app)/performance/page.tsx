@@ -301,8 +301,7 @@ export default async function PerformancePage() {
                         <ConfirmActionButton
                           action={startAppraisal.bind(null, employee.id, currentCycle.id)}
                           label="Start appraisal"
-                          tone="primary"
-                          className="text-[12px] font-bold text-primary"
+                          variant="row"
                           confirmTitle="Start this appraisal?"
                           confirmMessage={`A draft appraisal for ${employee.full_name} in ${currentCycle.name} will be created for you to fill in.`}
                           confirmLabel="Start"

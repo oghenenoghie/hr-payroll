@@ -116,8 +116,7 @@ export default async function OvertimePage({ searchParams }: { searchParams: Pro
                         <ConfirmActionButton
                           action={approveOvertime.bind(null, request.id, 150)}
                           label="Approve · 1.5×"
-                          tone="primary"
-                          className="text-[12px] font-bold text-good disabled:opacity-50"
+                          variant="row"
                           confirmTitle="Approve at 1.5× rate?"
                           confirmMessage={`${request.employees?.full_name ?? "This employee"}'s ${Number(request.hours)} overtime hours on ${request.work_date} will be approved at 1.5× and paid out in the next pay run.`}
                           confirmLabel="Approve"
@@ -125,8 +124,7 @@ export default async function OvertimePage({ searchParams }: { searchParams: Pro
                         <ConfirmActionButton
                           action={approveOvertime.bind(null, request.id, 200)}
                           label="Approve · 2×"
-                          tone="primary"
-                          className="text-[12px] font-bold text-good disabled:opacity-50"
+                          variant="row"
                           confirmTitle="Approve at 2× rate?"
                           confirmMessage={`${request.employees?.full_name ?? "This employee"}'s ${Number(request.hours)} overtime hours on ${request.work_date} will be approved at 2× and paid out in the next pay run.`}
                           confirmLabel="Approve"

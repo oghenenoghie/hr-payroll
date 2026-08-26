@@ -163,8 +163,7 @@ export default async function LeavePage({
                         <ConfirmActionButton
                           action={approveLeave.bind(null, leave.id)}
                           label="Approve"
-                          tone="primary"
-                          className="text-[12px] font-bold text-good disabled:opacity-50"
+                          variant="row"
                           confirmTitle="Approve this leave request?"
                           confirmMessage={`${leave.employees?.full_name ?? "This employee"}'s ${leave.leave_type} leave (${leave.start_date} – ${leave.end_date}, ${leave.days} day${leave.days === 1 ? "" : "s"}) will be approved and their balance updated immediately.`}
                           confirmLabel="Approve"
@@ -287,8 +286,7 @@ export default async function LeavePage({
                         <ConfirmActionButton
                           action={approveLeaveEncashment.bind(null, request.id)}
                           label="Approve"
-                          tone="primary"
-                          className="text-[12px] font-bold text-good disabled:opacity-50"
+                          variant="row"
                           confirmTitle="Approve this leave encashment?"
                           confirmMessage={`${request.employees?.full_name ?? "This employee"}'s request to cash out ${request.days_requested} day${request.days_requested === 1 ? "" : "s"} will be approved. Their balance is decremented immediately, and the taxable payout goes out with the next pay run.`}
                           confirmLabel="Approve"
