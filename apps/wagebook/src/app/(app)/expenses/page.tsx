@@ -3,13 +3,10 @@ import { redirect } from "next/navigation";
 import { toNaira } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
-import { formatKobo, getPendingAgeTone } from "@/lib/format";
-import { ExpenseStatusBadge } from "@/components/Badge";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
-import { ConfirmActionButton } from "@/components/ConfirmActionButton";
-import { DataTable, type DataTableColumn } from "@/components/DataTable";
-import { approveExpense, rejectExpense } from "./actions";
+import { PendingExpensesTable } from "./PendingExpensesTable";
+import { SettledExpensesTable } from "./SettledExpensesTable";
 
 const PAGE_SIZE = 25;
 
@@ -139,119 +136,5 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
         )}
       </div>
     </div>
-  );
-}
-
-function PendingExpensesTable({ pending }: { pending: PendingExpense[] }) {
-  const columns: DataTableColumn<PendingExpense>[] = [
-    {
-      key: "employee",
-      header: "Employee",
-      sortValue: (expense) => expense.employees?.full_name ?? "",
-      render: (expense) => <span className="font-bold text-ink">{expense.employees?.full_name ?? "—"}</span>,
-    },
-    {
-      key: "amount",
-      header: "Amount",
-      align: "right",
-      sortValue: (expense) => expense.amount_kobo,
-      render: (expense) => <span className="text-ink">{formatKobo(BigInt(expense.amount_kobo))}</span>,
-    },
-    {
-      key: "description",
-      header: "Description",
-      render: (expense) => <span className="text-ink-soft">{expense.description}</span>,
-    },
-    {
-      key: "actions",
-      header: "",
-      align: "right",
-      render: (expense) => (
-        <div className="flex justify-end gap-2">
-          <ConfirmActionButton
-            action={approveExpense.bind(null, expense.id, true)}
-            label="Approve · taxable"
-            tone="primary"
-            className="text-[12px] font-bold text-good disabled:opacity-50"
-            confirmTitle="Approve this claim as taxable?"
-            confirmMessage={`${expense.employees?.full_name ?? "This employee"}'s ${formatKobo(BigInt(expense.amount_kobo))} claim will be approved and added to chargeable income, re-taxed in the next pay run.`}
-            confirmLabel="Approve"
-          />
-          <ConfirmActionButton
-            action={approveExpense.bind(null, expense.id, false)}
-            label="Approve · non-taxable"
-            tone="primary"
-            className="text-[12px] font-bold text-good disabled:opacity-50"
-            confirmTitle="Approve this claim as non-taxable?"
-            confirmMessage={`${expense.employees?.full_name ?? "This employee"}'s ${formatKobo(BigInt(expense.amount_kobo))} claim will be approved and paid out as pure cash in the next pay run.`}
-            confirmLabel="Approve"
-          />
-          <ConfirmActionButton
-            action={rejectExpense.bind(null, expense.id)}
-            label="Reject"
-            confirmTitle="Reject this claim?"
-            confirmMessage={`${expense.employees?.full_name ?? "This employee"}'s ${formatKobo(BigInt(expense.amount_kobo))} claim will be rejected.`}
-            confirmLabel="Reject"
-          />
-        </div>
-      ),
-    },
-  ];
-
-  return (
-    <DataTable
-      columns={columns}
-      rows={pending}
-      rowKey={(expense) => expense.id}
-      rowClassName={(expense) => (getPendingAgeTone(expense.created_at) === "warn" ? "bg-warn-tint" : "")}
-    />
-  );
-}
-
-function SettledExpensesTable({ expenses }: { expenses: SettledExpense[] }) {
-  const columns: DataTableColumn<SettledExpense>[] = [
-    {
-      key: "employee",
-      header: "Employee",
-      sortValue: (expense) => expense.employees?.full_name ?? "",
-      render: (expense) => <span className="font-bold text-ink">{expense.employees?.full_name ?? "—"}</span>,
-    },
-    {
-      key: "amount",
-      header: "Amount",
-      align: "right",
-      sortValue: (expense) => expense.amount_kobo,
-      render: (expense) => <span className="text-ink">{formatKobo(BigInt(expense.amount_kobo))}</span>,
-    },
-    {
-      key: "description",
-      header: "Description",
-      render: (expense) => <span className="text-ink-soft">{expense.description}</span>,
-    },
-    {
-      key: "tax_treatment",
-      header: "Tax treatment",
-      align: "center",
-      render: (expense) => (
-        <span className="text-ink-soft">
-          {expense.taxable === null ? "—" : expense.taxable ? "Taxable" : "Non-taxable"}
-        </span>
-      ),
-    },
-    {
-      key: "status",
-      header: "Status",
-      align: "center",
-      render: (expense) => <ExpenseStatusBadge status={expense.status} />,
-    },
-  ];
-
-  return (
-    <DataTable
-      columns={columns}
-      rows={expenses}
-      rowKey={(expense) => expense.id}
-      emptyMessage="No expense history yet."
-    />
   );
 }
