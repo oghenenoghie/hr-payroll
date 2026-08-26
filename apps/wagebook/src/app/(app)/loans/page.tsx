@@ -2,14 +2,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMembership } from "@/lib/membership";
-import { formatKobo, getPendingAgeTone } from "@/lib/format";
-import { LoanStatusBadge } from "@/components/Badge";
 import { toCsv } from "@/lib/csv";
 import { toNaira } from "@plutus/compliance";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
-import { ConfirmActionButton } from "@/components/ConfirmActionButton";
-import { DataTable, type DataTableColumn } from "@/components/DataTable";
-import { approveLoan, rejectLoan } from "./actions";
+import { PendingLoansTable } from "./PendingLoansTable";
+import { SettledLoansTable } from "./SettledLoansTable";
 
 const PAGE_SIZE = 25;
 
@@ -141,111 +138,5 @@ export default async function LoansPage({ searchParams }: { searchParams: Promis
         )}
       </div>
     </div>
-  );
-}
-
-function PendingLoansTable({ pending }: { pending: PendingLoan[] }) {
-  const columns: DataTableColumn<PendingLoan>[] = [
-    {
-      key: "employee",
-      header: "Employee",
-      sortValue: (loan) => loan.employees?.full_name ?? "",
-      render: (loan) => <span className="font-bold text-ink">{loan.employees?.full_name ?? "—"}</span>,
-    },
-    {
-      key: "amount",
-      header: "Amount",
-      align: "right",
-      sortValue: (loan) => loan.principal_kobo,
-      render: (loan) => <span className="text-ink">{formatKobo(BigInt(loan.principal_kobo))}</span>,
-    },
-    {
-      key: "monthly_repayment",
-      header: "Monthly repayment",
-      align: "right",
-      sortValue: (loan) => loan.monthly_repayment_kobo,
-      render: (loan) => <span className="text-ink-soft">{formatKobo(BigInt(loan.monthly_repayment_kobo))}</span>,
-    },
-    {
-      key: "reason",
-      header: "Reason",
-      render: (loan) => <span className="text-ink-soft">{loan.reason ?? "—"}</span>,
-    },
-    {
-      key: "actions",
-      header: "",
-      align: "right",
-      render: (loan) => (
-        <div className="flex justify-end gap-2">
-          <ConfirmActionButton
-            action={approveLoan.bind(null, loan.id)}
-            label="Approve"
-            tone="primary"
-            className="text-[12px] font-bold text-good disabled:opacity-50"
-            confirmTitle="Approve this loan?"
-            confirmMessage={`${loan.employees?.full_name ?? "This employee"}'s loan of ${formatKobo(BigInt(loan.principal_kobo))} will be approved, with ${formatKobo(BigInt(loan.monthly_repayment_kobo))} deducted from net pay each run until fully repaid.`}
-            confirmLabel="Approve"
-          />
-          <ConfirmActionButton
-            action={rejectLoan.bind(null, loan.id)}
-            label="Reject"
-            confirmTitle="Reject this loan?"
-            confirmMessage={`${loan.employees?.full_name ?? "This employee"}'s loan request will be rejected.`}
-            confirmLabel="Reject"
-          />
-        </div>
-      ),
-    },
-  ];
-
-  return (
-    <DataTable
-      columns={columns}
-      rows={pending}
-      rowKey={(loan) => loan.id}
-      rowClassName={(loan) => (getPendingAgeTone(loan.created_at) === "warn" ? "bg-warn-tint" : "")}
-    />
-  );
-}
-
-function SettledLoansTable({ loans }: { loans: SettledLoan[] }) {
-  const columns: DataTableColumn<SettledLoan>[] = [
-    {
-      key: "employee",
-      header: "Employee",
-      sortValue: (loan) => loan.employees?.full_name ?? "",
-      render: (loan) => <span className="font-bold text-ink">{loan.employees?.full_name ?? "—"}</span>,
-    },
-    {
-      key: "amount",
-      header: "Amount",
-      align: "right",
-      sortValue: (loan) => loan.principal_kobo,
-      render: (loan) => <span className="text-ink">{formatKobo(BigInt(loan.principal_kobo))}</span>,
-    },
-    {
-      key: "outstanding",
-      header: "Outstanding",
-      align: "right",
-      sortValue: (loan) => loan.outstanding_kobo,
-      render: (loan) => <span className="text-ink-soft">{formatKobo(BigInt(loan.outstanding_kobo))}</span>,
-    },
-    {
-      key: "monthly_repayment",
-      header: "Monthly repayment",
-      align: "right",
-      sortValue: (loan) => loan.monthly_repayment_kobo,
-      render: (loan) => <span className="text-ink-soft">{formatKobo(BigInt(loan.monthly_repayment_kobo))}</span>,
-    },
-    {
-      key: "status",
-      header: "Status",
-      align: "center",
-      render: (loan) => <LoanStatusBadge status={loan.status} />,
-    },
-  ];
-
-  return (
-    <DataTable columns={columns} rows={loans} rowKey={(loan) => loan.id} emptyMessage="No loan history yet." />
   );
 }
