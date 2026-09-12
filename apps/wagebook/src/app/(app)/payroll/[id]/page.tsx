@@ -67,6 +67,32 @@ export default async function PayRunDetailPage({ params }: { params: Promise<{ i
     .eq("pay_run_id", id)
     .order("created_at", { ascending: true });
 
+  // Disbursement tracking has no meaning before a run is locked (that's
+  // the earliest point a disbursement file could exist at all — see the
+  // export route and record_payslip_disbursement_outcome's own gate), so
+  // this stays undefined for draft/validated and PayslipTable omits the
+  // column entirely rather than showing "Pending" for a run that was
+  // never even eligible.
+  const payslipIds = (payslips ?? []).map((slip) => slip.id);
+  const disbursementStatusByPayslipId =
+    payRun.status !== "draft" && payRun.status !== "validated" && payslipIds.length > 0
+      ? new Map(
+          (
+            await supabase
+              .from("latest_payslip_disbursement_status")
+              .select("payslip_id, status, failure_reason")
+              .in("payslip_id", payslipIds)
+          ).data
+            ?.filter((row): row is typeof row & { payslip_id: string; status: string } =>
+              Boolean(row.payslip_id && row.status),
+            )
+            .map((row) => [
+              row.payslip_id,
+              { status: row.status as "settled" | "failed", failureReason: row.failure_reason },
+            ]) ?? [],
+        )
+      : undefined;
+
   const { data: orgPostings } = journalEntry
     ? await supabase
         .from("ledger_postings")
@@ -295,7 +321,13 @@ export default async function PayRunDetailPage({ params }: { params: Promise<{ i
         </div>
       )}
 
-      <PayslipTable payslips={payslips ?? []} ruleVersionId={payRun.rule_version_id} />
+      <PayslipTable
+        payslips={payslips ?? []}
+        ruleVersionId={payRun.rule_version_id}
+        payRunId={payRun.id}
+        disbursementStatusByPayslipId={disbursementStatusByPayslipId}
+        canRecordDisbursementOutcome={REMITTANCE_ROLES.has(membership?.role ?? "")}
+      />
     </div>
   );
 }

@@ -4466,6 +4466,51 @@ export type Database = {
           },
         ]
       }
+      payslip_disbursement_records: {
+        Row: {
+          created_at: string
+          failure_reason: string | null
+          id: string
+          org_id: string
+          payslip_id: string
+          recorded_by: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          failure_reason?: string | null
+          id?: string
+          org_id: string
+          payslip_id: string
+          recorded_by: string
+          status: string
+        }
+        Update: {
+          created_at?: string
+          failure_reason?: string | null
+          id?: string
+          org_id?: string
+          payslip_id?: string
+          recorded_by?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payslip_disbursement_records_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payslip_disbursement_records_payslip_id_fkey"
+            columns: ["payslip_id"]
+            isOneToOne: false
+            referencedRelation: "payslips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       asset_revaluations: {
         Row: {
           adjustment_kobo: number
@@ -4778,6 +4823,24 @@ export type Database = {
             columns: ["pay_run_id"]
             isOneToOne: false
             referencedRelation: "pay_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      latest_payslip_disbursement_status: {
+        Row: {
+          created_at: string | null
+          failure_reason: string | null
+          payslip_id: string | null
+          recorded_by: string | null
+          status: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payslip_disbursement_records_payslip_id_fkey"
+            columns: ["payslip_id"]
+            isOneToOne: false
+            referencedRelation: "payslips"
             referencedColumns: ["id"]
           },
         ]
@@ -5877,6 +5940,24 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "statutory_remittances"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      record_payslip_disbursement_outcome: {
+        Args: { p_payslip_id: string; p_status: string; p_failure_reason?: string | null }
+        Returns: {
+          created_at: string
+          failure_reason: string | null
+          id: string
+          org_id: string
+          payslip_id: string
+          recorded_by: string
+          status: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "payslip_disbursement_records"
           isOneToOne: true
           isSetofReturn: false
         }

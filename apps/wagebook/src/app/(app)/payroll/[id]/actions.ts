@@ -217,3 +217,44 @@ export async function recordStatutoryRemittance(
   revalidatePath(`/payroll/${payRunId}`);
   return null;
 }
+
+export type RecordDisbursementOutcomeState = { error?: string } | null;
+
+export async function recordDisbursementOutcome(
+  payRunId: string,
+  payslipId: string,
+  _prevState: RecordDisbursementOutcomeState,
+  formData: FormData,
+): Promise<RecordDisbursementOutcomeState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const status = String(formData.get("status") ?? "");
+  const failureReason = String(formData.get("failure_reason") ?? "").trim();
+
+  if (status !== "settled" && status !== "failed") {
+    return { error: "Invalid disbursement status." };
+  }
+  if (status === "failed" && !failureReason) {
+    return { error: "Enter a reason the transfer failed." };
+  }
+
+  const { error } = await supabase.rpc("record_payslip_disbursement_outcome", {
+    p_payslip_id: payslipId,
+    p_status: status,
+    p_failure_reason: status === "failed" ? failureReason : null,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/payroll/${payRunId}`);
+  return null;
+}

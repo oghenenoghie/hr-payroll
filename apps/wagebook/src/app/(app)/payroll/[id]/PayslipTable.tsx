@@ -1,8 +1,12 @@
 import { NG_2026_1, computeAnnualPaye } from "@plutus/compliance";
 import type { Tables } from "@plutus/core";
 import { formatKobo, formatPercent } from "@/lib/format";
+import { DisbursementStatusBadge } from "@/components/Badge";
+import { DisbursementOutcomeForm } from "./DisbursementOutcomeForm";
 
 type PayslipRow = Tables<"payslips"> & { employees: { full_name: string } | null };
+
+export type DisbursementStatus = { status: "settled" | "failed"; failureReason: string | null } | null;
 
 export const RULE_VERSIONS: Record<string, typeof NG_2026_1> = {
   [NG_2026_1.id]: NG_2026_1,
@@ -16,7 +20,23 @@ const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em
 // full derivation breakdown out of the client bundle entirely, rather
 // than shipping it for every payslip page view regardless of whether any
 // row is ever expanded.
-export function PayslipTable({ payslips, ruleVersionId }: { payslips: PayslipRow[]; ruleVersionId: string }) {
+export function PayslipTable({
+  payslips,
+  ruleVersionId,
+  payRunId,
+  disbursementStatusByPayslipId,
+  canRecordDisbursementOutcome,
+}: {
+  payslips: PayslipRow[];
+  ruleVersionId: string;
+  payRunId: string;
+  /** Undefined when the run hasn't been locked yet — disbursement tracking
+   * has no meaning before that, so the column is omitted entirely rather
+   * than showing "Pending" for every row of a run that was never even
+   * eligible for a disbursement file. */
+  disbursementStatusByPayslipId?: Map<string, DisbursementStatus>;
+  canRecordDisbursementOutcome: boolean;
+}) {
   const ruleVersion = RULE_VERSIONS[ruleVersionId];
 
   if (payslips.length === 0) {
@@ -63,6 +83,24 @@ export function PayslipTable({ payslips, ruleVersionId }: { payslips: PayslipRow
                     </a>
                   </span>
                 </div>
+                {disbursementStatusByPayslipId && (
+                  <div className="flex items-center justify-between gap-3 border-t border-border px-3 py-[8px]">
+                    <div className="flex flex-col gap-0.5">
+                      <DisbursementStatusBadge
+                        status={disbursementStatusByPayslipId.get(slip.id)?.status ?? "pending"}
+                      />
+                      {disbursementStatusByPayslipId.get(slip.id)?.failureReason && (
+                        <span className="text-[11.5px] text-ink-soft">
+                          {disbursementStatusByPayslipId.get(slip.id)!.failureReason}
+                        </span>
+                      )}
+                    </div>
+                    {canRecordDisbursementOutcome &&
+                      disbursementStatusByPayslipId.get(slip.id)?.status !== "settled" && (
+                        <DisbursementOutcomeForm payRunId={payRunId} payslipId={slip.id} />
+                      )}
+                  </div>
+                )}
                 <details className="group">
                   <summary className="cursor-pointer list-none px-3 pb-[10px] text-[12px] font-bold text-primary marker:hidden [&::-webkit-details-marker]:hidden">
                     <span className="group-open:hidden">How was this derived?</span>

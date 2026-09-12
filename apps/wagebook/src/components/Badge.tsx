@@ -86,6 +86,17 @@ export function EmployeeLifecycleStageBadge({ stage }: { stage: EmployeeLifecycl
   }
 }
 
+export function DisbursementStatusBadge({ status }: { status: "settled" | "failed" | "pending" }) {
+  switch (status) {
+    case "settled":
+      return <Badge tone="good">Settled</Badge>;
+    case "failed":
+      return <Badge tone="bad">Failed</Badge>;
+    case "pending":
+      return <Badge tone="neutral">Pending</Badge>;
+  }
+}
+
 export function PolicyAckBadge({ status }: { status: "acknowledged" | "stale" | "unacknowledged" }) {
   switch (status) {
     case "acknowledged":
