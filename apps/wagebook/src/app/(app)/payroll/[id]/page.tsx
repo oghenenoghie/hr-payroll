@@ -151,12 +151,22 @@ export default async function PayRunDetailPage({ params }: { params: Promise<{ i
           </p>
         </div>
         {journalEntry && payRun.status !== "draft" && payRun.status !== "validated" && (
-          <a
-            href={`/payroll/${id}/export`}
-            className="whitespace-nowrap rounded-button border border-border px-[18px] py-[10px] text-[12.5px] font-extrabold text-ink"
-          >
-            Export general ledger (CSV)
-          </a>
+          <div className="flex shrink-0 flex-wrap justify-end gap-2">
+            <a
+              href={`/payroll/${id}/export`}
+              className="whitespace-nowrap rounded-button border border-border px-[18px] py-[10px] text-[12.5px] font-extrabold text-ink"
+            >
+              Export general ledger (CSV)
+            </a>
+            {REMITTANCE_ROLES.has(membership?.role ?? "") && (
+              <a
+                href={`/payroll/${id}/disbursement`}
+                className="whitespace-nowrap rounded-button border border-border px-[18px] py-[10px] text-[12.5px] font-extrabold text-ink"
+              >
+                Export disbursement file (CSV)
+              </a>
+            )}
+          </div>
         )}
       </header>
 
