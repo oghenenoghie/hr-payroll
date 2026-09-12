@@ -1,4 +1,4 @@
-import type { ContractStatus, ProbationStatus } from "@/lib/format";
+import type { ContractStatus, EmployeeLifecycleStage, ProbationStatus } from "@/lib/format";
 
 const TONE_CLASSES = {
   good: "bg-good-tint text-good border-good",
@@ -64,6 +64,25 @@ export function ContractStatusBadge({ status }: { status: ContractStatus }) {
       return <Badge tone="good">Active contract</Badge>;
     case "none":
       return <span className="text-ink-soft">—</span>;
+  }
+}
+
+export function EmployeeLifecycleStageBadge({ stage }: { stage: EmployeeLifecycleStage }) {
+  switch (stage) {
+    case "onboarding":
+      return <Badge tone="neutral">Onboarding</Badge>;
+    case "probation":
+      return <Badge tone="neutral">On probation</Badge>;
+    case "confirmed":
+      return <Badge tone="good">Confirmed</Badge>;
+    case "active":
+      return <Badge tone="good">Active</Badge>;
+    case "suspended":
+      return <Badge tone="warn">Suspended</Badge>;
+    case "offboarding":
+      return <Badge tone="warn">Offboarding</Badge>;
+    case "exited":
+      return <Badge tone="bad">Exited</Badge>;
   }
 }
 
