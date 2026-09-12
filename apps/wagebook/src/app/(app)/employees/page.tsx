@@ -3,8 +3,15 @@ import { redirect } from "next/navigation";
 import { toNaira } from "@plutus/compliance";
 import type { Tables } from "@plutus/core";
 import { createClient } from "@/lib/supabase/server";
-import { formatKobo, getProbationStatus, getContractStatus } from "@/lib/format";
-import { TinBadge, EmployeeStatusBadge, BankDetailsBadge, ProbationBadge, ContractStatusBadge } from "@/components/Badge";
+import { formatKobo, getProbationStatus, getContractStatus, getEmployeeLifecycleStage, type EmployeeLifecycleStage } from "@/lib/format";
+import {
+  TinBadge,
+  EmployeeStatusBadge,
+  BankDetailsBadge,
+  ProbationBadge,
+  ContractStatusBadge,
+  EmployeeLifecycleStageBadge,
+} from "@/components/Badge";
 import { getMembership } from "@/lib/membership";
 import { notifyLifecycleDeadlines } from "@/lib/lifecycle-alerts";
 import { getCachedDepartments, getCachedBranches } from "@/lib/reference-data";
@@ -73,6 +80,53 @@ export default async function EmployeesPage({
     requestedPage * PAGE_SIZE - 1,
   );
 
+  // Onboarding/offboarding checklist rows are created lazily (upsert on
+  // first edit, see edit/actions.ts) — most employees, especially anyone
+  // who joined before either checklist existed, have no row at all. A
+  // missing row defaults to "done" (true), never "still onboarding" or
+  // "still offboarding" forever, since absence of tracking data isn't
+  // evidence the step didn't happen — see getEmployeeLifecycleStage.
+  const employeeIds = (employees ?? []).map((employee) => employee.id).filter((id): id is string => Boolean(id));
+  const [{ data: onboardingRows }, { data: offboardingRows }] = await Promise.all([
+    employeeIds.length > 0
+      ? supabase
+          .from("employee_onboarding_checklist")
+          .select("employee_id, documentation_collected, contract_signed")
+          .in("employee_id", employeeIds)
+      : Promise.resolve({ data: [] }),
+    employeeIds.length > 0
+      ? supabase
+          .from("employee_offboarding_checklist")
+          .select("employee_id, notice_period_served, assets_returned, clearance_obtained, experience_letter_issued")
+          .in("employee_id", employeeIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+  const onboardingByEmployeeId = new Map((onboardingRows ?? []).map((row) => [row.employee_id, row]));
+  const offboardingByEmployeeId = new Map((offboardingRows ?? []).map((row) => [row.employee_id, row]));
+
+  const lifecycleStageByEmployeeId = new Map<string, EmployeeLifecycleStage>(
+    (employees ?? [])
+      .filter((employee): employee is typeof employee & { id: string } => Boolean(employee.id))
+      .map((employee) => {
+        const onboarding = onboardingByEmployeeId.get(employee.id);
+        const offboarding = offboardingByEmployeeId.get(employee.id);
+        return [
+          employee.id,
+          getEmployeeLifecycleStage({
+            status: employee.status ?? "active",
+            confirmed: employee.confirmed ?? false,
+            probationEndDate: employee.probation_end_date,
+            onboardingDocumentationCollected: onboarding?.documentation_collected ?? true,
+            onboardingContractSigned: onboarding?.contract_signed ?? true,
+            offboardingNoticePeriodServed: offboarding?.notice_period_served ?? true,
+            offboardingAssetsReturned: offboarding?.assets_returned ?? true,
+            offboardingClearanceObtained: offboarding?.clearance_obtained ?? true,
+            offboardingExperienceLetterIssued: offboarding?.experience_letter_issued ?? true,
+          }),
+        ];
+      }),
+  );
+
   const totalEmployees = count ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalEmployees / PAGE_SIZE));
   const currentPage = Math.min(requestedPage, totalPages);
@@ -94,7 +148,7 @@ export default async function EmployeesPage({
   // never the real value, so the export can't leak more than the screen.
   // Scoped to this page, same as pagination elsewhere in this pass.
   const csv = toCsv(
-    ["Name", "Department", "Branch", "State", "Basic (NGN)", "TIN", "Bank Details", "Status", "Probation", "Contract"],
+    ["Name", "Department", "Branch", "State", "Basic (NGN)", "TIN", "Bank Details", "Status", "Probation", "Contract", "Lifecycle Stage"],
     (employees ?? []).map((employee) => [
       employee.full_name ?? "",
       employee.department_name ?? "",
@@ -110,6 +164,7 @@ export default async function EmployeesPage({
       employee.status ?? "",
       getProbationStatus(employee.probation_end_date, employee.confirmed ?? false),
       getContractStatus(employee.employment_type ?? "permanent", employee.contract_end_date),
+      employee.id ? (lifecycleStageByEmployeeId.get(employee.id) ?? "active") : "active",
     ]),
   );
 
@@ -214,6 +269,7 @@ export default async function EmployeesPage({
 
       <EmployeesTable
         employees={employees ?? []}
+        lifecycleStageByEmployeeId={lifecycleStageByEmployeeId}
         emptyMessage={hasActiveFilters ? "No employees match these filters." : "No employees yet."}
       />
 
@@ -247,9 +303,11 @@ export default async function EmployeesPage({
 
 function EmployeesTable({
   employees,
+  lifecycleStageByEmployeeId,
   emptyMessage,
 }: {
   employees: Tables<"employees_masked">[];
+  lifecycleStageByEmployeeId: Map<string, EmployeeLifecycleStage>;
   emptyMessage: string;
 }) {
   const columns: DataTableColumn<Tables<"employees_masked">>[] = [
@@ -310,6 +368,14 @@ function EmployeesTable({
       header: "Status",
       align: "center",
       render: (employee) => <EmployeeStatusBadge status={employee.status ?? "active"} />,
+    },
+    {
+      key: "lifecycle_stage",
+      header: "Lifecycle Stage",
+      align: "center",
+      render: (employee) => (
+        <EmployeeLifecycleStageBadge stage={employee.id ? (lifecycleStageByEmployeeId.get(employee.id) ?? "active") : "active"} />
+      ),
     },
     {
       key: "probation",
