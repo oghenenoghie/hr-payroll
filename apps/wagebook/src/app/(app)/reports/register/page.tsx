@@ -188,8 +188,22 @@ export default async function PayrollRegisterPage({
                   <Link href={`/payroll/${run.id}`} className="text-[13px] font-bold text-primary">
                     {run.period_start} – {run.period_end}
                   </Link>
-                  <Badge tone={run.status === "reversed" ? "bad" : run.status === "draft" ? "warn" : "good"}>
-                    {run.status === "reversed" ? "Reversed" : run.status === "draft" ? "Draft" : "Posted"}
+                  <Badge
+                    tone={
+                      run.status === "reversed"
+                        ? "bad"
+                        : run.status === "draft" || run.status === "validated"
+                          ? "warn"
+                          : "good"
+                    }
+                  >
+                    {run.status === "reversed"
+                      ? "Reversed"
+                      : run.status === "draft"
+                        ? "Draft"
+                        : run.status === "validated"
+                          ? "Validated"
+                          : "Posted"}
                   </Badge>
                 </div>
                 <div className="mt-1 flex items-center justify-between text-[11px] text-ink-soft capitalize">
@@ -278,8 +292,22 @@ export default async function PayrollRegisterPage({
                     <td className={`${tdClass} text-right text-ink-soft`}>{formatKobo(liability.pensionKobo)}</td>
                     <td className={`${tdClass} text-right text-ink-soft`}>{formatKobo(liability.nhfKobo)}</td>
                     <td className={`${tdClass} text-center`}>
-                      <Badge tone={run.status === "reversed" ? "bad" : run.status === "draft" ? "warn" : "good"}>
-                        {run.status === "reversed" ? "Reversed" : run.status === "draft" ? "Draft" : "Posted"}
+                      <Badge
+                        tone={
+                          run.status === "reversed"
+                            ? "bad"
+                            : run.status === "draft" || run.status === "validated"
+                              ? "warn"
+                              : "good"
+                        }
+                      >
+                        {run.status === "reversed"
+                          ? "Reversed"
+                          : run.status === "draft"
+                            ? "Draft"
+                            : run.status === "validated"
+                              ? "Validated"
+                              : "Posted"}
                       </Badge>
                     </td>
                     <td className={`${tdClass} text-center`}>

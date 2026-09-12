@@ -27,9 +27,9 @@ export function VarianceFlags({ flags, payRunStatus }: { flags: VarianceFlagRow[
       <p className="mt-1 text-[12.5px] text-ink-soft">
         {payRunStatus === "draft"
           ? unacknowledgedCount > 0
-            ? "This run can't be approved until these are reviewed — approve again once you've checked them to acknowledge and proceed."
-            : "Reviewed — this run can now be approved."
-          : "Not a block on this run — it's already posted — just a prompt to check for a fat-fingered amount before it's treated as correct. Reverse the run if something here is actually wrong."}
+            ? "This run can't be validated until these are reviewed — validate again once you've checked them to acknowledge and proceed."
+            : "Reviewed — this run can now be validated."
+          : "Not a block on this run — it's no longer a draft — just a prompt to check for a fat-fingered amount before it's treated as correct. Reverse the run if something here is actually wrong."}
       </p>
       <div className="mt-3 flex flex-col gap-2">
         {flags.map((flag) => (

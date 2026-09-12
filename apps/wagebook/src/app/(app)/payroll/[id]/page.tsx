@@ -8,6 +8,7 @@ import { PayslipTable } from "./PayslipTable";
 import { PayRunDraftActions } from "./PayRunDraftActions";
 import { ReversalForm } from "./ReversalForm";
 import { RecordRemittanceForm } from "./RecordRemittanceForm";
+import { MarkPayRunPaidButton } from "./MarkPayRunPaidButton";
 import { VarianceFlags } from "./VarianceFlags";
 
 // The four schemes this build actually posts a liability for — matches
@@ -149,7 +150,7 @@ export default async function PayRunDetailPage({ params }: { params: Promise<{ i
             {payRun.rule_version_id}
           </p>
         </div>
-        {journalEntry && payRun.status !== "draft" && (
+        {journalEntry && payRun.status !== "draft" && payRun.status !== "validated" && (
           <a
             href={`/payroll/${id}/export`}
             className="whitespace-nowrap rounded-button border border-border px-[18px] py-[10px] text-[12.5px] font-extrabold text-ink"
@@ -159,12 +160,14 @@ export default async function PayRunDetailPage({ params }: { params: Promise<{ i
         )}
       </header>
 
-      {payRun.status === "draft" &&
+      {(payRun.status === "draft" || payRun.status === "validated") &&
         (membership?.role === "admin" || membership?.role === "payroll_manager" || membership?.role === "accountant") && (
         <div className="rounded-card border border-warn bg-warn-tint p-6">
-          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-warn">Draft — not yet posted</span>
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-warn">
+            {payRun.status === "validated" ? "Validated — not yet locked" : "Draft — not yet posted"}
+          </span>
           <div className="mt-3">
-            <PayRunDraftActions payRunId={payRun.id} />
+            <PayRunDraftActions payRunId={payRun.id} status={payRun.status} />
           </div>
         </div>
       )}
@@ -254,7 +257,26 @@ export default async function PayRunDetailPage({ params }: { params: Promise<{ i
         </div>
       )}
 
-      {payRun.status === "posted" && membership?.role === "admin" && (
+      {payRun.status === "posted" && !payRun.disbursed_at && REMITTANCE_ROLES.has(membership?.role ?? "") && (
+        <div className="rounded-card border border-border bg-surface p-6">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Disbursement</span>
+          <p className="mt-1 text-[12.5px] text-ink-soft">
+            A record that this run&apos;s pay was actually disbursed — not a payment made by this system.
+          </p>
+          <div className="mt-3">
+            <MarkPayRunPaidButton payRunId={payRun.id} />
+          </div>
+        </div>
+      )}
+
+      {payRun.disbursed_at && (
+        <div className="rounded-card border border-good bg-good-tint p-6">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-good">Paid</span>
+          <p className="mt-1 text-[12.5px] text-ink">{new Date(payRun.disbursed_at).toLocaleString()}</p>
+        </div>
+      )}
+
+      {(payRun.status === "posted" || payRun.status === "validated") && membership?.role === "admin" && (
         <div className="rounded-card border border-border bg-surface p-6">
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">Reverse this run</span>
           <div className="mt-3">

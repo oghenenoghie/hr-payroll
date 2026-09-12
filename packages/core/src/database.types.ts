@@ -1622,6 +1622,8 @@ export type Database = {
           approved_by: string | null
           created_at: string
           created_by: string | null
+          disbursed_at: string | null
+          disbursed_by: string | null
           employee_count: number
           frequency: string
           gross_kobo: number
@@ -1632,12 +1634,16 @@ export type Database = {
           period_start: string
           rule_version_id: string
           status: string
+          validated_at: string | null
+          validated_by: string | null
         }
         Insert: {
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string
           created_by?: string | null
+          disbursed_at?: string | null
+          disbursed_by?: string | null
           employee_count?: number
           frequency: string
           gross_kobo?: number
@@ -1648,12 +1654,16 @@ export type Database = {
           period_start: string
           rule_version_id: string
           status?: string
+          validated_at?: string | null
+          validated_by?: string | null
         }
         Update: {
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string
           created_by?: string | null
+          disbursed_at?: string | null
+          disbursed_by?: string | null
           employee_count?: number
           frequency?: string
           gross_kobo?: number
@@ -1664,6 +1674,8 @@ export type Database = {
           period_start?: string
           rule_version_id?: string
           status?: string
+          validated_at?: string | null
+          validated_by?: string | null
         }
         Relationships: [
           {
@@ -4776,13 +4788,15 @@ export type Database = {
         Args: { p_org_id: string; p_raise_percent: number }
         Returns: number
       }
-      approve_pay_run: {
+      validate_pay_run: {
         Args: { p_pay_run_id: string; p_acknowledge_variance?: boolean }
         Returns: {
           approved_at: string | null
           approved_by: string | null
           created_at: string
           created_by: string | null
+          disbursed_at: string | null
+          disbursed_by: string | null
           employee_count: number
           frequency: string
           gross_kobo: number
@@ -4793,6 +4807,66 @@ export type Database = {
           period_start: string
           rule_version_id: string
           status: string
+          validated_at: string | null
+          validated_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "pay_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      lock_pay_run: {
+        Args: { p_pay_run_id: string }
+        Returns: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string | null
+          disbursed_at: string | null
+          disbursed_by: string | null
+          employee_count: number
+          frequency: string
+          gross_kobo: number
+          id: string
+          net_kobo: number
+          org_id: string
+          period_end: string
+          period_start: string
+          rule_version_id: string
+          status: string
+          validated_at: string | null
+          validated_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "pay_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      mark_pay_run_paid: {
+        Args: { p_pay_run_id: string }
+        Returns: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string | null
+          disbursed_at: string | null
+          disbursed_by: string | null
+          employee_count: number
+          frequency: string
+          gross_kobo: number
+          id: string
+          net_kobo: number
+          org_id: string
+          period_end: string
+          period_start: string
+          rule_version_id: string
+          status: string
+          validated_at: string | null
+          validated_by: string | null
         }
         SetofOptions: {
           from: "*"
@@ -4834,6 +4908,8 @@ export type Database = {
           approved_by: string | null
           created_at: string
           created_by: string | null
+          disbursed_at: string | null
+          disbursed_by: string | null
           employee_count: number
           frequency: string
           gross_kobo: number
@@ -4844,6 +4920,8 @@ export type Database = {
           period_start: string
           rule_version_id: string
           status: string
+          validated_at: string | null
+          validated_by: string | null
         }
         SetofOptions: {
           from: "*"

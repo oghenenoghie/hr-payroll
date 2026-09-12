@@ -80,6 +80,7 @@ export function PolicyAckBadge({ status }: { status: "acknowledged" | "stale" | 
 
 export function PayRunStatusBadge({ status }: { status: string }) {
   if (status === "draft") return <Badge tone="warn">Draft</Badge>;
+  if (status === "validated") return <Badge tone="warn">Validated</Badge>;
   if (status === "reversed") return <Badge tone="bad">Reversed</Badge>;
   return <Badge tone="good">Posted</Badge>;
 }
