@@ -78,7 +78,18 @@ function NavLinkOverlay() {
 
 export type NavIcon = React.ComponentType<{ className?: string }>;
 export type NavItem = { href: string; label: string; icon: NavIcon };
-export type NavGroup = { heading?: string; items: NavItem[] };
+// A group is either a flat list of items, or split into subgroups when
+// it's big enough that a flat list would be a wall of items (currently
+// only HR and Accounts) — never both on the same group.
+export type NavSubgroup = { heading: string; items: NavItem[] };
+export type NavGroup = { heading?: string; items?: NavItem[]; subgroups?: NavSubgroup[] };
+
+// Every item across every group/subgroup of a NavGroup, in order —
+// consumers that don't care about the grouping (e.g. AppShell's page-title
+// lookup) use this instead of duplicating the items-vs-subgroups branch.
+export function flattenNavGroup(group: NavGroup): NavItem[] {
+  return group.subgroups ? group.subgroups.flatMap((subgroup) => subgroup.items) : (group.items ?? []);
+}
 
 const OVERVIEW_ITEM: NavItem = { href: "/dashboard", label: "Overview", icon: GridIcon };
 const EMPLOYEE_OVERVIEW_ITEM: NavItem = { href: "/me", label: "Overview", icon: GridIcon };
@@ -94,20 +105,33 @@ const WORKFORCE_ITEMS: NavItem[] = [
   { href: "/employee-relations", label: "Employee Relations", icon: ShieldIcon },
 ];
 
-const PAYROLL_ITEMS: NavItem[] = [
+// Split into subgroups (below) rather than one flat 16-item list under
+// "Accounts" — Payroll, Payables & Receivables, Accounting, and Assets &
+// Budgets are distinct sub-domains that happened to share one "payroll"
+// section gate; the gate stays the same, only the rendering is chunked.
+const ACCOUNTS_PAYROLL_ITEMS: NavItem[] = [
   { href: "/payroll", label: "Payroll Runs", icon: BanknoteIcon },
   { href: "/compliance", label: "Compliance Engine", icon: ShieldIcon },
   { href: "/settlements", label: "Final Settlement", icon: DoorExitIcon },
   { href: "/reports", label: "Reports", icon: BarChartIcon },
   { href: "/simulation", label: "Payroll Simulation", icon: SlidersIcon },
+];
+
+const ACCOUNTS_PAYABLES_RECEIVABLES_ITEMS: NavItem[] = [
   { href: "/vendors", label: "Vendors", icon: TruckIcon },
   { href: "/bills", label: "Bills (AP)", icon: ReceiptIcon },
   { href: "/customers", label: "Customers", icon: PersonCardIcon },
   { href: "/invoices", label: "Invoices (AR)", icon: ReceiptIcon },
+];
+
+const ACCOUNTS_ACCOUNTING_ITEMS: NavItem[] = [
   { href: "/chart-of-accounts", label: "Chart of Accounts", icon: ListIcon },
   { href: "/general-ledger", label: "General Ledger", icon: BookIcon },
   { href: "/financial-statements", label: "Financial Statements", icon: BarChartIcon },
   { href: "/bank-reconciliation", label: "Bank Reconciliation", icon: ColumnsIcon },
+];
+
+const ACCOUNTS_ASSETS_BUDGETS_ITEMS: NavItem[] = [
   { href: "/fixed-assets", label: "Fixed Assets", icon: BoxIcon },
   { href: "/fixed-assets/depreciation", label: "Depreciation Runs", icon: TrendDownIcon },
   { href: "/budgets", label: "Budgets", icon: PieChartIcon },
@@ -186,22 +210,26 @@ export function buildNavGroups(role: string | undefined, sections: SectionKey[],
   // a manager, matching the pre-reorg behavior of showing it either inside
   // Workforce or, for a manager without the workforce section (e.g. a
   // department manager), as its own fallback below.
+  //
+  // Split into subgroups rather than one flat list of up to 16 items —
+  // Workforce and Requests & Time still toggle independently in Security
+  // & Access, this only changes how they render together.
   const hasHr = has("workforce") || has("requests") || role === "department_manager";
   if (hasHr) {
-    const hrItems: NavItem[] = [];
+    const hrSubgroups: NavSubgroup[] = [];
     if (has("workforce")) {
-      hrItems.push(...WORKFORCE_ITEMS);
+      hrSubgroups.push({ heading: "Workforce", items: WORKFORCE_ITEMS });
     } else if (role === "department_manager") {
       // No "workforce" section by default (scoped to their own
       // department, not free rein over Branches/Job Grades/
       // Recruitment/other departments) — narrow direct links instead,
       // RLS-scoped by core.is_department_manager_of().
-      hrItems.push(...DEPARTMENT_MANAGER_WORKFORCE_ITEMS);
+      hrSubgroups.push({ heading: "Workforce", items: DEPARTMENT_MANAGER_WORKFORCE_ITEMS });
     }
-    if (has("requests")) hrItems.push(...REQUESTS_ITEMS);
-    hrItems.push(LEARNING_NAV_ITEM);
-    if (isManager) hrItems.push(MANAGER_NAV_ITEM);
-    groups.push({ heading: "HR", items: hrItems });
+    if (has("requests")) hrSubgroups.push({ heading: "Requests & Time", items: REQUESTS_ITEMS });
+    const companyItems = [LEARNING_NAV_ITEM, ...(isManager ? [MANAGER_NAV_ITEM] : [])];
+    hrSubgroups.push({ heading: "Company", items: companyItems });
+    groups.push({ heading: "HR", subgroups: hrSubgroups });
   } else if (isManager) {
     groups.push({ heading: "Team", items: [MANAGER_NAV_ITEM] });
   } else if (role === "legal_compliance") {
@@ -215,9 +243,19 @@ export function buildNavGroups(role: string | undefined, sections: SectionKey[],
   // Accounts is the former "Payroll" heading, renamed — same items
   // (Payroll Runs through Budgets, including Vendors/Bills/Customers/
   // Invoices together) and same "payroll" section gate, just relabeled to
-  // match the finance-and-accounting shape those items actually have.
+  // match the finance-and-accounting shape those items actually have, and
+  // split into subgroups so the whole finance/accounting surface lives
+  // under this one heading without being a 16-item wall.
   if (has("payroll")) {
-    groups.push({ heading: "Accounts", items: PAYROLL_ITEMS });
+    groups.push({
+      heading: "Accounts",
+      subgroups: [
+        { heading: "Payroll", items: ACCOUNTS_PAYROLL_ITEMS },
+        { heading: "Payables & Receivables", items: ACCOUNTS_PAYABLES_RECEIVABLES_ITEMS },
+        { heading: "Accounting", items: ACCOUNTS_ACCOUNTING_ITEMS },
+        { heading: "Assets & Budgets", items: ACCOUNTS_ASSETS_BUDGETS_ITEMS },
+      ],
+    });
   }
 
   if (has("company")) {
@@ -249,6 +287,84 @@ export function buildNavGroups(role: string | undefined, sections: SectionKey[],
   return groups;
 }
 
+function isActiveHref(pathname: string, href: string): boolean {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function itemsHaveActive(items: NavItem[], pathname: string): boolean {
+  return items.some((item) => isActiveHref(pathname, item.href));
+}
+
+function groupHasActive(group: NavGroup, pathname: string): boolean {
+  return itemsHaveActive(flattenNavGroup(group), pathname);
+}
+
+// Every heading collapsed except whichever one contains the current page —
+// a role with several sections (admin, payroll_manager, auditor) would
+// otherwise see all four groups, and every HR/Accounts subgroup, expanded
+// on first load.
+function initialCollapsed(groups: NavGroup[], pathname: string): Set<string> {
+  const collapsed = new Set<string>();
+  for (const group of groups) {
+    if (group.heading && !groupHasActive(group, pathname)) collapsed.add(group.heading);
+    if (group.subgroups) {
+      for (const subgroup of group.subgroups) {
+        if (!itemsHaveActive(subgroup.items, pathname)) collapsed.add(`${group.heading}/${subgroup.heading}`);
+      }
+    }
+  }
+  return collapsed;
+}
+
+function NavItemRow({ item, active, unreadNotifications }: { item: NavItem; active: boolean; unreadNotifications: number }) {
+  const ItemIcon = item.icon;
+  return (
+    <Link
+      href={item.href}
+      className={`relative flex items-center gap-2.5 rounded-control px-3 py-2.5 text-[13px] md:py-2 ${
+        active ? "font-extrabold text-white" : "font-bold text-primary-tint hover:bg-white/8"
+      }`}
+    >
+      {active && (
+        <motion.span
+          layoutId="active-nav-pill"
+          className="absolute inset-0 rounded-control bg-primary"
+          transition={{ type: "spring", stiffness: 500, damping: 40 }}
+        />
+      )}
+      <ItemIcon className="relative h-4 w-4 shrink-0" />
+      <span className="relative flex-1">{item.label}</span>
+      {item.href === "/notifications" && unreadNotifications > 0 && (
+        <span className="relative rounded-badge bg-primary-tint px-[7px] py-[1px] text-[11px] font-extrabold text-primary-dark">
+          {unreadNotifications}
+        </span>
+      )}
+      <NavLinkOverlay />
+    </Link>
+  );
+}
+
+function CollapsibleItems({ items, pathname, unreadNotifications }: { items: NavItem[]; pathname: string; unreadNotifications: number }) {
+  return (
+    <motion.div
+      initial={{ height: 0, opacity: 0 }}
+      animate={{ height: "auto", opacity: 1 }}
+      exit={{ height: 0, opacity: 0 }}
+      transition={{ duration: 0.15, ease: "easeOut" }}
+      className="flex flex-col gap-1 overflow-hidden"
+    >
+      {items.map((item) => (
+        <NavItemRow
+          key={item.href}
+          item={item}
+          active={isActiveHref(pathname, item.href)}
+          unreadNotifications={unreadNotifications}
+        />
+      ))}
+    </motion.div>
+  );
+}
+
 export function SidebarNav({
   role,
   sections,
@@ -261,38 +377,34 @@ export function SidebarNav({
   unreadNotifications?: number;
 }) {
   const pathname = usePathname();
+  const groups = buildNavGroups(role, sections, isManager);
 
-  // Everything starts expanded, same as before this feature existed.
   // Next.js keeps this layout mounted across client-side navigation, so
   // collapse state survives moving between pages within the session — it
   // just doesn't survive a full reload, which is a fine trade for not
   // needing to sync with localStorage on every render.
-  const [collapsedHeadings, setCollapsedHeadings] = useState<Set<string>>(new Set());
+  const [collapsedHeadings, setCollapsedHeadings] = useState<Set<string>>(() => initialCollapsed(groups, pathname));
 
-  function toggleGroup(heading: string) {
+  function toggleGroup(key: string) {
     setCollapsedHeadings((prev) => {
       const next = new Set(prev);
-      if (next.has(heading)) {
-        next.delete(heading);
+      if (next.has(key)) {
+        next.delete(key);
       } else {
-        next.add(heading);
+        next.add(key);
       }
       return next;
     });
   }
 
-  const groups = buildNavGroups(role, sections, isManager);
-
   return (
     <nav className="flex flex-col gap-4">
       {groups.map((group, i) => {
-        const groupHasActive = group.items.some(
-          (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
-        );
+        const hasActive = groupHasActive(group, pathname);
         // A manually collapsed group still opens back up while the active
         // page lives inside it — losing sight of where you are would be a
         // worse trade than the collapse preference holding perfectly.
-        const isCollapsed = Boolean(group.heading) && collapsedHeadings.has(group.heading!) && !groupHasActive;
+        const isCollapsed = Boolean(group.heading) && collapsedHeadings.has(group.heading!) && !hasActive;
 
         return (
           <div key={group.heading ?? i} className="flex flex-col gap-1">
@@ -308,45 +420,50 @@ export function SidebarNav({
               </button>
             ) : null}
             <AnimatePresence initial={false}>
-              {!isCollapsed && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.15, ease: "easeOut" }}
-                  className="flex flex-col gap-1 overflow-hidden"
-                >
-                  {group.items.map((item) => {
-                    const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-                    const ItemIcon = item.icon;
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        className={`relative flex items-center gap-2.5 rounded-control px-3 py-2.5 text-[13px] md:py-2 ${
-                          active ? "font-extrabold text-white" : "font-bold text-primary-tint hover:bg-white/8"
-                        }`}
-                      >
-                        {active && (
-                          <motion.span
-                            layoutId="active-nav-pill"
-                            className="absolute inset-0 rounded-control bg-primary"
-                            transition={{ type: "spring", stiffness: 500, damping: 40 }}
-                          />
-                        )}
-                        <ItemIcon className="relative h-4 w-4 shrink-0" />
-                        <span className="relative flex-1">{item.label}</span>
-                        {item.href === "/notifications" && unreadNotifications > 0 && (
-                          <span className="relative rounded-badge bg-primary-tint px-[7px] py-[1px] text-[11px] font-extrabold text-primary-dark">
-                            {unreadNotifications}
-                          </span>
-                        )}
-                        <NavLinkOverlay />
-                      </Link>
-                    );
-                  })}
-                </motion.div>
-              )}
+              {!isCollapsed &&
+                (group.subgroups ? (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.15, ease: "easeOut" }}
+                    className="flex flex-col gap-1 overflow-hidden pl-2"
+                  >
+                    {group.subgroups.map((subgroup) => {
+                      const subKey = `${group.heading}/${subgroup.heading}`;
+                      const subHasActive = itemsHaveActive(subgroup.items, pathname);
+                      const subCollapsed = collapsedHeadings.has(subKey) && !subHasActive;
+                      return (
+                        <div key={subKey} className="flex flex-col gap-1">
+                          <button
+                            type="button"
+                            onClick={() => toggleGroup(subKey)}
+                            aria-expanded={!subCollapsed}
+                            className="flex items-center justify-between rounded-control px-3 pb-1 text-[10.5px] font-bold uppercase tracking-[0.03em] text-primary-tint/75 hover:text-primary-tint"
+                          >
+                            <span>{subgroup.heading}</span>
+                            <ChevronIcon collapsed={subCollapsed} />
+                          </button>
+                          <AnimatePresence initial={false}>
+                            {!subCollapsed && (
+                              <CollapsibleItems
+                                items={subgroup.items}
+                                pathname={pathname}
+                                unreadNotifications={unreadNotifications}
+                              />
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      );
+                    })}
+                  </motion.div>
+                ) : (
+                  <CollapsibleItems
+                    items={group.items ?? []}
+                    pathname={pathname}
+                    unreadNotifications={unreadNotifications}
+                  />
+                ))}
             </AnimatePresence>
           </div>
         );

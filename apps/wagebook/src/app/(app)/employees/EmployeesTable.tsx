@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import type { Tables } from "@plutus/core";
-import { formatKobo, getProbationStatus, getContractStatus } from "@/lib/format";
+import { formatKobo, getProbationStatus, getContractStatus, type EmployeeLifecycleStage } from "@/lib/format";
 import {
   TinBadge,
   EmployeeStatusBadge,
   BankDetailsBadge,
   ProbationBadge,
   ContractStatusBadge,
+  EmployeeLifecycleStageBadge,
 } from "@/components/Badge";
 import { DataTable, type DataTableColumn } from "@/components/DataTable";
 
@@ -20,9 +21,11 @@ import { DataTable, type DataTableColumn } from "@/components/DataTable";
 // never crosses that boundary; it's built entirely on the client.
 export function EmployeesTable({
   employees,
+  lifecycleStageByEmployeeId,
   emptyMessage,
 }: {
   employees: Tables<"employees_masked">[];
+  lifecycleStageByEmployeeId: Map<string, EmployeeLifecycleStage>;
   emptyMessage: string;
 }) {
   const columns: DataTableColumn<Tables<"employees_masked">>[] = [
@@ -83,6 +86,14 @@ export function EmployeesTable({
       header: "Status",
       align: "center",
       render: (employee) => <EmployeeStatusBadge status={employee.status ?? "active"} />,
+    },
+    {
+      key: "lifecycle_stage",
+      header: "Lifecycle Stage",
+      align: "center",
+      render: (employee) => (
+        <EmployeeLifecycleStageBadge stage={employee.id ? (lifecycleStageByEmployeeId.get(employee.id) ?? "active") : "active"} />
+      ),
     },
     {
       key: "probation",

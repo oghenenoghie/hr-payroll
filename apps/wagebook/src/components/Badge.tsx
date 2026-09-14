@@ -1,4 +1,4 @@
-import type { ContractStatus, ProbationStatus } from "@/lib/format";
+import type { ContractStatus, EmployeeLifecycleStage, ProbationStatus } from "@/lib/format";
 
 const TONE_CLASSES = {
   good: "bg-good-tint text-good border-good",
@@ -67,6 +67,36 @@ export function ContractStatusBadge({ status }: { status: ContractStatus }) {
   }
 }
 
+export function EmployeeLifecycleStageBadge({ stage }: { stage: EmployeeLifecycleStage }) {
+  switch (stage) {
+    case "onboarding":
+      return <Badge tone="neutral">Onboarding</Badge>;
+    case "probation":
+      return <Badge tone="neutral">On probation</Badge>;
+    case "confirmed":
+      return <Badge tone="good">Confirmed</Badge>;
+    case "active":
+      return <Badge tone="good">Active</Badge>;
+    case "suspended":
+      return <Badge tone="warn">Suspended</Badge>;
+    case "offboarding":
+      return <Badge tone="warn">Offboarding</Badge>;
+    case "exited":
+      return <Badge tone="bad">Exited</Badge>;
+  }
+}
+
+export function DisbursementStatusBadge({ status }: { status: "settled" | "failed" | "pending" }) {
+  switch (status) {
+    case "settled":
+      return <Badge tone="good">Settled</Badge>;
+    case "failed":
+      return <Badge tone="bad">Failed</Badge>;
+    case "pending":
+      return <Badge tone="neutral">Pending</Badge>;
+  }
+}
+
 export function PolicyAckBadge({ status }: { status: "acknowledged" | "stale" | "unacknowledged" }) {
   switch (status) {
     case "acknowledged":
@@ -80,6 +110,7 @@ export function PolicyAckBadge({ status }: { status: "acknowledged" | "stale" | 
 
 export function PayRunStatusBadge({ status }: { status: string }) {
   if (status === "draft") return <Badge tone="warn">Draft</Badge>;
+  if (status === "validated") return <Badge tone="warn">Validated</Badge>;
   if (status === "reversed") return <Badge tone="bad">Reversed</Badge>;
   return <Badge tone="good">Posted</Badge>;
 }

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import type { SectionKey } from "@/lib/nav-sections";
 import { FormSubmitButton } from "@/components/FormSubmitButton";
 import { signOut } from "./dashboard/actions";
-import { SidebarNav, buildNavGroups } from "./SidebarNav";
+import { SidebarNav, buildNavGroups, flattenNavGroup } from "./SidebarNav";
 import { TopBar } from "./TopBar";
 import { ROLE_LABEL } from "@/lib/roles";
 
@@ -47,7 +47,7 @@ export function AppShell({
   // rather than its parent's.
   const navGroups = buildNavGroups(role, sections, isManager);
   const matchingItems = navGroups
-    .flatMap((group) => group.items)
+    .flatMap((group) => flattenNavGroup(group))
     .filter((item) => pathname === item.href || pathname.startsWith(`${item.href}/`));
   const pageTitle = matchingItems.sort((a, b) => b.href.length - a.href.length)[0]?.label;
 

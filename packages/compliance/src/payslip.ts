@@ -163,6 +163,7 @@ export function deriveLumpSumPayslip(input: LumpSumPayslipInput, ruleVersion: Ru
 }
 
 const GROSS_UP_MAX_ITERATIONS = 128;
+const REGULAR_GROSS_UP_MAX_ITERATIONS = 128;
 
 /**
  * Solves for the lump-sum gross that nets to targetNetKobo after cumulative
@@ -261,4 +262,164 @@ export function deriveGrossedUpLumpSumPayslip(
   );
 
   return { ...result, iterations };
+}
+
+export interface RegularPackageGrossUpInput {
+  /**
+   * The employee's current basic/housing/transport package. Only the
+   * *ratio* between these amounts is used — magnitudes are rescaled
+   * together during the solve — so an employee whose package is split
+   * 60% basic / 30% housing / 10% transport today keeps that same split
+   * after grossing up, just scaled to a larger total.
+   */
+  currentAnnualPayComponents: PayComponent[];
+  annualRentPaidKobo: Kobo;
+  frequency: PayFrequency;
+  /** The take-home this employee should receive for one period at `frequency` — the employer bears the tax on top of it. */
+  targetPeriodNetKobo: Kobo;
+  cumulativeChargeableIncomeBeforeKobo: Kobo;
+  cumulativePayePaidBeforeKobo: Kobo;
+}
+
+export interface RegularPackageGrossUpResult {
+  /** The solved annual basic/housing/transport package, same component codes and ratio as the input. */
+  annualPayComponents: PayComponent[];
+  /** The period payslip derived from the solved package. */
+  periodPayslip: PeriodPayslipResult;
+  iterations: number;
+}
+
+/**
+ * Rescales `components` so their total becomes `targetTotalKobo`, preserving
+ * each component's share of the original total. Integer division truncates
+ * per component (a few kobo of the total can go unallocated across a large
+ * component count) — consistent with this package's stated per-period
+ * rounding convention (see proratePerPeriod) rather than a new one.
+ */
+function scaleComponentsToTotal(components: PayComponent[], originalTotalKobo: Kobo, targetTotalKobo: Kobo): PayComponent[] {
+  return components.map((component) => ({
+    ...component,
+    amountKobo: (component.amountKobo * targetTotalKobo) / originalTotalKobo,
+  }));
+}
+
+/**
+ * Solves for the annual basic/housing/transport package (in the employee's
+ * existing proportions) whose derived period payslip nets to at least
+ * targetPeriodNetKobo — gross-up for an employee's *regular* package, as
+ * opposed to solveLumpSumGrossForNetKobo's one-off payment.
+ *
+ * feature-backlog.md §1 left this open specifically because "it's unclear
+ * which component should absorb the increase and how pension/NHF/rent
+ * relief should interact with an unknown gross before it's solved." This
+ * resolves it with a disclosed simplification, the same way the arrears
+ * rule-version question was resolved: by an explicit, recorded product
+ * decision rather than a silent guess, still open to being revisited
+ * against a Nigerian tax professional or payroll-practice convention.
+ *
+ * The decision: **distribute the increase proportionally across all three
+ * components**, preserving today's basic:housing:transport ratio, rather
+ * than concentrating it entirely in one component (e.g. basic). This was
+ * chosen over concentrating in basic because piling a large raise onto
+ * basic alone would inflate the pension and NHF bases (both driven off
+ * basic) far more than a real negotiated package revision typically would,
+ * and over concentrating in a non-pensionable/non-NHF component (e.g.
+ * transport alone) because that would let a "gross-up" quietly shrink an
+ * employee's pension contribution base — the proportional split changes
+ * pension/NHF exposure by the least relative to the employee's existing
+ * package shape.
+ *
+ * Rent relief doesn't affect which component should absorb the increase:
+ * it's a function of annualRentPaidKobo alone, not of the package's
+ * internal composition, so it's identical for every candidate split.
+ *
+ * Monotonicity (the same argument solveLumpSumGrossForNetKobo relies on):
+ * scaling every component up by the same factor never decreases gross,
+ * the pensionable base, or the NHF base, and net-of-(pension + NHF + PAYE)
+ * is non-decreasing in gross because every marginal rate in the system
+ * (8% employee pension + 2.5% NHF + up to 25% top PAYE band, per
+ * NG_2026_1) sums to well under 100%. Bisection therefore converges to
+ * the exact minimal annual total whose period net is >= target, in a
+ * bounded number of iterations, with no false convergence.
+ */
+export function solveRegularPackageGrossUp(
+  input: RegularPackageGrossUpInput,
+  ruleVersion: RuleVersion,
+): RegularPackageGrossUpResult {
+  const originalTotalKobo = sumKobo(input.currentAnnualPayComponents.map((c) => c.amountKobo));
+
+  if (originalTotalKobo <= 0n) {
+    throw new Error(
+      "Cannot gross up a regular package with a zero or negative total: the basic/housing/transport ratio is undefined.",
+    );
+  }
+
+  const periodNetForAnnualTotal = (candidateAnnualTotalKobo: Kobo): Kobo =>
+    derivePeriodPayslip(
+      {
+        annualPayComponents: scaleComponentsToTotal(input.currentAnnualPayComponents, originalTotalKobo, candidateAnnualTotalKobo),
+        annualRentPaidKobo: input.annualRentPaidKobo,
+        frequency: input.frequency,
+        cumulativeChargeableIncomeBeforeKobo: input.cumulativeChargeableIncomeBeforeKobo,
+        cumulativePayePaidBeforeKobo: input.cumulativePayePaidBeforeKobo,
+      },
+      ruleVersion,
+    ).netKobo;
+
+  const periodsPerYear = PERIODS_PER_YEAR[input.frequency];
+
+  if (input.targetPeriodNetKobo <= 0n) {
+    const periodPayslip = derivePeriodPayslip(
+      {
+        annualPayComponents: scaleComponentsToTotal(input.currentAnnualPayComponents, originalTotalKobo, 0n),
+        annualRentPaidKobo: input.annualRentPaidKobo,
+        frequency: input.frequency,
+        cumulativeChargeableIncomeBeforeKobo: input.cumulativeChargeableIncomeBeforeKobo,
+        cumulativePayePaidBeforeKobo: input.cumulativePayePaidBeforeKobo,
+      },
+      ruleVersion,
+    );
+    return {
+      annualPayComponents: scaleComponentsToTotal(input.currentAnnualPayComponents, originalTotalKobo, 0n),
+      periodPayslip,
+      iterations: 0,
+    };
+  }
+
+  let iterations = 0;
+
+  // Period net can never exceed period gross, and period gross is the
+  // annual total divided by periodsPerYear, so an annual total of
+  // targetPeriodNetKobo * periodsPerYear is always a valid starting
+  // ceiling; double until it's actually sufficient.
+  let low = input.targetPeriodNetKobo * periodsPerYear;
+  let high = low;
+  while (periodNetForAnnualTotal(high) < input.targetPeriodNetKobo && iterations < REGULAR_GROSS_UP_MAX_ITERATIONS) {
+    high *= 2n;
+    iterations++;
+  }
+
+  while (high - low > 1n && iterations < REGULAR_GROSS_UP_MAX_ITERATIONS) {
+    const mid = low + (high - low) / 2n;
+    if (periodNetForAnnualTotal(mid) >= input.targetPeriodNetKobo) {
+      high = mid;
+    } else {
+      low = mid;
+    }
+    iterations++;
+  }
+
+  const annualPayComponents = scaleComponentsToTotal(input.currentAnnualPayComponents, originalTotalKobo, high);
+  const periodPayslip = derivePeriodPayslip(
+    {
+      annualPayComponents,
+      annualRentPaidKobo: input.annualRentPaidKobo,
+      frequency: input.frequency,
+      cumulativeChargeableIncomeBeforeKobo: input.cumulativeChargeableIncomeBeforeKobo,
+      cumulativePayePaidBeforeKobo: input.cumulativePayePaidBeforeKobo,
+    },
+    ruleVersion,
+  );
+
+  return { annualPayComponents, periodPayslip, iterations };
 }

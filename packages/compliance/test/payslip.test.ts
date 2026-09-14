@@ -1,13 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { naira } from "../src/money";
+import { naira, clampNonNegative, sumKobo } from "../src/money";
 import { NG_2026_1 } from "../src/rule-versions/ng-2026.1";
-import { computeAnnualPaye } from "../src/schemes/paye";
+import { computeAnnualPaye, computeCumulativePeriodPaye } from "../src/schemes/paye";
 import { computeNsitf } from "../src/schemes/nsitf";
 import {
   derivePeriodPayslip,
   deriveLumpSumPayslip,
   deriveGrossedUpLumpSumPayslip,
   solveLumpSumGrossForNetKobo,
+  solveRegularPackageGrossUp,
+  type PeriodPayslipResult,
 } from "../src/payslip";
 import { computePension } from "../src/schemes/pension";
 import { computeNhf } from "../src/schemes/nhf";
@@ -520,5 +522,190 @@ describe("solveLumpSumGrossForNetKobo / deriveGrossedUpLumpSumPayslip — net-to
     // At the 25% top marginal rate, grossing up ₦5,000,000 net costs
     // noticeably more than a fifth extra — roughly gross ≈ net / 0.75.
     expect(grossKobo).toBeGreaterThan(naira(5_000_000 / 0.75) - naira(1));
+  });
+});
+
+describe("overtime entering the cumulative PAYE base — feature-backlog.md §1's flagged gap", () => {
+  // Overtime isn't derived through derivePeriodPayslip itself — production
+  // (payroll/new/actions.ts) folds it into a regular period's own
+  // chargeableIncomeKobo as a taxable addback and recomputes PAYE off that
+  // combined cumulative position via computeCumulativePeriodPaye, the exact
+  // same pattern this suite already golden-tests for reimbursements and
+  // leave encashment. This block exercises that same shape in isolation so
+  // a regression in either place is caught by a fast, pure test rather than
+  // only by an app-level integration test against a live database.
+
+  it("overtime that pushes year-to-date chargeable income across the 18%->21% boundary at ₦12,000,000 is taxed on the crossing, not at the pre-overtime marginal rate", () => {
+    const cumulativeChargeableIncomeBeforeKobo = naira(11_500_000);
+    const cumulativePayePaidBeforeKobo = computeAnnualPaye(cumulativeChargeableIncomeBeforeKobo, rv).annualPayeKobo;
+
+    const regular = derivePeriodPayslip(
+      {
+        annualPayComponents: annualComponents(2_400_000, 1_200_000, 720_000),
+        annualRentPaidKobo: naira(900_000),
+        frequency: "monthly",
+        cumulativeChargeableIncomeBeforeKobo,
+        cumulativePayePaidBeforeKobo,
+      },
+      rv,
+    );
+
+    const overtimePayKobo = naira(700_000);
+    const chargeableIncomeWithOvertimeKobo = clampNonNegative(regular.chargeableIncomeKobo + overtimePayKobo);
+    const payeWithOvertimeKobo = computeCumulativePeriodPaye(
+      chargeableIncomeWithOvertimeKobo,
+      cumulativePayePaidBeforeKobo,
+      rv,
+    );
+
+    // Sanity check that this test actually exercises a band crossing.
+    expect(regular.chargeableIncomeKobo).toBeLessThan(naira(12_000_000));
+    expect(chargeableIncomeWithOvertimeKobo).toBeGreaterThan(naira(12_000_000));
+
+    const overtimePayeShareKobo = payeWithOvertimeKobo - regular.payeKobo;
+    const flatRateEstimate = (overtimePayKobo * 18n) / 100n; // naive: all overtime at the pre-crossing 18% rate
+
+    // Part of the overtime lands in the pricier 21% band, so taxing it at a
+    // flat 18% (as isolated per-period slicing would) understates PAYE.
+    expect(overtimePayeShareKobo).toBeGreaterThan(flatRateEstimate);
+  });
+
+  it("overtime is fully taxable but contributes nothing to the pension or NHF base, same as bonus/13th month/one-off", () => {
+    const overtimeComponent: PayComponent = { code: "overtime", amountKobo: naira(500_000), kind: "overtime" };
+
+    const pension = computePension([overtimeComponent], rv);
+    const nhfKobo = computeNhf([overtimeComponent], rv);
+
+    expect(pension.employeeKobo).toBe(0n);
+    expect(pension.employerKobo).toBe(0n);
+    expect(nhfKobo).toBe(0n);
+  });
+});
+
+describe("solveRegularPackageGrossUp — regular-package net-to-gross, feature-backlog.md §1's remaining net-to-gross gap", () => {
+  it("solves within one kobo of the target period net when comfortably inside a single band", () => {
+    const currentAnnualPayComponents = annualComponents(3_600_000, 1_800_000, 600_000); // 60/30/10 split
+    const targetPeriodNetKobo = naira(250_000);
+
+    const { annualPayComponents, periodPayslip, iterations } = solveRegularPackageGrossUp(
+      {
+        currentAnnualPayComponents,
+        annualRentPaidKobo: naira(900_000),
+        frequency: "monthly",
+        targetPeriodNetKobo,
+        cumulativeChargeableIncomeBeforeKobo: 0n,
+        cumulativePayePaidBeforeKobo: 0n,
+      },
+      rv,
+    );
+
+    expect(periodPayslip.netKobo).toBeGreaterThanOrEqual(targetPeriodNetKobo);
+    expect(periodPayslip.netKobo - targetPeriodNetKobo).toBeLessThan(naira(1));
+    expect(iterations).toBeGreaterThan(0);
+    expect(iterations).toBeLessThan(128);
+
+    // The solved package preserves the original 60/30/10 ratio.
+    const total = sumKobo(annualPayComponents.map((c) => c.amountKobo));
+    const shareOf = (code: string) =>
+      Number(annualPayComponents.find((c) => c.code === code)!.amountKobo) / Number(total);
+    expect(shareOf("basic")).toBeCloseTo(0.6, 2);
+    expect(shareOf("housing")).toBeCloseTo(0.3, 2);
+    expect(shareOf("transport")).toBeCloseTo(0.1, 2);
+  });
+
+  it("the effective deduction rate is higher once the solved package's chargeable income crosses the 18%->21% boundary at ₦12,000,000 than for a lower target that stays under it", () => {
+    // Unlike a lump sum (taxed by PAYE alone), a regular package also pays
+    // employee pension and NHF, so a flat "gross = net / (1 - 0.18)"
+    // estimate isn't a valid lower bound here. Instead, compare the solved
+    // package's own effective (deductions / gross) rate at two targets —
+    // one safely inside the ₦800,000-₦12,000,000 band, one that forces the
+    // package's chargeable income past ₦12,000,000 — and confirm crossing
+    // the boundary really does cost proportionally more, not just more in
+    // absolute kobo (which would be true even without a band crossing).
+    const currentAnnualPayComponents = annualComponents(6_000_000, 3_000_000, 1_800_000); // ₦10,800,000 total
+    const annualRentPaidKobo = naira(1_500_000);
+    const baseInput = {
+      currentAnnualPayComponents,
+      annualRentPaidKobo,
+      frequency: "monthly" as const,
+      cumulativeChargeableIncomeBeforeKobo: 0n,
+      cumulativePayePaidBeforeKobo: 0n,
+    };
+
+    const belowBoundary = solveRegularPackageGrossUp({ ...baseInput, targetPeriodNetKobo: naira(400_000) }, rv);
+    const acrossBoundary = solveRegularPackageGrossUp({ ...baseInput, targetPeriodNetKobo: naira(1_200_000) }, rv);
+
+    expect(belowBoundary.periodPayslip.chargeableIncomeKobo * 12n).toBeLessThan(naira(12_000_000));
+    expect(acrossBoundary.periodPayslip.chargeableIncomeKobo * 12n).toBeGreaterThan(naira(12_000_000));
+
+    const effectiveRate = (payslip: PeriodPayslipResult) =>
+      1 - Number(payslip.netKobo) / Number(payslip.grossKobo);
+
+    expect(effectiveRate(acrossBoundary.periodPayslip)).toBeGreaterThan(effectiveRate(belowBoundary.periodPayslip));
+  });
+
+  it("scaling up the package never decreases the pensionable or NHF base — the proportional-split decision doesn't shrink statutory exposure", () => {
+    const currentAnnualPayComponents = annualComponents(3_000_000, 1_500_000, 900_000);
+    const before = derivePeriodPayslip(
+      {
+        annualPayComponents: currentAnnualPayComponents,
+        annualRentPaidKobo: naira(1_200_000),
+        frequency: "monthly",
+        cumulativeChargeableIncomeBeforeKobo: 0n,
+        cumulativePayePaidBeforeKobo: 0n,
+      },
+      rv,
+    );
+
+    const { periodPayslip: after } = solveRegularPackageGrossUp(
+      {
+        currentAnnualPayComponents,
+        annualRentPaidKobo: naira(1_200_000),
+        frequency: "monthly",
+        targetPeriodNetKobo: naira(500_000),
+        cumulativeChargeableIncomeBeforeKobo: 0n,
+        cumulativePayePaidBeforeKobo: 0n,
+      },
+      rv,
+    );
+
+    expect(after.pensionableKobo).toBeGreaterThanOrEqual(before.pensionableKobo);
+    expect(after.pensionEmployerKobo).toBeGreaterThanOrEqual(before.pensionEmployerKobo);
+    expect(after.nhfKobo).toBeGreaterThanOrEqual(before.nhfKobo);
+  });
+
+  it("a zero or negative target net solves to a zero-amount package without iterating", () => {
+    const currentAnnualPayComponents = annualComponents(3_000_000, 1_500_000, 900_000);
+
+    const zero = solveRegularPackageGrossUp(
+      {
+        currentAnnualPayComponents,
+        annualRentPaidKobo: naira(1_200_000),
+        frequency: "monthly",
+        targetPeriodNetKobo: 0n,
+        cumulativeChargeableIncomeBeforeKobo: 0n,
+        cumulativePayePaidBeforeKobo: 0n,
+      },
+      rv,
+    );
+
+    expect(zero.periodPayslip.netKobo).toBe(0n);
+    expect(zero.iterations).toBe(0);
+  });
+
+  it("throws when the current package totals zero, since the basic/housing/transport ratio is undefined", () => {
+    expect(() =>
+      solveRegularPackageGrossUp(
+        {
+          currentAnnualPayComponents: annualComponents(0, 0, 0),
+          annualRentPaidKobo: 0n,
+          frequency: "monthly",
+          targetPeriodNetKobo: naira(500_000),
+          cumulativeChargeableIncomeBeforeKobo: 0n,
+          cumulativePayePaidBeforeKobo: 0n,
+        },
+        rv,
+      ),
+    ).toThrow();
   });
 });

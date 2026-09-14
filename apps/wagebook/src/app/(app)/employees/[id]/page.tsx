@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { formatKobo, getProbationStatus, getContractStatus, getInitials } from "@/lib/format";
+import { formatKobo, getProbationStatus, getContractStatus, getInitials, getEmployeeLifecycleStage } from "@/lib/format";
 import {
   Badge,
   TinBadge,
@@ -9,6 +9,7 @@ import {
   BankDetailsBadge,
   ProbationBadge,
   ContractStatusBadge,
+  EmployeeLifecycleStageBadge,
   LoanStatusBadge,
   ExpenseStatusBadge,
   OvertimeStatusBadge,
@@ -52,6 +53,8 @@ export default async function ViewEmployeePage({ params }: { params: Promise<{ i
     { data: statusHistory },
     { data: compensationHistory },
     { data: payslips },
+    { data: onboardingChecklist },
+    { data: offboardingChecklist },
     photoSigned,
   ] = await Promise.all([
     employee.manager_id
@@ -99,10 +102,35 @@ export default async function ViewEmployeePage({ params }: { params: Promise<{ i
       .eq("employee_id", id)
       .order("created_at", { ascending: false })
       .limit(15),
+    supabase
+      .from("employee_onboarding_checklist")
+      .select("documentation_collected, contract_signed")
+      .eq("employee_id", id)
+      .maybeSingle(),
+    supabase
+      .from("employee_offboarding_checklist")
+      .select("notice_period_served, assets_returned, clearance_obtained, experience_letter_issued")
+      .eq("employee_id", id)
+      .maybeSingle(),
     employee.photo_path
       ? supabase.storage.from("employee-photos").createSignedUrl(employee.photo_path, 60 * 10)
       : Promise.resolve({ data: null }),
   ]);
+
+  // Missing checklist row (lazily upserted only on first edit — see
+  // edit/actions.ts) defaults to "done", never "still onboarding/
+  // offboarding forever" — see getEmployeeLifecycleStage.
+  const lifecycleStage = getEmployeeLifecycleStage({
+    status: employee.status ?? "active",
+    confirmed: employee.confirmed ?? false,
+    probationEndDate: employee.probation_end_date,
+    onboardingDocumentationCollected: onboardingChecklist?.documentation_collected ?? true,
+    onboardingContractSigned: onboardingChecklist?.contract_signed ?? true,
+    offboardingNoticePeriodServed: offboardingChecklist?.notice_period_served ?? true,
+    offboardingAssetsReturned: offboardingChecklist?.assets_returned ?? true,
+    offboardingClearanceObtained: offboardingChecklist?.clearance_obtained ?? true,
+    offboardingExperienceLetterIssued: offboardingChecklist?.experience_letter_issued ?? true,
+  });
 
   const photoUrl = photoSigned?.data?.signedUrl ?? null;
 
@@ -195,6 +223,7 @@ export default async function ViewEmployeePage({ params }: { params: Promise<{ i
       </header>
 
       <div className="flex flex-wrap items-center gap-2">
+        <EmployeeLifecycleStageBadge stage={lifecycleStage} />
         <EmployeeStatusBadge status={employee.status ?? "active"} />
         <ProbationBadge status={getProbationStatus(employee.probation_end_date, employee.confirmed ?? false)} />
         <ContractStatusBadge

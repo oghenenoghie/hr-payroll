@@ -59,7 +59,7 @@ export default async function ReportsPage() {
       .select("account_code, amount_kobo")
       .eq("direction", "credit")
       .in("account_code", Object.values(SCHEME_ACCOUNT_CODES)),
-    supabase.from("posted_payslips").select("paye_kobo, employees(state_of_residence)"),
+    supabase.from("posted_payslips").select("gross_kobo, paye_kobo, employees(state_of_residence, departments(name))"),
   ]);
 
   const totalsByAccountCode = new Map<string, bigint>();
@@ -78,6 +78,26 @@ export default async function ReportsPage() {
     .filter(([, amount]) => amount > 0n)
     .sort((a, b) => Number(b[1] - a[1]));
 
+  // Cost-centre allocation, aggregated across every posted run to date —
+  // feature-backlog.md §2's "Payroll accounting depth" gap. Per-pay-run GL
+  // export already broke individual postings down by department; this is
+  // the cross-run rollup a finance team actually wants for cost-centre
+  // reporting rather than reconciling one run's CSV at a time. Gross pay
+  // (not net, and not the employer-cost postings that never carry gross_kobo
+  // on the payslip itself) is the cost figure — an employee with no
+  // department assigned rolls up under "Unassigned" rather than being
+  // silently dropped.
+  const costByDepartment = new Map<string, bigint>();
+  for (const slip of payslips ?? []) {
+    const department = slip.employees?.departments?.name ?? "Unassigned";
+    const running = costByDepartment.get(department) ?? 0n;
+    costByDepartment.set(department, running + BigInt(slip.gross_kobo ?? 0));
+  }
+  const departmentRows = [...costByDepartment.entries()]
+    .filter(([, amount]) => amount > 0n)
+    .sort((a, b) => Number(b[1] - a[1]));
+  const totalDepartmentCost = departmentRows.reduce((sum, [, amount]) => sum + amount, 0n);
+
   const liabilitiesCsv = toCsv(
     ["Scheme", "Liability Posted to Date (NGN)", "Deadline / Authority"],
     (Object.keys(SCHEME_ACCOUNT_CODES) as (keyof typeof SCHEME_ACCOUNT_CODES)[]).map((scheme) => [
@@ -90,6 +110,11 @@ export default async function ReportsPage() {
   const payeByStateCsv = toCsv(
     ["State", "PAYE Liability Posted to Date (NGN)"],
     stateRows.map(([state, amount]) => [state, toNaira(amount).toFixed(2)]),
+  );
+
+  const costByDepartmentCsv = toCsv(
+    ["Department", "Gross Payroll Cost Posted to Date (NGN)"],
+    departmentRows.map(([department, amount]) => [department, toNaira(amount).toFixed(2)]),
   );
 
   return (
@@ -184,6 +209,59 @@ export default async function ReportsPage() {
               </tr>
             )}
           </tbody>
+        </table>
+      </div>
+
+      <div className="flex items-start justify-between gap-3 pt-2">
+        <div className="flex flex-col gap-1">
+          <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
+            Payroll cost by department (cost centre)
+          </span>
+          <p className="text-[12.5px] text-ink-soft">
+            Gross payroll cost across every posted run to date, rolled up by each employee&apos;s assigned
+            department. An individual run&apos;s own GL export already breaks its postings down this way — this is
+            the cumulative view for cost-centre reporting.
+          </p>
+        </div>
+        {departmentRows.length > 0 && (
+          <span className="print:hidden">
+            <ExportCsvButton csv={costByDepartmentCsv} filename="payroll-cost-by-department.csv" />
+          </span>
+        )}
+      </div>
+
+      <div className="overflow-x-auto rounded-card border border-border bg-surface">
+        <table className="w-full min-w-[480px] border-collapse">
+          <thead>
+            <tr className="border-b border-border">
+              <th className={`${thClass} text-left`}>Department</th>
+              <th className={`${thClass} text-right`}>Gross payroll cost posted to date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {departmentRows.length > 0 ? (
+              departmentRows.map(([department, amount]) => (
+                <tr key={department} className="border-b border-border last:border-b-0">
+                  <td className={`${tdClass} font-bold text-ink`}>{department}</td>
+                  <td className={`${tdClass} text-right font-bold text-ink`}>{formatKobo(amount)}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={2} className="px-3 py-10 text-center text-[13px] text-ink-soft">
+                  No payroll posted yet.
+                </td>
+              </tr>
+            )}
+          </tbody>
+          {departmentRows.length > 0 && (
+            <tfoot>
+              <tr className="border-t-2 border-border">
+                <td className={`${tdClass} font-extrabold text-ink`}>Total</td>
+                <td className={`${tdClass} text-right font-extrabold text-ink`}>{formatKobo(totalDepartmentCost)}</td>
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
     </div>

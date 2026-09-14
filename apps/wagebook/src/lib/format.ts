@@ -47,6 +47,66 @@ export function getContractStatus(employmentType: string, contractEndDate: strin
   return "active";
 }
 
+export type EmployeeLifecycleStage =
+  | "onboarding"
+  | "probation"
+  | "confirmed"
+  | "active"
+  | "suspended"
+  | "offboarding"
+  | "exited";
+
+export interface EmployeeLifecycleInput {
+  status: string;
+  confirmed: boolean;
+  probationEndDate: string | null;
+  onboardingDocumentationCollected: boolean;
+  onboardingContractSigned: boolean;
+  offboardingNoticePeriodServed: boolean;
+  offboardingAssetsReturned: boolean;
+  offboardingClearanceObtained: boolean;
+  offboardingExperienceLetterIssued: boolean;
+}
+
+/**
+ * feature-backlog.md §2's "Employee lifecycle as an explicit spine" —
+ * scoped to the employee record itself (recruitment's separate
+ * candidate → hire pipeline is out of scope here, not merged into this).
+ *
+ * Deliberately a plain computed function, never a stored column — the
+ * same "can't drift from reality" reasoning as getProbationStatus,
+ * getContractStatus and getPendingAgeTone above. The underlying flags
+ * (employees.status/confirmed/probation_end_date, the onboarding and
+ * offboarding checklist tables) are already each independently correct
+ * and independently auditable (employee_status_history logs every status
+ * change); what was missing was a single derived answer to "what stage is
+ * this employee at right now" that other screens could read instead of
+ * combining those flags themselves each time. This is that single answer,
+ * not a new source of truth.
+ *
+ * Precedence, most specific first: terminated always wins (exited once
+ * every offboarding step is done, offboarding until then); suspended is
+ * next; then onboarding (if either checklist item is outstanding);
+ * confirmed if the confirmed flag is set; probation if a probation end
+ * date is on file and hasn't been superseded by confirmation; otherwise
+ * a plain "active" employee with no probation ever configured for them.
+ */
+export function getEmployeeLifecycleStage(input: EmployeeLifecycleInput): EmployeeLifecycleStage {
+  if (input.status === "terminated") {
+    const offboardingComplete =
+      input.offboardingNoticePeriodServed &&
+      input.offboardingAssetsReturned &&
+      input.offboardingClearanceObtained &&
+      input.offboardingExperienceLetterIssued;
+    return offboardingComplete ? "exited" : "offboarding";
+  }
+  if (input.status === "suspended") return "suspended";
+  if (!input.onboardingDocumentationCollected || !input.onboardingContractSigned) return "onboarding";
+  if (input.confirmed) return "confirmed";
+  if (input.probationEndDate) return "probation";
+  return "active";
+}
+
 const PENDING_AGE_WARN_DAYS = 7;
 
 /** Same plain-data-function reasoning as getProbationStatus/getContractStatus.
