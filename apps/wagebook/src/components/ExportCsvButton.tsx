@@ -1,5 +1,7 @@
 "use client";
 
+import { buttonClasses } from "./Button";
+
 // The CSV string itself is always built server-side (see lib/csv.ts) from
 // whatever the page already queried and rendered — this component's only
 // job is triggering the browser download, so there's no risk of the
@@ -26,11 +28,7 @@ export function ExportCsvButton({
   }
 
   return (
-    <button
-      type="button"
-      onClick={handleClick}
-      className="rounded-button border border-border px-[18px] py-[9px] text-[12.5px] font-extrabold text-ink"
-    >
+    <button type="button" onClick={handleClick} className={buttonClasses("secondary", "md")}>
       {label}
     </button>
   );

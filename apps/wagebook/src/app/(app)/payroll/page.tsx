@@ -1,26 +1,12 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { toNaira } from "@plutus/compliance";
 import { createClient } from "@/lib/supabase/server";
-import { formatKobo } from "@/lib/format";
 import { getMembership } from "@/lib/membership";
 import { FREQUENCY_LABEL } from "@/lib/accounts";
-import { PayRunStatusBadge } from "@/components/Badge";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
-import { DataTable, type DataTableColumn } from "@/components/DataTable";
-
-type PayRunRow = {
-  id: string;
-  period_start: string;
-  period_end: string;
-  frequency: string;
-  employee_count: number;
-  gross_kobo: number;
-  net_kobo: number;
-  rule_version_id: string;
-  status: string;
-};
+import { Button } from "@/components/Button";
+import { PayRunsTable } from "./PayRunsTable";
 
 export default async function PayrollPage() {
   const supabase = await createClient();
@@ -65,82 +51,11 @@ export default async function PayrollPage() {
         </div>
         <div className="flex items-center gap-2">
           {payRuns && payRuns.length > 0 && <ExportCsvButton csv={csv} filename="payroll-runs.csv" />}
-          <Link
-            href="/payroll/new"
-            className="rounded-button bg-primary px-[22px] py-[11px] text-[13px] font-extrabold text-white"
-          >
-            + Run payroll
-          </Link>
+          <Button href="/payroll/new">+ Run payroll</Button>
         </div>
       </header>
 
       <PayRunsTable payRuns={payRuns ?? []} />
     </div>
-  );
-}
-
-function PayRunsTable({ payRuns }: { payRuns: PayRunRow[] }) {
-  const columns: DataTableColumn<PayRunRow>[] = [
-    {
-      key: "period",
-      header: "Period",
-      sortValue: (run) => run.period_start,
-      render: (run) => (
-        <Link href={`/payroll/${run.id}`} className="font-bold text-primary">
-          {run.period_start} – {run.period_end}
-        </Link>
-      ),
-    },
-    {
-      key: "frequency",
-      header: "Frequency",
-      sortValue: (run) => run.frequency,
-      render: (run) => (
-        <span className="text-ink-soft capitalize">{FREQUENCY_LABEL[run.frequency] ?? run.frequency}</span>
-      ),
-    },
-    {
-      key: "employee_count",
-      header: "Employees",
-      align: "center",
-      sortValue: (run) => run.employee_count,
-      render: (run) => <span className="text-ink">{run.employee_count}</span>,
-    },
-    {
-      key: "gross",
-      header: "Gross",
-      align: "right",
-      sortValue: (run) => run.gross_kobo,
-      render: (run) => <span className="font-bold text-ink">{formatKobo(BigInt(run.gross_kobo))}</span>,
-    },
-    {
-      key: "net",
-      header: "Net",
-      align: "right",
-      sortValue: (run) => run.net_kobo,
-      render: (run) => <span className="font-bold text-ink">{formatKobo(BigInt(run.net_kobo))}</span>,
-    },
-    {
-      key: "rule_version",
-      header: "Rule version",
-      sortValue: (run) => run.rule_version_id,
-      render: (run) => <span className="text-ink-soft">{run.rule_version_id}</span>,
-    },
-    {
-      key: "status",
-      header: "Status",
-      align: "center",
-      render: (run) => <PayRunStatusBadge status={run.status} />,
-    },
-  ];
-
-  return (
-    <DataTable
-      columns={columns}
-      rows={payRuns}
-      rowKey={(run) => run.id}
-      emptyMessage="No payroll runs yet."
-      rowClassName={() => "hover:bg-bg"}
-    />
   );
 }

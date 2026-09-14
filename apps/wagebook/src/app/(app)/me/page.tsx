@@ -168,7 +168,7 @@ export default async function MePage() {
             >
               <span className="text-[13px] font-bold text-ink">{n.message}</span>
               <form action={markNotificationRead.bind(null, n.id)}>
-                <FormSubmitButton className="text-[12px] font-bold text-primary">Mark read</FormSubmitButton>
+                <FormSubmitButton>Mark read</FormSubmitButton>
               </form>
             </div>
           ))}
@@ -453,7 +453,7 @@ export default async function MePage() {
                   </div>
                   {status !== "acknowledged" && (
                     <form action={acknowledgePolicy.bind(null, policy.id)}>
-                      <FormSubmitButton className="text-[12px] font-bold text-primary">
+                      <FormSubmitButton>
                         Acknowledge
                       </FormSubmitButton>
                     </form>

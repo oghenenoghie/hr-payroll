@@ -139,8 +139,7 @@ export default async function RequisitionDetailPage({ params }: { params: Promis
                     <ConfirmActionButton
                       action={hireCandidate.bind(null, candidate.id, requisitionId)}
                       label="Hire"
-                      tone="primary"
-                      className="text-[12.5px] font-bold text-good"
+                      variant="row"
                       confirmTitle="Hire this candidate?"
                       confirmMessage={`${candidate.full_name} will get a real employee record. Compensation, banking and a login are filled in afterward from the Employees and Security & Access pages.`}
                       confirmLabel="Hire"

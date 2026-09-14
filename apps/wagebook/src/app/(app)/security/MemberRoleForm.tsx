@@ -34,7 +34,7 @@ export function MemberRoleForm({
           </option>
         ))}
       </select>
-      <FormSubmitButton className="text-[12px] font-bold text-primary">Save</FormSubmitButton>
+      <FormSubmitButton>Save</FormSubmitButton>
     </form>
   );
 }

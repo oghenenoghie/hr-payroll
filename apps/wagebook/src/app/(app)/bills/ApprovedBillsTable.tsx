@@ -7,6 +7,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { VendorBillStatusBadge, OverdueBadge } from "@/components/Badge";
 import { useToast } from "@/components/Toast";
 import { DataTable, type DataTableColumn } from "@/components/DataTable";
+import { Button } from "@/components/Button";
 import { payVendorBillsBatch } from "./actions";
 import { ScheduleBillPaymentForm } from "./ScheduleBillPaymentForm";
 import { CancelBillForm } from "./CancelBillForm";
@@ -249,14 +250,9 @@ export function ApprovedBillsTable({
             {selected.size} bill{selected.size === 1 ? "" : "s"} selected · {formatKobo(totalKobo)}
             {totalWhtKobo > 0n && <span className="text-ink-soft"> · {formatKobo(totalNetPayableKobo)} net after WHT</span>}
           </span>
-          <button
-            type="button"
-            disabled={pending}
-            onClick={() => setConfirming(true)}
-            className="rounded-button bg-primary px-[18px] py-[9px] text-[12.5px] font-extrabold text-white disabled:opacity-60"
-          >
+          <Button type="button" disabled={pending} onClick={() => setConfirming(true)} size="md">
             {pending ? "Paying…" : "Pay selected"}
-          </button>
+          </Button>
         </div>
       )}
 

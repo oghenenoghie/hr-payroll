@@ -247,7 +247,7 @@ export default async function BankReconciliationDetailPage({ params }: { params:
                                   </option>
                                 ))}
                               </select>
-                              <FormSubmitButton className="text-[12px] font-bold text-primary">Match</FormSubmitButton>
+                              <FormSubmitButton>Match</FormSubmitButton>
                             </form>
                           ) : (
                             <span className="text-[12px] text-ink-soft">No unmatched ledger postings</span>
@@ -269,7 +269,7 @@ export default async function BankReconciliationDetailPage({ params }: { params:
                                     </option>
                                   ))}
                                 </select>
-                                <FormSubmitButton className="text-[12px] font-bold text-primary">
+                                <FormSubmitButton>
                                   Post as entry
                                 </FormSubmitButton>
                               </form>
@@ -376,8 +376,8 @@ export default async function BankReconciliationDetailPage({ params }: { params:
           <ConfirmActionButton
             action={completeReconciliation.bind(null, reconciliation.id)}
             label="Complete reconciliation"
-            tone="primary"
-            className="rounded-button border border-border px-[18px] py-[9px] text-[12.5px] font-extrabold text-ink disabled:opacity-50"
+            variant="secondary"
+            size="md"
             confirmTitle="Complete this reconciliation?"
             confirmMessage="This locks the reconciliation as a control record. It stays locked until it's reopened — matching/unmatching isn't possible while completed."
             confirmLabel="Complete"
@@ -390,7 +390,8 @@ export default async function BankReconciliationDetailPage({ params }: { params:
           <ConfirmActionButton
             action={reopenReconciliation.bind(null, reconciliation.id)}
             label="Reopen reconciliation"
-            className="rounded-button border border-border px-[18px] py-[9px] text-[12.5px] font-extrabold text-ink disabled:opacity-50"
+            variant="secondary"
+            size="md"
             confirmTitle="Reopen this reconciliation?"
             confirmMessage="This unlocks matching and unmatching again and clears the completion record. It doesn't touch the ledger — nothing was ever posted by completing it."
             confirmLabel="Reopen"

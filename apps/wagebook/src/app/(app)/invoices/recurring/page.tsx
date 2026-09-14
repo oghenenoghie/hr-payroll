@@ -91,7 +91,7 @@ export default async function RecurringInvoicesPage() {
                     <td className={`${tdClass} text-right`}>
                       <div className="flex justify-end gap-3">
                         <form action={toggleRecurringInvoice.bind(null, template.id, !template.active)}>
-                          <FormSubmitButton className="text-[12px] font-bold text-primary">
+                          <FormSubmitButton>
                             {template.active ? "Pause" : "Resume"}
                           </FormSubmitButton>
                         </form>

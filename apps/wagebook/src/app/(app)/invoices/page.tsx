@@ -182,8 +182,7 @@ export default async function InvoicesPage({
                           <ConfirmActionButton
                             action={issueCustomerInvoice.bind(null, invoice.id)}
                             label="Issue"
-                            tone="primary"
-                            className="text-[12px] font-bold text-good disabled:opacity-50"
+                            variant="row"
                             confirmTitle="Issue this invoice?"
                             confirmMessage={`"${invoice.description}" to ${invoice.customers?.name ?? "this customer"} (${formatKobo(BigInt(invoice.amount_kobo))}) will be issued, debiting Accounts Receivable and crediting Sales Revenue immediately.`}
                             confirmLabel="Issue"

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { buttonClasses, type ButtonSize, type ButtonVariant } from "./Button";
 
 // For delete/approve/reject-style Server Actions rendered as a plain
 // `<form action={fn.bind(null, id)}>` in a Server Component — replaces
@@ -9,6 +10,15 @@ import { ConfirmDialog } from "./ConfirmDialog";
 // already-bound action directly (Server Actions are callable as plain
 // async functions, not only as a form's action), showing a pending state
 // the whole time so a slow request can't look like the click did nothing.
+//
+// variant/size come from the shared Button spec (see
+// .claude/skills/plutus-button-nav-system/SKILL.md) — no className prop,
+// so every confirm-gated action in the app renders one of the five
+// canonical variants instead of a hand-typed string. Defaults to
+// "danger"/"row" since this component gates almost entirely
+// delete/remove/reject-style actions; pass variant="row" explicitly for
+// a non-destructive row action (e.g. "Approve"), or size="md" for a
+// non-row context like a page-level "Delete" action.
 export function ConfirmActionButton({
   action,
   label,
@@ -16,8 +26,8 @@ export function ConfirmActionButton({
   confirmTitle,
   confirmMessage,
   confirmLabel = "Confirm",
-  tone = "danger",
-  className,
+  variant = "danger",
+  size = "row",
   disabled,
 }: {
   action: () => Promise<unknown> | unknown;
@@ -26,8 +36,8 @@ export function ConfirmActionButton({
   confirmTitle: string;
   confirmMessage: string;
   confirmLabel?: string;
-  tone?: "danger" | "primary";
-  className?: string;
+  variant?: ButtonVariant;
+  size?: ButtonSize;
   disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -46,10 +56,7 @@ export function ConfirmActionButton({
         type="button"
         onClick={() => setOpen(true)}
         disabled={disabled || isPending}
-        className={
-          className ??
-          `text-[12px] font-bold disabled:opacity-50 ${tone === "danger" ? "text-bad" : "text-primary"}`
-        }
+        className={buttonClasses(variant, size)}
       >
         {isPending ? pendingLabel : label}
       </button>
@@ -58,7 +65,7 @@ export function ConfirmActionButton({
           title={confirmTitle}
           message={confirmMessage}
           confirmLabel={confirmLabel}
-          tone={tone}
+          tone={variant === "danger" ? "danger" : "primary"}
           onConfirm={handleConfirm}
           onCancel={() => setOpen(false)}
         />

@@ -240,8 +240,7 @@ export default async function LearningPage() {
                               <ConfirmActionButton
                                 action={markEnrollmentComplete.bind(null, enrollment.id)}
                                 label="Mark complete"
-                                tone="primary"
-                                className="text-[12px] font-bold text-primary"
+                                variant="row"
                                 confirmTitle="Mark this course complete?"
                                 confirmMessage="This confirms you've completed the training — it isn't verified against any quiz or certificate."
                                 confirmLabel="Mark complete"

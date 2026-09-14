@@ -77,7 +77,7 @@ export function TopBar({
                   </span>
                 </div>
                 <form action={signOut} className="pt-2">
-                  <FormSubmitButton className="w-full rounded-control border border-border px-3 py-2 text-[12.5px] font-bold text-ink hover:bg-bg">
+                  <FormSubmitButton variant="secondary" size="md" fullWidth>
                     Sign out
                   </FormSubmitButton>
                 </form>

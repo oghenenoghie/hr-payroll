@@ -1,0 +1,888 @@
+<title>Plutus Capability Ledger</title>
+<style>
+  :root {
+    --bg: #f6f3ec;
+    --surface: #ffffff;
+    --surface-2: #fbf8f1;
+    --ink: #1c2420;
+    --ink-soft: #5c6b62;
+    --ink-faint: #8a9188;
+    --border: #ded7c6;
+    --border-strong: #cbc2ac;
+    --primary: #2f6f52;
+    --primary-strong: #1e4a36;
+    --accent: #b8862e;
+    --bad: #a63d3d;
+    --chip-bg: #f0ebdc;
+    --shadow: 0 1px 2px rgba(28, 36, 32, 0.06);
+
+    --font-display: Georgia, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+    --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12150f;
+      --surface: #191f16;
+      --surface-2: #1e2519;
+      --ink: #ece9dc;
+      --ink-soft: #a7ae9c;
+      --ink-faint: #78806f;
+      --border: #2b3325;
+      --border-strong: #3a4531;
+      --primary: #74bd91;
+      --primary-strong: #a3d8b9;
+      --accent: #e3b761;
+      --bad: #e08a8a;
+      --chip-bg: #212a1b;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #12150f;
+    --surface: #191f16;
+    --surface-2: #1e2519;
+    --ink: #ece9dc;
+    --ink-soft: #a7ae9c;
+    --ink-faint: #78806f;
+    --border: #2b3325;
+    --border-strong: #3a4531;
+    --primary: #74bd91;
+    --primary-strong: #a3d8b9;
+    --accent: #e3b761;
+    --bad: #e08a8a;
+    --chip-bg: #212a1b;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 15.5px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 56px 28px 80px;
+  }
+
+  /* ---------- masthead ---------- */
+
+  .masthead {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-bottom: 28px;
+    border-bottom: 2px solid var(--ink);
+  }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--primary);
+  }
+
+  h1 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(30px, 5vw, 38px);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+    color: var(--ink);
+  }
+
+  .dek {
+    max-width: 60ch;
+    color: var(--ink-soft);
+    font-size: 15px;
+  }
+
+  .meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+    margin-top: 4px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--ink-faint);
+  }
+
+  /* ---------- stat strip ---------- */
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 32px 0 40px;
+  }
+
+  .stat {
+    background: var(--surface-2);
+    padding: 18px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .stat .n {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+
+  .stat .l {
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    letter-spacing: 0.01em;
+  }
+
+  /* ---------- ledger sections ---------- */
+
+  .ledger {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .entry {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 26px 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .entry:last-child { padding-bottom: 0; }
+
+  .entry-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .entry-code {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--ink-faint);
+    white-space: nowrap;
+  }
+
+  .entry-title {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .entry-title h2 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .entry-count {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+    color: var(--ink-faint);
+    white-space: nowrap;
+  }
+
+  .entry-figures {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .weight {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+    color: var(--ink-faint);
+    white-space: nowrap;
+  }
+
+  .weight.top {
+    color: var(--primary-strong);
+    font-weight: 700;
+  }
+
+  .entry-desc {
+    margin: -4px 0 0;
+    color: var(--ink-soft);
+    font-size: 14px;
+    max-width: 62ch;
+  }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+
+  .chip {
+    background: var(--chip-bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 5px 10px;
+    font-size: 13px;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+
+  .chip.emph {
+    border-color: var(--primary);
+    color: var(--primary-strong);
+    font-weight: 600;
+  }
+
+  /* ---------- scoping note ---------- */
+
+  .note {
+    margin-top: 40px;
+    background: var(--surface-2);
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    padding: 22px 24px;
+    box-shadow: var(--shadow);
+  }
+
+  .note h3 {
+    margin: 0 0 10px;
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .note p {
+    margin: 0 0 10px;
+    color: var(--ink-soft);
+    font-size: 14px;
+  }
+
+  .note p:last-child { margin-bottom: 0; }
+
+  .note .figure {
+    font-family: var(--font-mono);
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .note .caveat {
+    border-top: 1px dashed var(--border-strong);
+    margin-top: 18px;
+    padding-top: 14px;
+  }
+
+  .alloc-wrap {
+    overflow-x: auto;
+    margin: 16px 0 4px;
+  }
+
+  .alloc-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-faint);
+    margin-bottom: 8px;
+  }
+
+  .alloc-table {
+    width: 100%;
+    min-width: 480px;
+    border-collapse: collapse;
+    font-size: 13.5px;
+  }
+
+  .alloc-table th,
+  .alloc-table td {
+    padding: 7px 8px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  .alloc-table th {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-faint);
+    font-weight: 600;
+  }
+
+  .alloc-table td.num,
+  .alloc-table th.num {
+    text-align: right;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .alloc-table tbody tr.top td {
+    background: var(--chip-bg);
+    font-weight: 700;
+    color: var(--primary-strong);
+  }
+
+  .alloc-table tbody tr.top td:first-child {
+    box-shadow: inset 3px 0 0 var(--primary);
+  }
+
+  .alloc-table tfoot td {
+    border-top: 2px solid var(--ink);
+    border-bottom: none;
+    font-weight: 700;
+    padding-top: 9px;
+  }
+
+  .caveat .tag {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--bad);
+    border: 1px solid currentColor;
+    border-radius: 4px;
+    padding: 1px 6px;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+
+  /* ---------- footer ---------- */
+
+  footer {
+    margin-top: 36px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--ink-faint);
+  }
+
+  @media (max-width: 600px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .entry-head { flex-direction: column; gap: 4px; }
+  }
+
+  /* ---------- editing affordances ---------- */
+
+  .edit-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--chip-bg);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    padding: 9px 14px;
+    margin-bottom: 22px;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+  }
+
+  .edit-banner strong { color: var(--ink); }
+
+  [contenteditable="true"] {
+    border-radius: 3px;
+    outline: none;
+    cursor: text;
+  }
+
+  [contenteditable="true"]:hover {
+    background: var(--chip-bg);
+  }
+
+  [contenteditable="true"]:focus {
+    background: var(--surface);
+    box-shadow: 0 0 0 2px var(--primary);
+  }
+
+  .chip-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .chip-del {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border: none;
+    background: transparent;
+    color: var(--bad);
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+    border-radius: 3px;
+    padding: 0;
+    font-family: var(--font-body);
+  }
+
+  .chip-wrap:hover .chip-del,
+  .chip-wrap:focus-within .chip-del {
+    display: inline-flex;
+  }
+
+  .chip-del:hover {
+    background: var(--border);
+  }
+
+  .chip-add {
+    background: transparent;
+    border: 1px dashed var(--border-strong);
+    border-radius: 5px;
+    padding: 5px 10px;
+    font-size: 13px;
+    color: var(--ink-faint);
+    cursor: pointer;
+    font-family: var(--font-body);
+  }
+
+  .chip-add:hover {
+    border-color: var(--primary);
+    color: var(--primary-strong);
+    background: var(--chip-bg);
+  }
+
+  .row-del {
+    border: none;
+    background: transparent;
+    color: var(--bad);
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 3px;
+    visibility: hidden;
+  }
+
+  .alloc-table tbody tr:hover .row-del,
+  .alloc-table tbody tr:focus-within .row-del {
+    visibility: visible;
+  }
+
+  .row-del:hover { background: var(--border); }
+
+  .row-add-wrap {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 6px;
+  }
+
+  @media print {
+    .edit-banner, .chip-del, .chip-add, .row-del, .row-add-wrap { display: none !important; }
+  }
+</style>
+
+<div class="page">
+
+  <div class="edit-banner">
+    <span><strong>Editable draft.</strong> Click any text to edit it. Hover a chip or table row for a &times; to remove it, or use +&nbsp;Add to add one. Nothing is saved — finalize here, then export or copy before closing the tab.</span>
+  </div>
+
+  <header class="masthead">
+    <span class="eyebrow">Capability Inventory — for internal scoping use</span>
+    <h1>Plutus Capability Ledger</h1>
+    <p class="dek">
+      A module-by-module accounting of what the existing Plutus/Wagebook codebase already covers —
+      compiled from its live routes, database migrations and statutory rule set, to ground a
+      module-priced proposal rather than one lump-sum figure.
+    </p>
+    <div class="meta-row">
+      <span>Stack: Next.js 16 · Supabase / Postgres · TypeScript</span>
+      <span>Market: Nigeria — 2026 Nigeria Tax Act framework</span>
+    </div>
+  </header>
+
+  <div class="stats">
+    <div class="stat"><span class="n">88</span><span class="l">Application routes</span></div>
+    <div class="stat"><span class="n">92</span><span class="l">Database migrations</span></div>
+    <div class="stat"><span class="n">11</span><span class="l">Distinct user roles</span></div>
+    <div class="stat"><span class="n">8</span><span class="l">Statutory tax schemes</span></div>
+  </div>
+
+  <div class="ledger">
+
+    <section class="entry">
+      <div class="entry-head">
+        <div class="entry-title">
+          <span class="entry-code">100</span>
+          <h2>HR &amp; Workforce</h2>
+        </div>
+        <div class="entry-figures">
+          <span class="entry-count">13 areas</span>
+          <span class="weight">20% of estimate</span>
+        </div>
+      </div>
+      <p class="entry-desc">Org structure, hiring, employee lifecycle and workforce records.</p>
+      <div class="chips">
+        <span class="chip">Employees</span>
+        <span class="chip">Departments</span>
+        <span class="chip">Branches</span>
+        <span class="chip">Job Grades</span>
+        <span class="chip">Org Chart</span>
+        <span class="chip emph">Recruitment (full ATS)</span>
+        <span class="chip">Employee Relations / cases</span>
+        <span class="chip">Performance reviews &amp; goals</span>
+        <span class="chip">Learning &amp; Development</span>
+        <span class="chip">Employee self-service portal</span>
+        <span class="chip">Onboarding / offboarding checklists</span>
+        <span class="chip">Employee documents &amp; photos</span>
+        <span class="chip">Manager self-service</span>
+      </div>
+    </section>
+
+    <section class="entry">
+      <div class="entry-head">
+        <div class="entry-title">
+          <span class="entry-code">200</span>
+          <h2>Payroll &amp; Statutory Compliance</h2>
+        </div>
+        <div class="entry-figures">
+          <span class="entry-count">9 areas</span>
+          <span class="weight">25% of estimate</span>
+        </div>
+      </div>
+      <p class="entry-desc">
+        Pay run processing and a versioned compliance engine — PAYE, Pension, NHF, NHIS, NSITF,
+        ITF, WHT and VAT computed from a dated rule set, never hardcoded.
+      </p>
+      <div class="chips">
+        <span class="chip emph">Payroll runs (draft → approved → posted)</span>
+        <span class="chip emph">Compliance engine — 8 schemes</span>
+        <span class="chip">Final settlement</span>
+        <span class="chip">Payroll simulation</span>
+        <span class="chip">Payroll reversal</span>
+        <span class="chip">Arrears runs</span>
+        <span class="chip">New-hire proration</span>
+        <span class="chip">Compensation history</span>
+        <span class="chip">Statutory &amp; annual reports</span>
+      </div>
+    </section>
+
+    <section class="entry">
+      <div class="entry-head">
+        <div class="entry-title">
+          <span class="entry-code">300</span>
+          <h2>Finance &amp; Accounts</h2>
+        </div>
+        <div class="entry-figures">
+          <span class="entry-count">8 areas</span>
+          <span class="weight top">30% of estimate</span>
+        </div>
+      </div>
+      <p class="entry-desc">Double-entry ledger underneath AP/AR, reconciliation and fixed assets.</p>
+      <div class="chips">
+        <span class="chip">Vendors &amp; Bills (AP, with VAT + WHT)</span>
+        <span class="chip">Customers &amp; Invoices (AR)</span>
+        <span class="chip">Chart of Accounts</span>
+        <span class="chip emph">General Ledger (double-entry)</span>
+        <span class="chip">Financial statements</span>
+        <span class="chip">Bank reconciliation</span>
+        <span class="chip">Fixed assets &amp; depreciation</span>
+        <span class="chip">Budgets</span>
+      </div>
+    </section>
+
+    <section class="entry">
+      <div class="entry-head">
+        <div class="entry-title">
+          <span class="entry-code">400</span>
+          <h2>Employee Self-Service &amp; Requests</h2>
+        </div>
+        <div class="entry-figures">
+          <span class="entry-count">7 areas</span>
+          <span class="weight">10% of estimate</span>
+        </div>
+      </div>
+      <p class="entry-desc">Everyday requests, routed through a configurable approval workflow.</p>
+      <div class="chips">
+        <span class="chip">Loans &amp; advances</span>
+        <span class="chip">Expense reimbursement</span>
+        <span class="chip">Leave &amp; attendance</span>
+        <span class="chip">Leave encashment</span>
+        <span class="chip">Shift scheduling</span>
+        <span class="chip">Overtime</span>
+        <span class="chip">Benefits administration</span>
+      </div>
+    </section>
+
+    <section class="entry">
+      <div class="entry-head">
+        <div class="entry-title">
+          <span class="entry-code">500</span>
+          <h2>Platform, Security &amp; Administration</h2>
+        </div>
+        <div class="entry-figures">
+          <span class="entry-count">9 areas</span>
+          <span class="weight">15% of estimate</span>
+        </div>
+      </div>
+      <p class="entry-desc">Access control and the operational scaffolding the other four modules run on.</p>
+      <div class="chips">
+        <span class="chip emph">Role-based access model</span>
+        <span class="chip">Admin</span>
+        <span class="chip">Payroll Manager</span>
+        <span class="chip">HR Manager</span>
+        <span class="chip">Accountant</span>
+        <span class="chip">Department Manager</span>
+        <span class="chip">Auditor</span>
+        <span class="chip">Compensation &amp; Benefits Manager</span>
+        <span class="chip">Finance Manager</span>
+        <span class="chip">CHRO</span>
+        <span class="chip">Legal &amp; Compliance</span>
+        <span class="chip">Employee</span>
+        <span class="chip">Per-user nav / module visibility</span>
+        <span class="chip">Security &amp; Access console</span>
+        <span class="chip">MFA</span>
+        <span class="chip">Audit log</span>
+        <span class="chip">Integrations</span>
+        <span class="chip">Notifications (in-app + email)</span>
+        <span class="chip">Company policies</span>
+        <span class="chip">Configurable approval-workflow engine</span>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="note">
+    <h3>Scoping note</h3>
+    <p>
+      A from-scratch build of this scope was ballparked at
+      <span class="figure">$15,000–$40,000</span> (roughly
+      <span class="figure">₦20M–₦60M</span> at current rates). Weighted below by module rather
+      than split evenly — Finance &amp; Accounts (300) carries the largest share even though it
+      lists fewer areas than HR (100), because its build risk sits in ledger correctness: a
+      double-entry system that must always balance, AP/AR with partial payments and credit
+      notes, bank reconciliation, and financial-statement generation, not just screen count.
+    </p>
+    <div class="alloc-wrap">
+      <div class="alloc-head">
+        <span>Suggested allocation</span>
+        <span>of $15,000–$40,000 · ₦20.0M–₦60.0M</span>
+      </div>
+      <table class="alloc-table">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Module</th>
+            <th class="num">Weight</th>
+            <th class="num">USD range</th>
+            <th class="num">NGN range</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>100</td>
+            <td>HR &amp; Workforce</td>
+            <td class="num">20%</td>
+            <td class="num">$3,000–$8,000</td>
+            <td class="num">₦4.0M–₦12.0M</td>
+            <td><button type="button" class="row-del" aria-label="Remove row">&times;</button></td>
+          </tr>
+          <tr>
+            <td>200</td>
+            <td>Payroll &amp; Compliance</td>
+            <td class="num">25%</td>
+            <td class="num">$3,750–$10,000</td>
+            <td class="num">₦5.0M–₦15.0M</td>
+            <td><button type="button" class="row-del" aria-label="Remove row">&times;</button></td>
+          </tr>
+          <tr class="top">
+            <td>300</td>
+            <td>Finance &amp; Accounts</td>
+            <td class="num">30%</td>
+            <td class="num">$4,500–$12,000</td>
+            <td class="num">₦6.0M–₦18.0M</td>
+            <td><button type="button" class="row-del" aria-label="Remove row">&times;</button></td>
+          </tr>
+          <tr>
+            <td>400</td>
+            <td>Self-Service &amp; Requests</td>
+            <td class="num">10%</td>
+            <td class="num">$1,500–$4,000</td>
+            <td class="num">₦2.0M–₦6.0M</td>
+            <td><button type="button" class="row-del" aria-label="Remove row">&times;</button></td>
+          </tr>
+          <tr>
+            <td>500</td>
+            <td>Platform &amp; Admin</td>
+            <td class="num">15%</td>
+            <td class="num">$2,250–$6,000</td>
+            <td class="num">₦3.0M–₦9.0M</td>
+            <td><button type="button" class="row-del" aria-label="Remove row">&times;</button></td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td></td>
+            <td>Total</td>
+            <td class="num">100%</td>
+            <td class="num">$15,000–$40,000</td>
+            <td class="num">₦20.0M–₦60.0M</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+      <div class="row-add-wrap">
+        <button type="button" class="chip-add" id="alloc-row-add">+ Add module row</button>
+      </div>
+    </div>
+    <p>
+      Pricing by module still lets HR (100) and Payroll (200) ship as an earlier, lower-cost
+      phase, with the now-larger Finance (300) line taken up once the client is ready to commit
+      to full ledger/AP/AR scope.
+    </p>
+    <div class="caveat">
+      <p><span class="tag">Scope check</span>As built today, this ships as a responsive web
+      application (Next.js, browser-based, including mobile). A native desktop install is not
+      part of the current codebase — if the client expects a desktop app, that's separate scope
+      to price on top of the above, not something already covered.</p>
+    </div>
+  </div>
+
+  <footer>
+    <span>Compiled from the live codebase — routes, migrations, role config, rule set.</span>
+    <span>For internal proposal drafting.</span>
+  </footer>
+
+</div>
+
+<script>
+  (function () {
+    function selectAllText(el) {
+      var range = document.createRange();
+      range.selectNodeContents(el);
+      var sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+
+    // Make every heading, label, number and prose block on the page
+    // directly editable in place.
+    var editableSelectors = [
+      '.eyebrow', 'h1', '.dek', '.meta-row span',
+      '.stat .n', '.stat .l',
+      '.entry-code', '.entry-title h2', '.entry-count', '.weight',
+      '.entry-desc',
+      '.note h3', '.note p',
+      '.alloc-head span',
+      '.alloc-table th', '.alloc-table td',
+      'footer span'
+    ];
+    editableSelectors.forEach(function (sel) {
+      document.querySelectorAll(sel).forEach(function (el) {
+        el.setAttribute('contenteditable', 'true');
+      });
+    });
+
+    // Chips: wrap each in a removable shell, make its text editable,
+    // and give every chip list a "+ Add" control that inserts a new one.
+    function wrapChip(chip) {
+      var wrap = document.createElement('span');
+      wrap.className = 'chip-wrap';
+      chip.setAttribute('contenteditable', 'true');
+      chip.parentNode.insertBefore(wrap, chip);
+      wrap.appendChild(chip);
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'chip-del';
+      del.setAttribute('aria-label', 'Remove');
+      del.textContent = '×';
+      del.addEventListener('click', function () { wrap.remove(); });
+      wrap.appendChild(del);
+      return wrap;
+    }
+
+    document.querySelectorAll('.chips .chip').forEach(wrapChip);
+
+    document.querySelectorAll('.chips').forEach(function (list) {
+      var addBtn = document.createElement('button');
+      addBtn.type = 'button';
+      addBtn.className = 'chip-add';
+      addBtn.textContent = '+ Add';
+      addBtn.addEventListener('click', function () {
+        var chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.textContent = 'New item';
+        var wrap = wrapChip(chip);
+        list.insertBefore(wrap, addBtn);
+        chip.focus();
+        selectAllText(chip);
+      });
+      list.appendChild(addBtn);
+    });
+
+    // Allocation table: each row gets a working delete button, and
+    // "+ Add module row" appends a blank editable row above the total.
+    document.querySelectorAll('.alloc-table tbody tr .row-del').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        btn.closest('tr').remove();
+      });
+    });
+
+    var addRowBtn = document.getElementById('alloc-row-add');
+    if (addRowBtn) {
+      addRowBtn.addEventListener('click', function () {
+        var tbody = document.querySelector('.alloc-table tbody');
+        var tr = document.createElement('tr');
+        ['Code', 'Module', '0%', '$0', '₦0'].forEach(function (text, i) {
+          var td = document.createElement('td');
+          td.setAttribute('contenteditable', 'true');
+          td.textContent = text;
+          if (i >= 2) td.className = 'num';
+          tr.appendChild(td);
+        });
+        var actionTd = document.createElement('td');
+        var del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'row-del';
+        del.setAttribute('aria-label', 'Remove row');
+        del.textContent = '×';
+        del.addEventListener('click', function () { tr.remove(); });
+        actionTd.appendChild(del);
+        tr.appendChild(actionTd);
+        tbody.appendChild(tr);
+        var firstCell = tr.querySelector('td');
+        firstCell.focus();
+        selectAllText(firstCell);
+      });
+    }
+  })();
+</script>

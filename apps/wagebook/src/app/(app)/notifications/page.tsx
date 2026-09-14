@@ -36,7 +36,7 @@ export default async function NotificationsPage() {
         </div>
         {unread.length > 0 && (
           <form action={markAllNotificationsRead}>
-            <FormSubmitButton className="text-[12px] font-bold text-primary">Mark all read</FormSubmitButton>
+            <FormSubmitButton>Mark all read</FormSubmitButton>
           </form>
         )}
       </header>
@@ -84,7 +84,7 @@ function NotificationRow({
       </div>
       {unread && (
         <form action={markNotificationRead.bind(null, notification.id)}>
-          <FormSubmitButton className="text-[12px] font-bold text-primary">Mark read</FormSubmitButton>
+          <FormSubmitButton>Mark read</FormSubmitButton>
         </form>
       )}
     </div>

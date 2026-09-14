@@ -116,7 +116,11 @@ export function AppShell({
             </span>
           </div>
           <form action={signOut}>
-            <FormSubmitButton className="w-full rounded-control border border-primary-tint px-3 py-2 text-[12.5px] font-bold text-primary-tint">
+            {/* Bespoke colors for the dark sidebar ground — none of the
+                five light-surface variants fit here — but the same base
+                typography/radius/size contract as everywhere else
+                (rounded-button, 13px/800, row height). */}
+            <FormSubmitButton className="w-full rounded-button border border-primary-tint px-3 py-[9px] text-[13px] font-extrabold leading-[18px] text-primary-tint hover:bg-white/8 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-tint">
               Sign out
             </FormSubmitButton>
           </form>

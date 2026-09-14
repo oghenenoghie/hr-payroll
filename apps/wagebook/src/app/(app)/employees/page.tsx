@@ -1,23 +1,15 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { toNaira } from "@plutus/compliance";
-import type { Tables } from "@plutus/core";
 import { createClient } from "@/lib/supabase/server";
-import { formatKobo, getProbationStatus, getContractStatus, getEmployeeLifecycleStage, type EmployeeLifecycleStage } from "@/lib/format";
-import {
-  TinBadge,
-  EmployeeStatusBadge,
-  BankDetailsBadge,
-  ProbationBadge,
-  ContractStatusBadge,
-  EmployeeLifecycleStageBadge,
-} from "@/components/Badge";
+import { getProbationStatus, getContractStatus, getEmployeeLifecycleStage, type EmployeeLifecycleStage } from "@/lib/format";
 import { getMembership } from "@/lib/membership";
 import { notifyLifecycleDeadlines } from "@/lib/lifecycle-alerts";
 import { getCachedDepartments, getCachedBranches } from "@/lib/reference-data";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
-import { DataTable, type DataTableColumn } from "@/components/DataTable";
+import { Button } from "@/components/Button";
+import { EmployeesTable } from "./EmployeesTable";
 
 const PAGE_SIZE = 50;
 
@@ -180,12 +172,7 @@ export default async function EmployeesPage({
           {employees && employees.length > 0 && (
             <ExportCsvButton csv={csv} filename="employees.csv" label="Export this page (CSV)" />
           )}
-          <Link
-            href="/employees/new"
-            className="rounded-button bg-primary px-[22px] py-[11px] text-[13px] font-extrabold text-white"
-          >
-            + Add employee
-          </Link>
+          <Button href="/employees/new">+ Add employee</Button>
         </div>
       </header>
 
@@ -254,12 +241,9 @@ export default async function EmployeesPage({
             ))}
           </select>
         </div>
-        <button
-          type="submit"
-          className="rounded-button border border-border px-[18px] py-[9px] text-[12.5px] font-extrabold text-ink"
-        >
+        <Button type="submit" variant="secondary" size="md">
           Filter
-        </button>
+        </Button>
         {hasActiveFilters && (
           <Link href="/employees" className="px-2 py-[9px] text-[12.5px] font-bold text-primary">
             Clear filters
@@ -298,126 +282,5 @@ export default async function EmployeesPage({
         </div>
       )}
     </div>
-  );
-}
-
-function EmployeesTable({
-  employees,
-  lifecycleStageByEmployeeId,
-  emptyMessage,
-}: {
-  employees: Tables<"employees_masked">[];
-  lifecycleStageByEmployeeId: Map<string, EmployeeLifecycleStage>;
-  emptyMessage: string;
-}) {
-  const columns: DataTableColumn<Tables<"employees_masked">>[] = [
-    {
-      key: "name",
-      header: "Name",
-      sortValue: (employee) => employee.full_name ?? "",
-      render: (employee) => <span className="font-bold text-ink">{employee.full_name}</span>,
-    },
-    {
-      key: "department",
-      header: "Department",
-      sortValue: (employee) => employee.department_name ?? "",
-      render: (employee) => <span className="text-ink-soft">{employee.department_name ?? "—"}</span>,
-    },
-    {
-      key: "branch",
-      header: "Branch",
-      sortValue: (employee) => employee.branch_name ?? "",
-      render: (employee) => <span className="text-ink-soft">{employee.branch_name ?? "—"}</span>,
-    },
-    {
-      key: "state",
-      header: "State",
-      sortValue: (employee) => employee.state_of_residence ?? "",
-      render: (employee) => <span className="text-ink-soft">{employee.state_of_residence ?? "—"}</span>,
-    },
-    {
-      key: "basic",
-      header: "Basic",
-      align: "right",
-      render: (employee) =>
-        employee.basic_kobo !== null ? (
-          <span className="font-bold text-ink">{formatKobo(BigInt(employee.basic_kobo))}</span>
-        ) : (
-          <span className="text-ink-soft">Restricted</span>
-        ),
-    },
-    {
-      key: "tin",
-      header: "TIN",
-      align: "center",
-      render: (employee) => <TinBadge tin={employee.tin} />,
-    },
-    {
-      key: "bank",
-      header: "Bank details",
-      align: "center",
-      render: (employee) =>
-        employee.salary_masked && employee.bank_account_number === null ? (
-          <span className="text-ink-soft">Restricted</span>
-        ) : (
-          <BankDetailsBadge bankAccountNumber={employee.bank_account_number} />
-        ),
-    },
-    {
-      key: "status",
-      header: "Status",
-      align: "center",
-      render: (employee) => <EmployeeStatusBadge status={employee.status ?? "active"} />,
-    },
-    {
-      key: "lifecycle_stage",
-      header: "Lifecycle Stage",
-      align: "center",
-      render: (employee) => (
-        <EmployeeLifecycleStageBadge stage={employee.id ? (lifecycleStageByEmployeeId.get(employee.id) ?? "active") : "active"} />
-      ),
-    },
-    {
-      key: "probation",
-      header: "Probation",
-      align: "center",
-      render: (employee) => (
-        <ProbationBadge status={getProbationStatus(employee.probation_end_date, employee.confirmed ?? false)} />
-      ),
-    },
-    {
-      key: "contract",
-      header: "Contract",
-      align: "center",
-      render: (employee) => (
-        <ContractStatusBadge
-          status={getContractStatus(employee.employment_type ?? "permanent", employee.contract_end_date)}
-        />
-      ),
-    },
-    {
-      key: "actions",
-      header: "",
-      align: "right",
-      render: (employee) => (
-        <div className="flex justify-end gap-3">
-          <Link href={`/employees/${employee.id}`} className="font-bold text-primary">
-            View
-          </Link>
-          <Link href={`/employees/${employee.id}/edit`} className="font-bold text-primary">
-            Edit
-          </Link>
-        </div>
-      ),
-    },
-  ];
-
-  return (
-    <DataTable
-      columns={columns}
-      rows={employees}
-      rowKey={(employee) => employee.id!}
-      emptyMessage={emptyMessage}
-    />
   );
 }

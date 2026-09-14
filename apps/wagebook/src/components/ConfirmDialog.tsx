@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
+import { Button } from "./Button";
 
 // Shared confirmation modal for anything destructive or decision-committing
 // (delete, approve/reject, discard, reverse, dispose, disconnect, etc.) —
@@ -54,24 +55,18 @@ export function ConfirmDialog({
         </h2>
         <p className="mt-2 text-[13px] text-ink-soft">{message}</p>
         <div className="mt-5 flex justify-end gap-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            autoFocus={tone === "danger"}
-            className="rounded-button border border-border px-[18px] py-[9px] text-[12.5px] font-extrabold text-ink"
-          >
+          <Button type="button" variant="secondary" size="md" onClick={onCancel} autoFocus={tone === "danger"}>
             {cancelLabel}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant={tone === "danger" ? "danger" : "primary"}
+            size="md"
             onClick={onConfirm}
             autoFocus={tone !== "danger"}
-            className={`rounded-button px-[18px] py-[9px] text-[12.5px] font-extrabold text-white ${
-              tone === "danger" ? "bg-bad" : "bg-primary"
-            }`}
           >
             {confirmLabel}
-          </button>
+          </Button>
         </div>
       </div>
     </div>,

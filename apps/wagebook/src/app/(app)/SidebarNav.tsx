@@ -321,8 +321,8 @@ function NavItemRow({ item, active, unreadNotifications }: { item: NavItem; acti
   return (
     <Link
       href={item.href}
-      className={`relative flex items-center gap-2.5 rounded-control px-3 py-2 text-[13px] font-bold ${
-        active ? "text-white" : "text-primary-tint hover:bg-primary"
+      className={`relative flex items-center gap-2.5 rounded-control px-3 py-2.5 text-[13px] md:py-2 ${
+        active ? "font-extrabold text-white" : "font-bold text-primary-tint hover:bg-white/8"
       }`}
     >
       {active && (
@@ -413,7 +413,7 @@ export function SidebarNav({
                 type="button"
                 onClick={() => toggleGroup(group.heading!)}
                 aria-expanded={!isCollapsed}
-                className="flex items-center justify-between rounded-control px-3 pb-1 text-[11px] font-bold uppercase tracking-[0.03em] text-primary-tint/60 hover:text-primary-tint"
+                className="flex items-center justify-between rounded-control px-3 pb-1 text-[11px] font-bold uppercase tracking-[0.03em] text-primary-tint/75 hover:text-primary-tint"
               >
                 <span>{group.heading}</span>
                 <ChevronIcon collapsed={isCollapsed} />
@@ -439,7 +439,7 @@ export function SidebarNav({
                             type="button"
                             onClick={() => toggleGroup(subKey)}
                             aria-expanded={!subCollapsed}
-                            className="flex items-center justify-between rounded-control px-3 pb-1 text-[10.5px] font-bold uppercase tracking-[0.03em] text-primary-tint/50 hover:text-primary-tint"
+                            className="flex items-center justify-between rounded-control px-3 pb-1 text-[10.5px] font-bold uppercase tracking-[0.03em] text-primary-tint/75 hover:text-primary-tint"
                           >
                             <span>{subgroup.heading}</span>
                             <ChevronIcon collapsed={subCollapsed} />
