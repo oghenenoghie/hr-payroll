@@ -1,5 +1,6 @@
 "use server";
 
+import { randomBytes } from "node:crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -72,25 +73,42 @@ export async function updateMemberRole(
   return null;
 }
 
-// Deliberately excludes 'employee' (that self-service invite is tied to a
+// Deliberately excludes 'employee' (that self-service account is tied to a
 // specific employees record and goes through employees/[id]/edit/actions.ts's
 // inviteEmployeeAccount, which links the two atomically) and
 // 'department_manager' (that role is granted from the department it heads,
 // via departments/actions.ts's setDepartmentManager, since it only makes
 // sense attached to an existing employee record and a department).
-const INVITABLE_ROLES = new Set(["admin", "payroll_manager", "hr_manager", "accountant", "auditor"]);
+const CREATABLE_ROLES = new Set(["admin", "payroll_manager", "hr_manager", "accountant", "auditor"]);
 
-export type InviteTeamMemberState = { error?: string; success?: boolean } | null;
+// Generated fresh per account, shown to the admin exactly once — same
+// approach as security/new/actions.ts's createTeamMember, and for the
+// same reason: this used to go through admin.auth.admin.inviteUserByEmail(),
+// which mails a magic link the person must click before they have any
+// password at all. Without custom SMTP configured on the Supabase
+// project that mail is unreliable (Supabase's built-in mailer is
+// heavily rate-limited) or silently undelivered, and the account sat
+// there with no way in — indistinguishable from a wrong password at the
+// login screen. Creating the account with a real password up front
+// means access never depends on an email arriving.
+function generatePassword(): string {
+  return randomBytes(18).toString("base64url");
+}
+
+export type AddTeamMemberState =
+  | { error: string }
+  | { success: true; email: string; password: string }
+  | null;
 
 // Only Admin can grant operational roles — mirrors org_memberships' own
 // RLS (only admin can INSERT/UPDATE a membership row for any role other
 // than HR onboarding a plain 'employee'), so this action can't do
 // anything the caller's own session doesn't already have the standing
 // database privilege for.
-export async function inviteTeamMember(
-  _prevState: InviteTeamMemberState,
+export async function addTeamMember(
+  _prevState: AddTeamMemberState,
   formData: FormData,
-): Promise<InviteTeamMemberState> {
+): Promise<AddTeamMemberState> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -102,34 +120,43 @@ export async function inviteTeamMember(
 
   const membership = await getMembership(supabase, user.id);
   if (membership?.role !== "admin") {
-    return { error: "Only Super Admin can invite team members." };
+    return { error: "Only Super Admin can add team members." };
   }
 
   const email = String(formData.get("email") ?? "").trim();
   const role = String(formData.get("role") ?? "").trim();
 
   if (!email) {
-    return { error: "Enter an email address to invite." };
+    return { error: "Enter an email address." };
   }
-  if (!INVITABLE_ROLES.has(role)) {
+  if (!CREATABLE_ROLES.has(role)) {
     return { error: "Choose a valid role." };
   }
 
+  const password = generatePassword();
   const admin = createAdminClient();
-  const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email);
+  const { data: created, error: createError } = await admin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+  });
 
-  if (inviteError || !invited.user) {
-    return { error: inviteError?.message ?? "Failed to send invite." };
+  if (createError || !created.user) {
+    return { error: createError?.message ?? "Failed to create the account." };
   }
 
   const { error: membershipError } = await supabase
     .from("org_memberships")
-    .insert({ org_id: membership.orgId, user_id: invited.user.id, role });
+    .insert({ org_id: membership.orgId, user_id: created.user.id, role });
 
   if (membershipError) {
-    return { error: `Invite sent, but granting access failed: ${membershipError.message}` };
+    // Roll back the auth user rather than leaving it orphaned — otherwise
+    // every retry hits "email already registered" with no membership row
+    // to show for it, the same reasoning as createTeamMember's rollback.
+    await admin.auth.admin.deleteUser(created.user.id);
+    return { error: `Couldn't grant access: ${membershipError.message}` };
   }
 
   revalidatePath("/security");
-  return { success: true };
+  return { success: true, email, password };
 }
