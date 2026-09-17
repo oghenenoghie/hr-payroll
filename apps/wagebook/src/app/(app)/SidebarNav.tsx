@@ -127,7 +127,7 @@ const ACCOUNTS_PAYABLES_RECEIVABLES_ITEMS: NavItem[] = [
 const ACCOUNTS_ACCOUNTING_ITEMS: NavItem[] = [
   { href: "/chart-of-accounts", label: "Chart of Accounts", icon: ListIcon },
   { href: "/general-ledger", label: "General Ledger", icon: BookIcon },
-  { href: "/financial-statements", label: "Financial Statements", icon: BarChartIcon },
+  { href: "/financial-statements", label: "Profit and Loss Account", icon: BarChartIcon },
   { href: "/bank-reconciliation", label: "Bank Reconciliation", icon: ColumnsIcon },
 ];
 
@@ -135,6 +135,7 @@ const ACCOUNTS_ASSETS_BUDGETS_ITEMS: NavItem[] = [
   { href: "/fixed-assets", label: "Fixed Assets", icon: BoxIcon },
   { href: "/fixed-assets/depreciation", label: "Depreciation Runs", icon: TrendDownIcon },
   { href: "/budgets", label: "Budgets", icon: PieChartIcon },
+  { href: "/financial-statements/balance-sheet", label: "Balance Sheet", icon: BarChartIcon },
 ];
 
 const REQUESTS_ITEMS: NavItem[] = [
@@ -164,7 +165,7 @@ const INTEGRATIONS_NAV_ITEM: NavItem = { href: "/integrations", label: "Integrat
 const AUDIT_LOG_NAV_ITEM: NavItem = { href: "/security/audit-log", label: "Audit Log", icon: HistoryIcon };
 const PERFORMANCE_NAV_ITEM: NavItem = { href: "/performance", label: "Performance", icon: TargetIcon };
 const EMPLOYEE_RELATIONS_NAV_ITEM: NavItem = { href: "/employee-relations", label: "Employee Relations", icon: ShieldIcon };
-const LEARNING_NAV_ITEM: NavItem = { href: "/learning", label: "Learning", icon: CapIcon };
+const LEARNING_NAV_ITEM: NavItem = { href: "/learning", label: "Training and Development", icon: CapIcon };
 const BILLING_NAV_ITEM: NavItem = { href: "/billing", label: "Billing & Subscription", icon: BanknoteIcon };
 const WORKFLOWS_NAV_ITEM: NavItem = { href: "/workflows", label: "Approval Workflows", icon: SlidersIcon };
 
@@ -252,7 +253,7 @@ export function buildNavGroups(role: string | undefined, sections: SectionKey[],
       subgroups: [
         { heading: "Payroll", items: ACCOUNTS_PAYROLL_ITEMS },
         { heading: "Payables & Receivables", items: ACCOUNTS_PAYABLES_RECEIVABLES_ITEMS },
-        { heading: "Accounting", items: ACCOUNTS_ACCOUNTING_ITEMS },
+        { heading: "Financial Information", items: ACCOUNTS_ACCOUNTING_ITEMS },
         { heading: "Assets & Budgets", items: ACCOUNTS_ASSETS_BUDGETS_ITEMS },
       ],
     });
