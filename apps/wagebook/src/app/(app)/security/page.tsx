@@ -7,7 +7,7 @@ import { Badge } from "@/components/Badge";
 import { toCsv } from "@/lib/csv";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { MemberRoleForm } from "./MemberRoleForm";
-import { InviteTeamMemberForm } from "./InviteTeamMemberForm";
+import { AddTeamMemberForm } from "./AddTeamMemberForm";
 
 const thClass = "px-3 py-[10px] text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft";
 const tdClass = "px-3 py-[10px] text-[13px]";
@@ -86,14 +86,15 @@ export default async function SecurityPage() {
       {isAdmin && (
         <div className="rounded-card border border-border bg-surface p-6">
           <span className="text-[11px] font-bold uppercase tracking-[0.03em] text-ink-soft">
-            Invite a team member
+            Add a team member
           </span>
           <p className="mt-1 text-[13px] text-ink-soft">
             Grants operational access to the platform itself — not an employee&apos;s self-service account, which is
-            invited from their record on the Employees page.
+            set up from their record on the Employees page. Creates the login immediately with a generated
+            password; copy it from the next screen and send it to your teammate directly.
           </p>
           <div className="mt-4">
-            <InviteTeamMemberForm />
+            <AddTeamMemberForm />
           </div>
         </div>
       )}
