@@ -2,21 +2,26 @@
 
 export function PrintButton({ children }: { children: React.ReactNode }) {
   function handlePrint() {
-    // Focus the document before opening the native print dialog. This matters
-    // in mobile browsers and embedded browser windows where print() on an
-    // unfocused document can be ignored.
+    // The page displaying this control is the document preview. Do not open
+    // the native print dialog until the user has reviewed the document and
+    // explicitly activates this button.
     window.focus();
     window.print();
   }
 
   return (
-    <button
-      type="button"
-      onClick={handlePrint}
-      aria-label="Print payslip or save as PDF"
-      className="rounded-button bg-primary px-[18px] py-[9px] text-[12.5px] font-extrabold text-white"
-    >
-      {children}
-    </button>
+    <div className="flex flex-col items-end gap-1 print:hidden">
+      <span className="text-right text-[11px] text-ink-soft">
+        Preview the document below before printing.
+      </span>
+      <button
+        type="button"
+        onClick={handlePrint}
+        aria-label="Print document or save as PDF"
+        className="rounded-button bg-primary px-[18px] py-[9px] text-[12.5px] font-extrabold text-white"
+      >
+        {children}
+      </button>
+    </div>
   );
 }
